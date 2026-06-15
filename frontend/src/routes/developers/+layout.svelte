@@ -2,10 +2,9 @@
 	import { page } from '$app/stores';
 	import type { LayoutData } from './$types';
 
-	export let data: LayoutData;
+	let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
 
-	$: path = $page.url.pathname;
-</script>
+const path = $derived($page.url.pathname);</script>
 
 <div class="min-h-screen bg-gray-50">
 	<nav class="bg-white border-b border-gray-200">
@@ -44,6 +43,6 @@
 	</nav>
 
 	<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		<slot />
+		{@render children?.()}
 	</main>
 </div>

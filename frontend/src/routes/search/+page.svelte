@@ -10,40 +10,37 @@
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import { activeTemplate } from '$stores/template';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	$: searchUiVariant = ($activeTemplate === 'noir' ? 'noir' : 'default') as 'noir' | 'default';
+const searchUiVariant = $derived(($activeTemplate === 'noir' ? 'noir' : 'default') as 'noir' | 'default');
+	const initialQuery = $derived($page.url.searchParams.get('q') || '');
 
-	$: initialQuery = $page.url.searchParams.get('q') || '';
-
-	$: aliasModules = (data.aliasModules || []) as PageModuleData[];
-	$: aliasLayout =
-		data.aliasPage?.layout && typeof data.aliasPage.layout === 'object'
+const aliasModules = $derived((data.aliasModules || []) as PageModuleData[]);
+const aliasLayout = $derived(data.aliasPage?.layout && typeof data.aliasPage.layout === 'object'
 			? {
 					gridRows: Number((data.aliasPage.layout as any).gridRows) || 1,
 					gridColumns: Number((data.aliasPage.layout as any).gridColumns) || 1
 				}
-			: { gridRows: 1, gridColumns: 1 };
-	$: hasAliasModules = Array.isArray(aliasModules) && aliasModules.length > 0;
+			: { gridRows: 1, gridColumns: 1 });
+const hasAliasModules = $derived(Array.isArray(aliasModules) && aliasModules.length > 0);
 
-	$: searchTemplate =
-		$siteConfigData?.template ??
+const searchTemplate = $derived($siteConfigData?.template ??
 		(data.pageModules?.length || data.pageLayout
 			? {
 					pageModules: data.pageModules?.length ? { search: data.pageModules } : undefined,
 					pageLayout: data.pageLayout ? { search: data.pageLayout } : undefined
 				}
-			: undefined);
+			: undefined));
 
-	$: searchModules = (searchTemplate
+const searchModules = $derived((searchTemplate
 		? getEffectivePageModules(searchTemplate, 'search', $viewportWidth)
-		: []) as PageModuleData[];
-	$: searchLayout = searchTemplate
+		: []) as PageModuleData[]);
+const searchLayout = $derived(searchTemplate
 		? getEffectivePageGrid(searchTemplate, 'search', $viewportWidth)
-		: { gridRows: 1, gridColumns: 1 };
+		: { gridRows: 1, gridColumns: 1 });
 
-	$: hasPageModules = hasAliasModules || (Array.isArray(searchModules) && searchModules.length > 0);
-	$: pageForRenderer = hasPageModules
+const hasPageModules = $derived(hasAliasModules || (Array.isArray(searchModules) && searchModules.length > 0));
+const pageForRenderer = $derived(hasPageModules
 		? ({
 				_id: (data.aliasPage?._id as string) || 'search',
 				title: {} as any,
@@ -52,7 +49,7 @@
 					? { gridRows: aliasLayout.gridRows, gridColumns: aliasLayout.gridColumns }
 					: { gridRows: searchLayout.gridRows, gridColumns: searchLayout.gridColumns }
 			} as any)
-		: null;
+		: null);
 </script>
 
 <svelte:head>

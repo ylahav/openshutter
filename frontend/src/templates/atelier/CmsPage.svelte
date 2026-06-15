@@ -5,8 +5,13 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import type { PageData } from '$lib/types/page-builder';
 
-	export let page: PageData | null = null;
-	export let error: string | null = null;
+	let {
+		page = null,
+		error = null
+	}: {
+		page?: PageData | null;
+		error?: string | null;
+	} = $props();
 </script>
 
 <div
@@ -19,7 +24,7 @@
 			<button
 				type="button"
 				class="text-[9px] uppercase tracking-[0.22em] border border-(--tp-border) px-6 py-3 bg-transparent text-(--tp-fg) cursor-pointer"
-				on:click={() => goto('/')}
+				onclick={() => goto('/')}
 			>
 				← home
 			</button>

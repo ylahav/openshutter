@@ -10,10 +10,10 @@
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	type Tab = 'overview' | 'views' | 'search' | 'tags' | 'albums' | 'storage';
-	let activeTab: Tab = 'overview';
+	let activeTab: Tab = $state('overview');
 	type ProviderKey = 'google-vision' | 'clip' | 'local';
 	interface AIProvidersHealthData {
 		configuredProvider: string;
@@ -79,29 +79,25 @@
 
 	const TAG_DISTRIBUTION_ORDER = ['0', '1-3', '4-6', '7+'];
 
-	let analytics: AnalyticsData | null = null;
-	let viewsData: any = null;
-	let searchData: any = null;
-	let tagsData: any = null;
-	let storageData: any = null;
-	let loading = true;
-	let loadingTab = false;
-	let loadingAIHealth = false;
-	let error = '';
-	let aiHealthError = '';
-	let aiHealth: AIProvidersHealthData | null = null;
+	let analytics: AnalyticsData | null = $state(null);
+	let viewsData: any = $state(null);
+	let searchData: any = $state(null);
+	let tagsData: any = $state(null);
+	let storageData: any = $state(null);
+	let loading = $state(true);
+	let loadingTab = $state(false);
+	let loadingAIHealth = $state(false);
+	let error = $state('');
+	let aiHealthError = $state('');
+	let aiHealth: AIProvidersHealthData | null = $state(null);
 
 	// Date range for filtered analytics
-	let dateFrom = '';
-	let dateTo = '';
+	let dateFrom = $state('');
+	let dateTo = $state('');
 	let period: 'day' | 'week' | 'month' = 'day';
 
-	let translate: (key: string, fallback?: string) => string;
-	let analyticsUnknownLabel = '';
-
-	// Keep store subscriptions top-level (Svelte disallows `$t(...)` inside callbacks/functions).
-	$: translate = $t;
-	$: analyticsUnknownLabel = translate('admin.analyticsUnknown');
+	const translate = $derived($t);
+	const analyticsUnknownLabel = $derived(translate('admin.analyticsUnknown'));
 
 	function formatRecentActivityPeriod(raw: string | undefined): string {
 		if (!raw) return '';
@@ -271,31 +267,31 @@
 			<nav class="-mb-px flex space-x-8">
 				<button
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'overview' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
-					on:click={() => handleTabChange('overview')}
+					onclick={() => handleTabChange('overview')}
 				>
 					{$t('admin.analyticsOverviewTab')}
 				</button>
 				<button
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'views' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
-					on:click={() => handleTabChange('views')}
+					onclick={() => handleTabChange('views')}
 				>
 					{$t('admin.analyticsViewsTab')}
 				</button>
 				<button
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'search' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
-					on:click={() => handleTabChange('search')}
+					onclick={() => handleTabChange('search')}
 				>
 					{$t('admin.analyticsSearchTab')}
 				</button>
 				<button
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'tags' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
-					on:click={() => handleTabChange('tags')}
+					onclick={() => handleTabChange('tags')}
 				>
 					{$t('admin.analyticsTagsTab')}
 				</button>
 				<button
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'storage' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
-					on:click={() => handleTabChange('storage')}
+					onclick={() => handleTabChange('storage')}
 				>
 					{$t('admin.analyticsStorageTab')}
 				</button>
@@ -312,7 +308,7 @@
 							type="date"
 							bind:value={dateFrom}
 							class="px-3 py-2 border border-surface-300-700 rounded-md text-sm"
-							on:change={() => loadTabData(activeTab)}
+							onchange={() => loadTabData(activeTab)}
 						/>
 					</div>
 					<div>
@@ -321,7 +317,7 @@
 							type="date"
 							bind:value={dateTo}
 							class="px-3 py-2 border border-surface-300-700 rounded-md text-sm"
-							on:change={() => loadTabData(activeTab)}
+							onchange={() => loadTabData(activeTab)}
 						/>
 					</div>
 					{#if activeTab === 'views' || activeTab === 'search'}
@@ -330,7 +326,7 @@
 							<select
 								bind:value={period}
 								class="px-3 py-2 border border-surface-300-700 rounded-md text-sm"
-								on:change={() => loadTabData(activeTab)}
+								onchange={() => loadTabData(activeTab)}
 							>
 								<option value="day">{$t('admin.analyticsPeriodDay')}</option>
 								<option value="week">{$t('admin.analyticsPeriodWeek')}</option>
@@ -341,7 +337,7 @@
 					<div class="flex-1"></div>
 					<button
 						type="button"
-						on:click={() => exportData(activeTab)}
+						onclick={() => exportData(activeTab)}
 						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						{$t('admin.analyticsExportCsv')}
@@ -562,7 +558,7 @@
 						<p class="text-sm text-(--color-surface-600-400) mt-1">{$t('admin.analyticsAIProvidersHealthSubtitle')}</p>
 					</div>
 					<button
-						on:click={loadAIHealth}
+						onclick={loadAIHealth}
 						class="px-3 py-2 bg-(--color-surface-100-900) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-200-800) text-sm font-medium"
 						disabled={loadingAIHealth}
 					>

@@ -7,17 +7,17 @@
 	import { productName } from '$stores/siteConfig';
 	import type { PageData, PageModuleData } from '$lib/types/page-builder';
 
-	export let data: {
+	let { data }: { data: {
 		page: PageData | null;
 		modules: PageModuleData[];
 		error: string | null;
-	};
+	} } = $props();
 
-	$: pageData = data.page;
-	$: modules = data.modules || [];
-	$: loadError = data.error;
-	$: hasError = !!loadError || !pageData;
-	$: hasModules = modules.length > 0;
+const pageData = $derived(data.page);
+	const modules = $derived(data.modules || []);
+const loadError = $derived(data.error);
+	const hasError = $derived(!!loadError || !pageData);
+const hasModules = $derived(modules.length > 0);
 
 	function getTextValue(value: string | { en?: string; he?: string } | undefined): string {
 		if (!value) return '';

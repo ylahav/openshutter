@@ -5,10 +5,17 @@
 	import { isPlatformSystemAccountUsername } from '$lib/initial-admin';
 	import { t } from '$stores/i18n';
 
-	export let users: User[] = [];
-	export let groups: Group[] = [];
-	export let onEdit: (user: User) => void = () => {};
-	export let onDelete: (user: User) => void = () => {};
+	let {
+		users = [],
+		groups = [],
+		onEdit = () => {},
+		onDelete = () => {}
+	}: {
+		users?: User[];
+		groups?: Group[];
+		onEdit?: (user: User) => void;
+		onDelete?: (user: User) => void;
+	} = $props();
 
 	function getUserName(user: User): string {
 		const nameField = typeof user.name === 'string' ? user.name : user.name;
@@ -133,7 +140,7 @@
 						<div class="inline-flex flex-wrap items-center justify-end gap-2">
 							<button
 								type="button"
-								on:click={() => onEdit(user)}
+								onclick={() => onEdit(user)}
 								class="text-(--color-primary-600) hover:text-(--color-primary-900)"
 							>
 								Edit
@@ -143,7 +150,7 @@
 									type="button"
 									class="px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-900 dark:bg-amber-900/35 dark:text-amber-100 hover:opacity-90"
 									title={$t('admin.usersChangePasswordRequired')}
-									on:click={() => onEdit(user)}
+									onclick={() => onEdit(user)}
 								>
 									{$t('admin.usersChangePasswordRequired')}
 								</button>
@@ -158,7 +165,7 @@
 									Delete
 								</button>
 							{:else}
-								<button type="button" on:click={() => onDelete(user)} class="text-red-600 hover:text-red-900">
+								<button type="button" onclick={() => onDelete(user)} class="text-red-600 hover:text-red-900">
 									Delete
 								</button>
 							{/if}

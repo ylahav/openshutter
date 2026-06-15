@@ -17,14 +17,14 @@
 		limit?: number;
 	};
 
-	export let config: RootAlbumsListConfig = {};
+	let { config = {} }: { config?: RootAlbumsListConfig } = $props();
 
-	let albums: RootAlbum[] = [];
-	let isLoading = true;
+	let albums = $state<RootAlbum[]>([]);
+	let isLoading = $state(true);
 
-	$: titleText = config?.title ? MultiLangUtils.getTextValue(config.title, $currentLanguage) : '';
-	$: maxItems = Math.min(100, Math.max(1, Number(config?.limit) || 50));
-	$: visibleAlbums = albums.slice(0, maxItems);
+	const titleText = $derived(config?.title ? MultiLangUtils.getTextValue(config.title, $currentLanguage) : '');
+	const maxItems = $derived(Math.min(100, Math.max(1, Number(config?.limit) || 50)));
+	const visibleAlbums = $derived(albums.slice(0, maxItems));
 
 	const toDisplayName = (album: RootAlbum): string => {
 		const byName = MultiLangUtils.getTextValue(album?.name, $currentLanguage)?.trim();

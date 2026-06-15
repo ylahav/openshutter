@@ -17,14 +17,21 @@
     href: string;
   }
 
-  export let album: TemplateAlbum | undefined = undefined;
-  export let albumId: string | undefined = undefined;
-  export let role: 'admin' | 'owner' | 'public' = 'public';
-  export let currentPage: 'view' | 'edit' | undefined = undefined;
+  let {
+    album = undefined,
+    albumId = undefined,
+    role = 'public',
+    currentPage = undefined
+  }: {
+    album?: TemplateAlbum;
+    albumId?: string;
+    role?: 'admin' | 'owner' | 'public';
+    currentPage?: 'view' | 'edit';
+  } = $props();
 
-  let breadcrumbs: BreadcrumbItem[] = [];
-  let loading = true;
-  let currentAlbum: TemplateAlbum | null = null;
+  let breadcrumbs = $state<BreadcrumbItem[]>([]);
+  let loading = $state(true);
+  let currentAlbum = $state<TemplateAlbum | null>(null);
 
   function getBasePathAndRootName() {
     if (role === 'admin') {

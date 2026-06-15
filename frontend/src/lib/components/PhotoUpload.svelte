@@ -22,9 +22,15 @@
 		error?: string;
 	}
 
-	export let albums: TemplateAlbum[] = [];
-	export let selectedAlbumId: string = '';
-	export let returnTo: string | null = null;
+	let {
+		albums = [],
+		selectedAlbumId = '',
+		returnTo = null
+	}: {
+		albums?: TemplateAlbum[];
+		selectedAlbumId?: string;
+		returnTo?: string | null;
+	} = $props();
 
 	let uploads: UploadProgress[] = [];
 	let isUploading = false;
@@ -313,13 +319,13 @@
 				class="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors {isDragActive
 					? 'border-blue-500 bg-blue-50'
 					: 'border-gray-300 hover:border-gray-400'} {isUploading ? 'opacity-50 cursor-not-allowed' : ''}"
-				on:dragover={handleDragOver}
-				on:dragleave={handleDragLeave}
-				on:drop={handleDrop}
-				on:click={() => !isUploading && fileInput?.click()}
+				ondragover={handleDragOver}
+				ondragleave={handleDragLeave}
+				ondrop={handleDrop}
+				onclick={() => !isUploading && fileInput?.click()}
 				role="button"
 				tabindex="0"
-				on:keydown={(e) => {
+				onkeydown={(e) => {
 					if (e.key === 'Enter' || e.key === ' ') {
 						e.preventDefault();
 						if (!isUploading) {
@@ -334,7 +340,7 @@
 					accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp"
 					multiple
 					class="hidden"
-					on:change={handleFileInputChange}
+					onchange={handleFileInputChange}
 					disabled={isUploading}
 				/>
 
@@ -365,7 +371,7 @@
 					<div class="flex items-center justify-between mb-4">
 						<h3 class="text-lg font-medium text-gray-900">Upload Progress</h3>
 						<button
-							on:click={clearForm}
+							onclick={clearForm}
 							class="text-sm text-gray-500 hover:text-gray-700"
 							disabled={isUploading}
 						>
@@ -376,7 +382,8 @@
 					<div class="space-y-3">
 						{#each uploads as upload, index (upload.filename + index)}
 							<div
-								transition:fly={{ y: 20, duration: 300 }}
+								in:fly={{ y: 20, duration: 300 }}
+								out:fly={{ y: 20, duration: 300 }}
 								class="bg-gray-50 rounded-lg p-4"
 							>
 								<div class="flex items-center justify-between mb-2">
@@ -384,7 +391,7 @@
 										{upload.filename}
 									</span>
 									<button
-										on:click={() => removeUpload(index)}
+										onclick={() => removeUpload(index)}
 										class="text-gray-400 hover:text-gray-600"
 										disabled={upload.status === 'uploading'}
 									>

@@ -1,22 +1,41 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	export let src: string;
-	export let alt: string;
-	export let width: number | undefined = undefined;
-	export let height: number | undefined = undefined;
-	export let className = '';
-	export let imageClassName = '';
-	export let priority = false;
-	export let sizes: string | undefined = undefined;
-	export let style: string | undefined = undefined;
-	export let fill = false;
-	export let quality = 75;
-	export let placeholder: 'blur' | 'empty' = 'empty';
-	export let blurDataURL: string | undefined = undefined;
-	export let fetchPriority: 'high' | 'low' | 'auto' = 'auto';
-	export let loading: 'eager' | 'lazy' | undefined = undefined;
-	export let unoptimized = false;
+	let {
+		src: string,
+		alt: string,
+		width = undefined,
+		height = undefined,
+		className = $bindable(''),
+		imageClassName = $bindable(''),
+		priority = $bindable(false),
+		sizes = undefined,
+		style = undefined,
+		fill = $bindable(false),
+		quality = $bindable(75),
+		placeholder = 'empty',
+		blurDataURL = undefined,
+		fetchPriority = 'auto',
+		loading = undefined,
+		unoptimized = $bindable(false)
+	}: {
+		src: string;
+		alt: string;
+		width?: number | undefined;
+		height?: number | undefined;
+		className?: unknown;
+		imageClassName?: unknown;
+		priority?: unknown;
+		sizes?: string | undefined;
+		style?: string | undefined;
+		fill?: unknown;
+		quality?: unknown;
+		placeholder?: 'blur' | 'empty';
+		blurDataURL?: string | undefined;
+		fetchPriority?: 'high' | 'low' | 'auto';
+		loading?: 'eager' | 'lazy' | undefined;
+		unoptimized?: unknown;
+	} = $props();
 
 	let isLoaded = false;
 	let isInView = priority;
@@ -85,7 +104,7 @@
 			loading={loading ?? (priority ? 'eager' : 'lazy')}
 			fetchpriority={fetchPriority}
 			decoding="async"
-			on:load={handleLoad}
+			onload={handleLoad}
 			class="transition-opacity duration-300 {isLoaded ? 'opacity-100' : 'opacity-0'} {imageClassName} {fill
 				? 'absolute inset-0 w-full h-full object-cover'
 				: ''}"

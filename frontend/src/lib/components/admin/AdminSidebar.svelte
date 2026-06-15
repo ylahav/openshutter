@@ -10,13 +10,11 @@
 
 	const STORAGE_KEY = 'openshutter-admin-sidebar-collapsed';
 
-	/** Full chrome line, e.g. "OpenShutter admin for Site name" — split for two-line header. */
-	export let heading = '';
+	let { heading = '', mobileOpen = $bindable(false) }: { heading?: string; mobileOpen?: boolean } =
+		$props();
 
-	export let mobileOpen = false;
-
-	let collapsed = false;
-	let contactTotal: number | null = null;
+	let collapsed = $state(false);
+	let contactTotal = $state<number | null>(null);
 
 	onMount(() => {
 		if (!browser) return;
@@ -85,28 +83,28 @@
 		return contactTotal;
 	}
 
-	$: pathname = $page.url.pathname;
-	$: useCollapsed = collapsed;
-	$: headingParts = (() => {
+	const pathname = $derived($page.url.pathname);
+	const useCollapsed = $derived(collapsed);
+	const headingParts = $derived.by(() => {
 		const h = typeof heading === 'string' ? heading : '';
 		const m = h.match(/^(.+?)\s+for\s+(.+)$/i);
 		if (m) return { brand: m[1].trim(), site: m[2].trim() };
 		return { brand: h || 'Admin', site: '' as string };
-	})();
+	});
 </script>
 
 {#if mobileOpen}
 	<button
 		type="button"
-		class="fixed inset-0 z-[120] bg-surface-950/50 backdrop-blur-[1px] lg:hidden"
+		class="fixed inset-0 z-120 bg-surface-950/50 backdrop-blur-[1px] lg:hidden"
 		aria-label={$t('admin.sidebarCloseMenu')}
-		on:click={closeMobile}
+		onclick={closeMobile}
 	></button>
 {/if}
 
 <aside
-	class="fixed inset-y-0 start-0 z-[130] flex flex-col border-e border-[color-mix(in_oklab,var(--color-surface-950)_10%,transparent)] dark:border-[color-mix(in_oklab,var(--color-surface-50)_12%,transparent)] bg-[color-mix(in_oklab,var(--color-surface-100-900)_40%,var(--color-surface-50-950)))] shadow-lg transition-[width,transform] duration-200 ease-out lg:static lg:z-0 lg:translate-x-0 lg:shadow-none lg:shrink-0 lg:rounded-xl lg:border {useCollapsed
-		? 'w-56 sm:w-60 lg:w-[3.5rem]'
+	class="fixed inset-y-0 inset-s-0 z-130 flex flex-col border-e border-[color-mix(in_oklab,var(--color-surface-950)_10%,transparent)] dark:border-[color-mix(in_oklab,var(--color-surface-50)_12%,transparent)] bg-[color-mix(in_oklab,var(--color-surface-100-900)_40%,var(--color-surface-50-950))] shadow-lg transition-[width,transform] duration-200 ease-out lg:static lg:z-0 lg:translate-x-0 lg:shadow-none lg:shrink-0 lg:rounded-xl lg:border {useCollapsed
+		? 'w-56 sm:w-60 lg:w-14'
 		: 'w-56 sm:w-60 lg:w-60'} {mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}"
 	aria-label={$t('admin.sidebarNavAria')}
 >
@@ -116,33 +114,23 @@
 		<button
 			type="button"
 			class="btn btn-sm preset-tonal shrink-0 p-2 hidden lg:inline-flex"
-			on:click={toggleCollapsed}
+			onclick={toggleCollapsed}
 			title={useCollapsed ? $t('admin.sidebarExpand') : $t('admin.sidebarCollapse')}
 			aria-expanded={!useCollapsed}
 			aria-controls="admin-sidebar-nav"
 		>
 			<svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 				{#if useCollapsed}
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M13 5l7 7-7 7M5 5l7 7-7 7"
-					/>
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
 				{:else}
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-					/>
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
 				{/if}
 			</svg>
 		</button>
 		<button
 			type="button"
 			class="btn btn-sm preset-tonal ms-auto px-2 lg:hidden"
-			on:click={closeMobile}
+			onclick={closeMobile}
 			aria-label={$t('admin.sidebarCloseMenu')}
 		>
 			<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,18 +183,19 @@
 								class={useCollapsed ? linkCollapsed(active) : linkSurface(active)}
 								title={useCollapsed ? label : undefined}
 								aria-current={active ? 'page' : undefined}
-								on:click={closeMobile}
+								data-sveltekit-reload
+								onclick={closeMobile}
 							>
 								<AdminNavIcon
 									name={item.icon}
-									className="h-[1.125rem] w-[1.125rem] shrink-0 {active
+									className="h-4.5 w-4.5 shrink-0 {active
 										? 'text-(--color-primary-600)'
 										: 'text-(--color-surface-600-400)'}"
 								/>
 								<span class="flex-1 truncate {useCollapsed ? 'lg:sr-only' : ''}">{label}</span>
 								{#if badge != null}
 									<span
-										class="ms-auto inline-flex min-w-[1.25rem] justify-center rounded-full bg-(--color-primary-500) px-1.5 py-0.5 text-[10px] font-bold leading-none text-white {useCollapsed
+										class="ms-auto inline-flex min-w-5 justify-center rounded-full bg-(--color-primary-500) px-1.5 py-0.5 text-[10px] font-bold leading-none text-white {useCollapsed
 											? 'lg:sr-only'
 											: ''}"
 									>
@@ -230,15 +219,11 @@
 				? 'lg:px-1'
 				: ''}"
 			title={$t('admin.uiDocsTitle')}
-			on:click={closeMobile}
+			data-sveltekit-reload
+			onclick={closeMobile}
 		>
 			<svg class="h-3.5 w-3.5 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="1.75"
-					d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-				/>
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
 			</svg>
 			<span class="truncate {useCollapsed ? 'lg:sr-only' : ''}">{$t('admin.sidebarDevUiDocs')}</span>
 		</a>
@@ -250,7 +235,7 @@
 			href="/"
 			class="btn btn-sm preset-outlined-surface-200-800 w-full justify-center gap-2 {useCollapsed ? 'lg:px-1' : ''}"
 			title={useCollapsed ? $t('admin.chromeNavSite') : undefined}
-			on:click={closeMobile}
+			onclick={closeMobile}
 		>
 			<svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2 0v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -263,7 +248,7 @@
 				? 'lg:px-1'
 				: ''}"
 			title={useCollapsed ? $t('header.logout') : undefined}
-			on:click={handleLogout}
+			onclick={handleLogout}
 		>
 			<svg class="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

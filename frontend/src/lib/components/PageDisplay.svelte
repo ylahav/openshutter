@@ -23,7 +23,7 @@
 		updatedBy?: any;
 	}
 
-	export let alias: string;
+	let { alias }: { alias: string } = $props();
 
 	let page: Page | null = null;
 	let loading = true;
@@ -94,7 +94,7 @@
 				</p>
 				<div class="space-x-4">
 					<button
-						on:click={() => goto('/')}
+						onclick={() => goto('/')}
 						class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
 					>
 						<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,7 +124,7 @@
 		<main class="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 			<!-- Back button -->
 			<button
-				on:click={() => goto('/')}
+				onclick={() => goto('/')}
 				class="mb-6 inline-flex items-center text-gray-600 hover:text-gray-900"
 			>
 				<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

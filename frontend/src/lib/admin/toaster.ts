@@ -1,7 +1,7 @@
 import { createToaster } from '@skeletonlabs/skeleton-svelte';
 
-/** Single admin toast store (Skeleton / Zag). */
+/** Shared Skeleton toast instance for admin UI. */
 export const adminToaster = createToaster({
 	placement: 'top-end',
-	max: 5,
+	max: 5
 });

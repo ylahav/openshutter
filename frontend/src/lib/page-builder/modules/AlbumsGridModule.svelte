@@ -32,38 +32,67 @@
 		config?: AlbumsGridProps;
 	} & AlbumsGridProps;
 
-	export let title: NonNullable<AlbumsGridProps['title']> = '';
-	export let description: AlbumsGridProps['description'] = undefined;
-	export let albumSource: NonNullable<AlbumsGridProps['albumSource']> = 'root';
-	export let selectedAlbums: AlbumsGridProps['selectedAlbums'] = undefined;
-	export let rootAlbumId: AlbumsGridProps['rootAlbumId'] = undefined;
-	export let rootGallery: AlbumsGridProps['rootGallery'] = undefined;
-	export let includeRoot: NonNullable<AlbumsGridProps['includeRoot']> = true;
-	export let showCover: NonNullable<AlbumsGridProps['showCover']> = true;
-	export let coverAspect: NonNullable<AlbumsGridProps['coverAspect']> = 'video';
-	export let showDescription: NonNullable<AlbumsGridProps['showDescription']> = true;
-	export let descriptionLines: NonNullable<AlbumsGridProps['descriptionLines']> = 2;
-	export let cardFieldOrder: NonNullable<AlbumsGridProps['cardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
-	export let albumCardLayout: NonNullable<AlbumsGridProps['albumCardLayout']> = 'stack';
-	export let albumCard: AlbumsGridProps['albumCard'] = undefined;
-	export let photoCard: AlbumsGridProps['photoCard'] = undefined;
-	export let albumCardVariant: AlbumsGridProps['albumCardVariant'] = undefined;
-	export let photoGridVariant: AlbumsGridProps['photoGridVariant'] = undefined;
-	export let showPhotoCount: NonNullable<AlbumsGridProps['showPhotoCount']> = true;
-	export let showFeaturedBadge: NonNullable<AlbumsGridProps['showFeaturedBadge']> = true;
-	export let sortBy: NonNullable<AlbumsGridProps['sortBy']> = 'manual';
-	export let sortDirection: NonNullable<AlbumsGridProps['sortDirection']> = 'asc';
-	export let limit: NonNullable<AlbumsGridProps['limit']> = 12;
-	export let showHeading: AlbumsGridProps['showHeading'] = undefined;
-	/** Consumed by PageBuilderGrid for `pbModuleCell` only; not passed into album gallery config. */
-	export let className: string | undefined = undefined;
+	let {
+		title = '',
+		description = undefined,
+		albumSource = 'root',
+		selectedAlbums = undefined,
+		rootAlbumId = undefined,
+		rootGallery = undefined,
+		includeRoot = true,
+		showCover = true,
+		coverAspect = 'video',
+		showDescription = true,
+		descriptionLines = 2,
+		cardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'],
+		albumCardLayout = 'stack',
+		albumCard = undefined,
+		photoCard = undefined,
+		albumCardVariant = undefined,
+		photoGridVariant = undefined,
+		showPhotoCount = true,
+		showFeaturedBadge = true,
+		sortBy = 'manual',
+		sortDirection = 'asc',
+		limit = 12,
+		showHeading = undefined,
+		className: _cellClass = undefined,
+		props,
+		data = null,
+		...rest
+	}: {
+		title?: AlbumsGridProps['title'];
+		description?: AlbumsGridProps['description'];
+		albumSource?: AlbumsGridProps['albumSource'];
+		selectedAlbums?: AlbumsGridProps['selectedAlbums'];
+		rootAlbumId?: AlbumsGridProps['rootAlbumId'];
+		rootGallery?: AlbumsGridProps['rootGallery'];
+		includeRoot?: AlbumsGridProps['includeRoot'];
+		showCover?: AlbumsGridProps['showCover'];
+		coverAspect?: AlbumsGridProps['coverAspect'];
+		showDescription?: AlbumsGridProps['showDescription'];
+		descriptionLines?: AlbumsGridProps['descriptionLines'];
+		cardFieldOrder?: AlbumsGridProps['cardFieldOrder'];
+		albumCardLayout?: AlbumsGridProps['albumCardLayout'];
+		albumCard?: AlbumsGridProps['albumCard'];
+		photoCard?: AlbumsGridProps['photoCard'];
+		albumCardVariant?: AlbumsGridProps['albumCardVariant'];
+		photoGridVariant?: AlbumsGridProps['photoGridVariant'];
+		showPhotoCount?: AlbumsGridProps['showPhotoCount'];
+		showFeaturedBadge?: AlbumsGridProps['showFeaturedBadge'];
+		sortBy?: AlbumsGridProps['sortBy'];
+		sortDirection?: AlbumsGridProps['sortDirection'];
+		limit?: AlbumsGridProps['limit'];
+		showHeading?: AlbumsGridProps['showHeading'];
+		className?: string;
+		props?: LegacyAlbumsGridProps;
+		data?: unknown;
+		[key: string]: unknown;
+	} = $props();
 
-	// Temporary migration fallback for legacy nested props.config payloads
-	export let props: LegacyAlbumsGridProps | undefined = undefined;
-	export let data: unknown = null;
-
-	$: config = (() => {
-		const p: any = props && typeof props === 'object' ? props : undefined;
+	const config = $derived.by(() => {
+		const p: LegacyAlbumsGridProps | undefined =
+			props && typeof props === 'object' ? props : undefined;
 		const defaults: AlbumsGridProps = {
 			title,
 			description,
@@ -90,10 +119,10 @@
 			showHeading
 		};
 		const legacyConfig = p?.config && typeof p.config === 'object' ? p.config : undefined;
-		const { className: _cellClass, ...pRest } = (p ?? {}) as Record<string, unknown>;
 		const { className: _nestedCell, ...legacyRest } = (legacyConfig ?? {}) as Record<string, unknown>;
-		return { ...defaults, ...legacyRest, ...pRest } satisfies AlbumsGridProps;
-	})();
+		const { className: _pCell, ...pRest } = (p ?? {}) as Record<string, unknown>;
+		return { ...defaults, ...legacyRest, ...pRest, ...rest } satisfies AlbumsGridProps;
+	});
 </script>
 
 <Layout {config} {data} />

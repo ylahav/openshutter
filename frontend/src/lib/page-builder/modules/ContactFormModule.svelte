@@ -40,60 +40,92 @@
 
 	type LegacyContactFormProps = { config?: ContactFormProps } & ContactFormProps;
 
-	export let title: ContactFormProps['title'] = undefined;
-	export let description: ContactFormProps['description'] = undefined;
-	export let showSidebar: NonNullable<ContactFormProps['showSidebar']> = true;
-	export let sidebarTitle: ContactFormProps['sidebarTitle'] = undefined;
-	export let showSidebarEmail: NonNullable<ContactFormProps['showSidebarEmail']> = true;
-	export let sidebarEmail: ContactFormProps['sidebarEmail'] = undefined;
-	export let showSidebarPhone: NonNullable<ContactFormProps['showSidebarPhone']> = true;
-	export let sidebarPhone: ContactFormProps['sidebarPhone'] = undefined;
-	export let showSidebarAddress: NonNullable<ContactFormProps['showSidebarAddress']> = false;
-	export let sidebarAddress: ContactFormProps['sidebarAddress'] = undefined;
-	export let showSidebarSocial: NonNullable<ContactFormProps['showSidebarSocial']> = true;
-	export let showInstagram: NonNullable<ContactFormProps['showInstagram']> = true;
-	export let showFlickr: NonNullable<ContactFormProps['showFlickr']> = true;
-	export let showFacebook: NonNullable<ContactFormProps['showFacebook']> = true;
-	export let showTwitter: NonNullable<ContactFormProps['showTwitter']> = true;
-	export let showLinkedin: NonNullable<ContactFormProps['showLinkedin']> = true;
-	export let showYoutube: NonNullable<ContactFormProps['showYoutube']> = true;
-	export let showGithub: NonNullable<ContactFormProps['showGithub']> = true;
-	export let socialLinks: ContactFormProps['socialLinks'] = undefined;
-	export let links: ContactFormProps['links'] = undefined;
-	export let linksJson: ContactFormProps['linksJson'] = undefined;
-	export let showPhoneField: NonNullable<ContactFormProps['showPhoneField']> = false;
-	export let showPhone: NonNullable<ContactFormProps['showPhone']> = false;
-	export let submitLabel: ContactFormProps['submitLabel'] = undefined;
+	let {
+		title = undefined,
+		description = undefined,
+		showSidebar = true,
+		sidebarTitle = undefined,
+		showSidebarEmail = true,
+		sidebarEmail = undefined,
+		showSidebarPhone = true,
+		sidebarPhone = undefined,
+		showSidebarAddress = false,
+		sidebarAddress = undefined,
+		showSidebarSocial = true,
+		showInstagram = true,
+		showFlickr = true,
+		showFacebook = true,
+		showTwitter = true,
+		showLinkedin = true,
+		showYoutube = true,
+		showGithub = true,
+		socialLinks = undefined,
+		links = undefined,
+		linksJson = undefined,
+		showPhoneField = false,
+		showPhone = false,
+		submitLabel = undefined,
+		props,
+		...rest
+	}: {
+		title?: ContactFormProps['title'];
+		description?: ContactFormProps['description'];
+		showSidebar?: ContactFormProps['showSidebar'];
+		sidebarTitle?: ContactFormProps['sidebarTitle'];
+		showSidebarEmail?: ContactFormProps['showSidebarEmail'];
+		sidebarEmail?: ContactFormProps['sidebarEmail'];
+		showSidebarPhone?: ContactFormProps['showSidebarPhone'];
+		sidebarPhone?: ContactFormProps['sidebarPhone'];
+		showSidebarAddress?: ContactFormProps['showSidebarAddress'];
+		sidebarAddress?: ContactFormProps['sidebarAddress'];
+		showSidebarSocial?: ContactFormProps['showSidebarSocial'];
+		showInstagram?: ContactFormProps['showInstagram'];
+		showFlickr?: ContactFormProps['showFlickr'];
+		showFacebook?: ContactFormProps['showFacebook'];
+		showTwitter?: ContactFormProps['showTwitter'];
+		showLinkedin?: ContactFormProps['showLinkedin'];
+		showYoutube?: ContactFormProps['showYoutube'];
+		showGithub?: ContactFormProps['showGithub'];
+		socialLinks?: ContactFormProps['socialLinks'];
+		links?: ContactFormProps['links'];
+		linksJson?: ContactFormProps['linksJson'];
+		showPhoneField?: ContactFormProps['showPhoneField'];
+		showPhone?: ContactFormProps['showPhone'];
+		submitLabel?: ContactFormProps['submitLabel'];
+		props?: LegacyContactFormProps;
+		[key: string]: unknown;
+	} = $props();
 
-	// Legacy nested props fallback
-	export let props: LegacyContactFormProps | undefined = undefined;
-	$: config = (props?.config ??
-		(props && typeof props === 'object' ? props : undefined) ?? {
-			title,
-			description,
-			showSidebar,
-			sidebarTitle,
-			showSidebarEmail,
-			sidebarEmail,
-			showSidebarPhone,
-			sidebarPhone,
-			showSidebarAddress,
-			sidebarAddress,
-			showSidebarSocial,
-			showInstagram,
-			showFlickr,
-			showFacebook,
-			showTwitter,
-			showLinkedin,
-			showYoutube,
-			showGithub,
-			socialLinks,
-			links,
-			linksJson,
-			showPhoneField,
-			showPhone,
-			submitLabel
-		}) satisfies ContactFormProps;
+	const config = $derived(
+		(props?.config ??
+			(props && typeof props === 'object' ? props : undefined) ?? {
+				title,
+				description,
+				showSidebar,
+				sidebarTitle,
+				showSidebarEmail,
+				sidebarEmail,
+				showSidebarPhone,
+				sidebarPhone,
+				showSidebarAddress,
+				sidebarAddress,
+				showSidebarSocial,
+				showInstagram,
+				showFlickr,
+				showFacebook,
+				showTwitter,
+				showLinkedin,
+				showYoutube,
+				showGithub,
+				socialLinks,
+				links,
+				linksJson,
+				showPhoneField,
+				showPhone,
+				submitLabel,
+				...rest
+			}) satisfies ContactFormProps
+	);
 </script>
 
 <Layout config={config} />

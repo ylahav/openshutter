@@ -2,11 +2,15 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 
-	export let value: string | { [key: string]: string } | undefined | null;
-	export let fallback: string = '';
+	let {
+		value,
+		fallback = ''
+	}: {
+		value: string | { [key: string]: string } | undefined | null;
+		fallback?: string;
+	} = $props();
 
-	$: text = value ? MultiLangUtils.getTextValue(value, $currentLanguage) || fallback : fallback;
-</script>
+const text = $derived(value ? MultiLangUtils.getTextValue(value, $currentLanguage) || fallback : fallback);</script>
 
 {text}
 

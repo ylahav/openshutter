@@ -16,8 +16,7 @@
 	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import type { PageData } from './$types';
 
-	// svelte-ignore export_let_unused - Required by SvelteKit page component
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface Person {
 		_id: string;
@@ -74,48 +73,48 @@
 	const btnGhostDangerSm =
 		'inline-flex items-center justify-center rounded-md border border-red-300/70 bg-transparent px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-800/80 dark:text-red-300 dark:hover:bg-red-950/40 transition-colors';
 
-	let album: Album | null = null;
-	let photos: Photo[] = [];
-	let loading = true;
-	let albumError = '';
-	let photosError = '';
+	let album = $state<Album | null>(null);
+	let photos = $state<Photo[]>([]);
+	let loading = $state(true);
+	let albumError = $state('');
+	let photosError = $state('');
 	/** Inline feedback for actions on this page (delete, bulk, etc.) */
-	let error = '';
-	let showDeleteDialog = false;
-	let photoDeleteDialog: {
+	let error = $state('');
+	let showDeleteDialog = $state(false);
+	let photoDeleteDialog = $state<{
 		isOpen: boolean;
 		photoId: string | null;
 		photoTitle: string;
 		isDeleting: boolean;
-	} = {
+	}>({
 		isOpen: false,
 		photoId: null,
 		photoTitle: '',
 		isDeleting: false,
-	};
+	});
 	
 	// Bulk operations
-	let selectedPhotoIds = new Set<string>();
-	let showLocationDialog = false;
-	let showMetadataDialog = false;
-	let locations: Location[] = [];
-	let selectedLocationId: string | null = null;
-	let showTagsDialog = false;
-	let tags: { _id: string; name: string | { en?: string; he?: string }; category?: string }[] = [];
-	let selectedTagIds: string[] = [];
-	let showPeopleDialog = false;
-	let people: Person[] = [];
-	let selectedPersonIds: string[] = [];
-	let bulkDeleteDialogOpen = false;
-	let isBulkDeletingPhotos = false;
-	let bulkMetadataRating: string = '';
-	let bulkMetadataCategory: string = '';
-	let bulkExifDate: string = '';
-	let bulkExifMake: string = '';
-	let bulkExifModel: string = '';
-	let isBulkUpdating = false;
+	let selectedPhotoIds = $state(new Set<string>());
+	let showLocationDialog = $state(false);
+	let showMetadataDialog = $state(false);
+	let locations = $state<Location[]>([]);
+	let selectedLocationId = $state<string | null>(null);
+	let showTagsDialog = $state(false);
+	let tags = $state<{ _id: string; name: string | { en?: string; he?: string }; category?: string }[]>([]);
+	let selectedTagIds = $state<string[]>([]);
+	let showPeopleDialog = $state(false);
+	let people = $state<Person[]>([]);
+	let selectedPersonIds = $state<string[]>([]);
+	let bulkDeleteDialogOpen = $state(false);
+	let isBulkDeletingPhotos = $state(false);
+	let bulkMetadataRating = $state('');
+	let bulkMetadataCategory = $state('');
+	let bulkExifDate = $state('');
+	let bulkExifMake = $state('');
+	let bulkExifModel = $state('');
+	let isBulkUpdating = $state(false);
 	/** Progress for bulk regenerate thumbnails (streaming) */
-	let regenProgress: { total: number; processed: number; failed: number; inProgress: boolean } | null = null;
+	let regenProgress = $state<{ total: number; processed: number; failed: number; inProgress: boolean } | null>(null);
 
 	// Album and photo utility functions are now imported from shared utilities
 
@@ -741,7 +740,7 @@
 						<a href="/admin/albums/{albumId}/edit" class={btnGhost}>
 							{$t('admin.editAlbum')}
 						</a>
-						<button type="button" on:click={() => (showDeleteDialog = true)} class={btnGhostDanger}>
+						<button type="button" onclick={() => (showDeleteDialog = true)} class={btnGhostDanger}>
 							{$t('admin.deleteAlbum')}
 						</button>
 						<a href="/admin/albums" class={btnGhost}>
@@ -777,7 +776,7 @@
 					</h2>
 					{#if photos.length > 0}
 						<div class="flex items-center gap-2">
-							<button type="button" on:click={toggleSelectAll} class={btnGhostSm}>
+							<button type="button" onclick={toggleSelectAll} class={btnGhostSm}>
 								{selectedPhotoIds.size === photos.length
 									? $t('admin.deselectAll')
 									: $t('admin.selectAll')}
@@ -801,7 +800,7 @@
 							<div class="flex flex-wrap items-center gap-2">
 								<button
 									type="button"
-									on:click={openTagsDialog}
+									onclick={openTagsDialog}
 									disabled={isBulkUpdating}
 									class={btnGhostSm + ' border-(--color-primary-300-600) bg-[color-mix(in_oklab,var(--color-surface-50)_55%,transparent)] dark:bg-[color-mix(in_oklab,var(--color-surface-950)_35%,transparent)]'}
 								>
@@ -809,7 +808,7 @@
 								</button>
 								<button
 									type="button"
-									on:click={openPeopleDialog}
+									onclick={openPeopleDialog}
 									disabled={isBulkUpdating}
 									class={btnGhostSm + ' border-(--color-primary-300-600) bg-[color-mix(in_oklab,var(--color-surface-50)_55%,transparent)] dark:bg-[color-mix(in_oklab,var(--color-surface-950)_35%,transparent)]'}
 								>
@@ -817,7 +816,7 @@
 								</button>
 								<button
 									type="button"
-									on:click={openBulkDeleteDialog}
+									onclick={openBulkDeleteDialog}
 									disabled={isBulkUpdating || isBulkDeletingPhotos}
 									class={btnGhostDangerSm}
 								>
@@ -825,7 +824,7 @@
 								</button>
 								<button
 									type="button"
-									on:click={clearPhotoSelection}
+									onclick={clearPhotoSelection}
 									disabled={isBulkUpdating || isBulkDeletingPhotos}
 									class={btnGhostSm + ' border-(--color-primary-300-600)'}
 								>
@@ -843,7 +842,7 @@
 										<button
 											type="button"
 											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
-											on:click={() => {
+											onclick={() => {
 												bulkUpdatePhotos({ isPublished: true });
 											}}
 											disabled={isBulkUpdating}
@@ -853,7 +852,7 @@
 										<button
 											type="button"
 											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
-											on:click={() => bulkUpdatePhotos({ isPublished: false })}
+											onclick={() => bulkUpdatePhotos({ isPublished: false })}
 											disabled={isBulkUpdating}
 										>
 											{$t('admin.bulkUnpublishPhotos')}
@@ -861,7 +860,7 @@
 										<button
 											type="button"
 											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
-											on:click={() => {
+											onclick={() => {
 												(document.activeElement as HTMLElement)?.blur?.();
 												openLocationDialog();
 											}}
@@ -872,7 +871,7 @@
 										<button
 											type="button"
 											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
-											on:click={() => {
+											onclick={() => {
 												(document.activeElement as HTMLElement)?.blur?.();
 												openMetadataDialog();
 											}}
@@ -883,7 +882,7 @@
 										<button
 											type="button"
 											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
-											on:click={() => {
+											onclick={() => {
 												(document.activeElement as HTMLElement)?.blur?.();
 												bulkReExtractExif();
 											}}
@@ -894,7 +893,7 @@
 										<button
 											type="button"
 											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
-											on:click={() => {
+											onclick={() => {
 												(document.activeElement as HTMLElement)?.blur?.();
 												bulkRegenerateThumbnails();
 											}}
@@ -965,7 +964,7 @@
 									<input
 										type="checkbox"
 										checked={isSelected}
-										on:change={() => togglePhotoSelection(photo._id)}
+										onchange={() => togglePhotoSelection(photo._id)}
 										class="w-5 h-5 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500) bg-(--color-surface-50-950)/90"
 										title={isSelected ? 'Deselect' : 'Select'}
 									/>
@@ -977,7 +976,7 @@
 											alt={getPhotoTitle(photo)}
 											class="w-full h-full object-cover"
 											style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
-											on:error={(e) => {
+											onerror={(e) => {
 												const target = e.currentTarget as HTMLImageElement;
 												if (
 													photoFallbackUrl &&
@@ -990,7 +989,7 @@
 												logger.debug('Image failed to load:', photoUrl, photo);
 												target.style.display = 'none';
 											}}
-											on:load={() => {
+											onload={() => {
 												logger.debug('Image loaded successfully:', photoUrl);
 											}}
 										/>
@@ -1019,7 +1018,7 @@
 										</a>
 										<button
 											type="button"
-											on:click={() => openPhotoDeleteDialog(photo)}
+											onclick={() => openPhotoDeleteDialog(photo)}
 											disabled={photoDeleteDialog.isDeleting}
 											class="rounded-md border border-red-300/80 bg-red-500/20 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500/35 disabled:opacity-50"
 										>
@@ -1125,7 +1124,7 @@
 			</div>
 			<div class="flex justify-end gap-2">
 				<button
-					on:click={() => { showLocationDialog = false; selectedLocationId = null; }}
+					onclick={() => { showLocationDialog = false; selectedLocationId = null; }}
 					type="button"
 					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
@@ -1133,7 +1132,7 @@
 				</button>
 				<button
 					type="button"
-					on:click={applyLocation}
+					onclick={applyLocation}
 					disabled={isBulkUpdating}
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>
@@ -1163,7 +1162,7 @@
 								<input
 									type="checkbox"
 									checked={selectedTagIds.includes(tag._id)}
-									on:change={() => toggleTag(tag._id)}
+									onchange={() => toggleTag(tag._id)}
 								/>
 								<span class="text-sm text-(--color-surface-950-50)">{tagName}</span>
 								{#if tag.category}
@@ -1177,14 +1176,14 @@
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
-					on:click={() => { showTagsDialog = false; selectedTagIds = []; }}
+					onclick={() => { showTagsDialog = false; selectedTagIds = []; }}
 					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
 					type="button"
-					on:click={applyTags}
+					onclick={applyTags}
 					disabled={isBulkUpdating}
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>
@@ -1221,7 +1220,7 @@
 								<input
 									type="checkbox"
 									checked={selectedPersonIds.includes(person._id)}
-									on:change={() => togglePerson(person._id)}
+									onchange={() => togglePerson(person._id)}
 								/>
 								<span class="text-sm text-(--color-surface-950-50)">{personName}</span>
 							</label>
@@ -1232,7 +1231,7 @@
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
-					on:click={() => {
+					onclick={() => {
 						showPeopleDialog = false;
 						selectedPersonIds = [];
 					}}
@@ -1242,7 +1241,7 @@
 				</button>
 				<button
 					type="button"
-					on:click={applyPeople}
+					onclick={applyPeople}
 					disabled={isBulkUpdating}
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>
@@ -1342,14 +1341,14 @@
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
-					on:click={() => { showMetadataDialog = false; bulkMetadataRating = ''; bulkMetadataCategory = ''; bulkExifDate = ''; bulkExifMake = ''; bulkExifModel = ''; }}
+					onclick={() => { showMetadataDialog = false; bulkMetadataRating = ''; bulkMetadataCategory = ''; bulkExifDate = ''; bulkExifMake = ''; bulkExifModel = ''; }}
 					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
 					type="button"
-					on:click={applyMetadata}
+					onclick={applyMetadata}
 					disabled={isBulkUpdating || (bulkMetadataRating === '' && bulkMetadataCategory.trim() === '' && !bulkExifDate.trim() && !bulkExifMake.trim() && !bulkExifModel.trim())}
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 				>

@@ -8,38 +8,66 @@
 		config?: HeroProps;
 	} & HeroProps;
 
-	export let title: unknown = undefined;
-	export let subtitle: unknown = undefined;
-	export let description: unknown = undefined;
-	export let buttonLabel: unknown = undefined;
-	export let buttonUrl: unknown = undefined;
-	export let button2Label: unknown = undefined;
-	export let button2Url: unknown = undefined;
-	/** @deprecated maps to buttonLabel in Layout */
-	export let ctaLabel: unknown = undefined;
-	/** @deprecated maps to buttonUrl */
-	export let ctaUrl: unknown = undefined;
-	export let backgroundImage: unknown = undefined;
-	export let contentMediaOrder: unknown = undefined;
-	export let mediaMaxCount: unknown = undefined;
-	export let mediaSource: unknown = undefined;
-	export let mediaImages: unknown = undefined;
-	export let mediaArrangement: unknown = undefined;
-	export let carouselIntervalMs: unknown = undefined;
-	/** @deprecated */
-	export let backgroundStyle: unknown = undefined;
-	export let heroLayout: unknown = undefined;
-	export let layoutVariant: unknown = undefined;
-	export let heroImages: unknown = undefined;
-	export let heroGalleryLeadingLimit: unknown = undefined;
-	export let heroSplitLead: unknown = undefined;
-	export let prefetchedGalleryLeadingUrls: unknown = undefined;
-	export let slideshowIntervalMs: unknown = undefined;
+	let {
+		title = undefined,
+		subtitle = undefined,
+		description = undefined,
+		buttonLabel = undefined,
+		buttonUrl = undefined,
+		button2Label = undefined,
+		button2Url = undefined,
+		ctaLabel = undefined,
+		ctaUrl = undefined,
+		backgroundImage = undefined,
+		contentMediaOrder = undefined,
+		mediaMaxCount = undefined,
+		mediaSource = undefined,
+		mediaImages = undefined,
+		mediaArrangement = undefined,
+		carouselIntervalMs = undefined,
+		backgroundStyle = undefined,
+		heroLayout = undefined,
+		layoutVariant = undefined,
+		heroImages = undefined,
+		heroGalleryLeadingLimit = undefined,
+		heroSplitLead = undefined,
+		prefetchedGalleryLeadingUrls = undefined,
+		slideshowIntervalMs = undefined,
+		props,
+		...rest
+	}: {
+		title?: unknown;
+		subtitle?: unknown;
+		description?: unknown;
+		buttonLabel?: unknown;
+		buttonUrl?: unknown;
+		button2Label?: unknown;
+		button2Url?: unknown;
+		ctaLabel?: unknown;
+		ctaUrl?: unknown;
+		backgroundImage?: unknown;
+		contentMediaOrder?: unknown;
+		mediaMaxCount?: unknown;
+		mediaSource?: unknown;
+		mediaImages?: unknown;
+		mediaArrangement?: unknown;
+		carouselIntervalMs?: unknown;
+		backgroundStyle?: unknown;
+		heroLayout?: unknown;
+		layoutVariant?: unknown;
+		heroImages?: unknown;
+		heroGalleryLeadingLimit?: unknown;
+		heroSplitLead?: unknown;
+		prefetchedGalleryLeadingUrls?: unknown;
+		slideshowIntervalMs?: unknown;
+		props?: LegacyHeroProps;
+		[key: string]: unknown;
+	} = $props();
 
-	export let props: LegacyHeroProps | undefined = undefined;
-
-	$: config = {
-		...(props?.config ?? (props && typeof props === 'object' ? props : {})),
+	const config = $derived({
+		...(props?.config && typeof props.config === 'object' ? props.config : {}),
+		...(props && typeof props === 'object' ? props : {}),
+		...rest,
 		title,
 		subtitle,
 		description,
@@ -64,7 +92,7 @@
 		heroSplitLead,
 		prefetchedGalleryLeadingUrls,
 		slideshowIntervalMs
-	} as HeroProps;
+	} as HeroProps);
 </script>
 
 <Layout {config} />

@@ -1,20 +1,28 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { createEventDispatcher } from 'svelte';
 
-	export let isOpen = false;
-	export let message = '';
-	export let type: 'success' | 'error' | 'info' | 'warning' = 'info';
-	export let title: string | undefined = undefined;
-	export let autoClose = true;
-	export let autoCloseDelay = 3000;
-	export let actionButton: { label: string; onClick: () => void } | undefined = undefined;
-	export let onClose: () => void = () => {};
+	let {
+		isOpen = $bindable(false),
+		message = $bindable(''),
+		type = 'info',
+		title = undefined,
+		autoClose = $bindable(true),
+		autoCloseDelay = $bindable(3000),
+		actionButton = undefined,
+		onClose = () => {}
+	}: {
+		isOpen?: boolean;
+		message?: string;
+		type?: 'success' | 'error' | 'info' | 'warning';
+		title?: string | undefined;
+		autoClose?: boolean;
+		autoCloseDelay?: number;
+		actionButton?: { label: string; onClick: () => void } | undefined;
+		onClose?: () => void;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
-
-	let mounted = false;
+	let mounted = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
 	onMount(() => {
@@ -27,15 +35,16 @@
 			timeoutId = null;
 		}
 		onClose();
-		dispatch('close');
 	}
 
-	$: if (isOpen && autoClose && mounted) {
-		if (timeoutId) clearTimeout(timeoutId);
-		timeoutId = setTimeout(() => {
-			handleClose();
-		}, autoCloseDelay);
-	}
+	$effect(() => {
+		if (isOpen && autoClose && mounted) {
+			if (timeoutId) clearTimeout(timeoutId);
+			timeoutId = setTimeout(() => {
+				handleClose();
+			}, autoCloseDelay);
+		}
+	});
 
 	function handleEscape(e: KeyboardEvent) {
 		if (e.key === 'Escape' && isOpen) {
@@ -59,11 +68,13 @@
 		}
 	});
 
-	$: if (browser && isOpen && mounted) {
-		document.addEventListener('keydown', handleEscape);
-	} else if (browser) {
-		document.removeEventListener('keydown', handleEscape);
-	}
+$effect(() => {
+		if (browser && isOpen && mounted) {
+			document.addEventListener('keydown', handleEscape);
+		} else if (browser) {
+			document.removeEventListener('keydown', handleEscape);
+		}
+	});
 
 	function getIcon() {
 		switch (type) {
@@ -141,8 +152,8 @@
 			<!-- Backdrop -->
 			<div
 				class="fixed inset-0 z-0 bg-gray-500 bg-opacity-75 transition-opacity"
-				on:click={handleClose}
-				on:keydown={handleBackdropKeydown}
+				onclick={handleClose}
+				onkeydown={handleBackdropKeydown}
 				role="button"
 				tabindex="-1"
 				aria-label="Close notification"
@@ -176,7 +187,7 @@
 						<button
 							type="button"
 							class="inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:w-auto {getButtonColor()} focus:outline-none focus:ring-2 focus:ring-offset-2"
-							on:click={() => {
+							onclick={() => {
 								actionButton.onClick();
 								handleClose();
 							}}
@@ -187,7 +198,7 @@
 					<button
 						type="button"
 						class="inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto {getButtonColor()} focus:outline-none focus:ring-2 focus:ring-offset-2"
-						on:click={handleClose}
+						onclick={handleClose}
 					>
 						Close
 					</button>

@@ -9,7 +9,7 @@
 	import { isPackAlbumShellRoute } from '$lib/utils/album-route-params';
 	import type { PageData, PageModuleData } from '$lib/types/page-builder';
 
-	export let data: {
+	let { data }: { data: {
 		mode: 'cms' | 'pack-album';
 		page: PageData | null;
 		modules: PageModuleData[];
@@ -17,13 +17,13 @@
 		urlParam: string;
 		packId: string;
 		cmsSlugPrefix: string;
-	};
+	} } = $props();
 
-	$: pageData = data.page;
-	$: modules = data.modules || [];
-	$: hasModules = modules.length > 0;
-	$: pageForCms = (pageData ?? undefined) as PageData | undefined;
-	$: albumShell = isPackAlbumShellRoute(data.urlAlias);
+const pageData = $derived(data.page);
+	const modules = $derived(data.modules || []);
+const hasModules = $derived(modules.length > 0);
+	const pageForCms = $derived((pageData ?? undefined) as PageData | undefined);
+	const albumShell = $derived(isPackAlbumShellRoute(data.urlAlias));
 
 	function getTextValue(value: string | { en?: string; he?: string } | undefined): string {
 		if (!value) return '';

@@ -3,15 +3,27 @@
 	import Layout from './ThemeToggle/Layout.svelte';
 
 	/** Page builder spreads `module.props` as top-level props — `variant` is not nested under `props`. */
-	export let variant: string | undefined = undefined;
-	export let props: Record<string, unknown> | undefined = undefined;
+	let {
+		variant = undefined,
+		props,
+		data,
+		compact,
+		...rest
+	}: {
+		variant?: string;
+		props?: Record<string, unknown>;
+		data?: unknown;
+		compact?: boolean;
+		[key: string]: unknown;
+	} = $props();
 
-	$: resolvedVariant =
-		variant === 'both' || props?.variant === 'both'
+	const resolvedVariant = $derived(
+		variant === 'both' || props?.variant === 'both' || rest.variant === 'both'
 			? 'both'
-			: variant === 'text' || props?.variant === 'text'
+			: variant === 'text' || props?.variant === 'text' || rest.variant === 'text'
 				? 'text'
-				: 'icons';
+				: 'icons'
+	);
 </script>
 
 <Layout variant={resolvedVariant} />

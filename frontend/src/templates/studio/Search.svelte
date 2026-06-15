@@ -2,8 +2,13 @@
 	import './styles/styles.scss';
 	import AdvancedFilterSearch from '$lib/components/search/AdvancedFilterSearch.svelte';
 
-	export let initialQuery = '';
-	export let variant: 'noir' | 'default' = 'default';
+	let {
+		initialQuery = $bindable(''),
+		variant = 'default'
+	}: {
+		initialQuery?: unknown;
+		variant?: 'noir' | 'default';
+	} = $props();
 </script>
 
 <div

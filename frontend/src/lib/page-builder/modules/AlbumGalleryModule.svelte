@@ -49,58 +49,101 @@
 		config?: AlbumGalleryProps;
 	} & AlbumGalleryProps;
 
-	export let title: NonNullable<AlbumGalleryProps['title']> = '';
-	export let description: AlbumGalleryProps['description'] = undefined;
-	export let albumHeaderFieldOrder: NonNullable<AlbumGalleryProps['albumHeaderFieldOrder']> = ['albumTitle', 'albumDescription', 'albumStats'];
-	export let showAlbumPageTitle: NonNullable<AlbumGalleryProps['showAlbumPageTitle']> = true;
-	export let showAlbumPageDescription: NonNullable<AlbumGalleryProps['showAlbumPageDescription']> = true;
-	export let showAlbumPageStats: NonNullable<AlbumGalleryProps['showAlbumPageStats']> = true;
-	export let showAlbumHero: NonNullable<AlbumGalleryProps['showAlbumHero']> = false;
-	export let albumSource: NonNullable<AlbumGalleryProps['albumSource']> = 'root';
-	export let selectedAlbums: AlbumGalleryProps['selectedAlbums'] = undefined;
-	export let rootAlbumId: AlbumGalleryProps['rootAlbumId'] = undefined;
-	export let rootGallery: AlbumGalleryProps['rootGallery'] = undefined;
-	export let includeRoot: NonNullable<AlbumGalleryProps['includeRoot']> = true;
-	export let showTitle: NonNullable<AlbumGalleryProps['showTitle']> = true;
-	export let showAlbumTitle: NonNullable<AlbumGalleryProps['showAlbumTitle']> = true;
-	export let showPhotoTitle: NonNullable<AlbumGalleryProps['showPhotoTitle']> = true;
-	export let showCover: NonNullable<AlbumGalleryProps['showCover']> = true;
-	export let coverAspect: NonNullable<AlbumGalleryProps['coverAspect']> = 'video';
-	export let showDescription: NonNullable<AlbumGalleryProps['showDescription']> = true;
-	export let showAlbumDescription: NonNullable<AlbumGalleryProps['showAlbumDescription']> = true;
-	export let showPhotoDescription: NonNullable<AlbumGalleryProps['showPhotoDescription']> = true;
-	export let descriptionLines: NonNullable<AlbumGalleryProps['descriptionLines']> = 2;
-	export let cardFieldOrder: NonNullable<AlbumGalleryProps['cardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
-	export let albumCardFieldOrder: NonNullable<AlbumGalleryProps['albumCardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
-	export let photoCardFieldOrder: NonNullable<AlbumGalleryProps['photoCardFieldOrder']> = ['cover', 'title', 'description', 'featuredBadge'];
-	export let albumCardLayout: NonNullable<AlbumGalleryProps['albumCardLayout']> = 'stack';
-	export let albumCard: AlbumGalleryProps['albumCard'] = undefined;
-	export let photoCard: AlbumGalleryProps['photoCard'] = undefined;
-	export let albumCardVariant: AlbumGalleryProps['albumCardVariant'] = undefined;
-	export let photoGridVariant: AlbumGalleryProps['photoGridVariant'] = undefined;
-	export let showPhotoCount: NonNullable<AlbumGalleryProps['showPhotoCount']> = true;
-	export let showFeaturedBadge: NonNullable<AlbumGalleryProps['showFeaturedBadge']> = true;
-	export let showAlbumFeaturedBadge: NonNullable<AlbumGalleryProps['showAlbumFeaturedBadge']> = true;
-	export let showPhotoFeaturedBadge: NonNullable<AlbumGalleryProps['showPhotoFeaturedBadge']> = true;
-	export let cardDataType: NonNullable<AlbumGalleryProps['cardDataType']> = 'both';
-	export let mixedDisplayMode: NonNullable<AlbumGalleryProps['mixedDisplayMode']> = 'grouped';
-	export let showSectionLabels: NonNullable<AlbumGalleryProps['showSectionLabels']> = true;
-	export let showHeading: AlbumGalleryProps['showHeading'] = undefined;
-	export let sortBy: NonNullable<AlbumGalleryProps['sortBy']> = 'manual';
-	export let sortDirection: NonNullable<AlbumGalleryProps['sortDirection']> = 'asc';
-	export let limit: NonNullable<AlbumGalleryProps['limit']> = 12;
-	/** Page-builder cell wrapper only; not part of `config` passed to Layout. */
-	export let className: string | undefined = undefined;
+	let {
+		title = '',
+		description = undefined,
+		albumHeaderFieldOrder = ['albumTitle', 'albumDescription', 'albumStats'],
+		showAlbumPageTitle = true,
+		showAlbumPageDescription = true,
+		showAlbumPageStats = true,
+		showAlbumHero = false,
+		albumSource = 'root',
+		selectedAlbums = undefined,
+		rootAlbumId = undefined,
+		rootGallery = undefined,
+		includeRoot = true,
+		showTitle = true,
+		showAlbumTitle = true,
+		showPhotoTitle = true,
+		showCover = true,
+		coverAspect = 'video',
+		showDescription = true,
+		showAlbumDescription = true,
+		showPhotoDescription = true,
+		descriptionLines = 2,
+		cardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'],
+		albumCardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'],
+		photoCardFieldOrder = ['cover', 'title', 'description', 'featuredBadge'],
+		albumCardLayout = 'stack',
+		albumCard = undefined,
+		photoCard = undefined,
+		albumCardVariant = undefined,
+		photoGridVariant = undefined,
+		showPhotoCount = true,
+		showFeaturedBadge = true,
+		showAlbumFeaturedBadge = true,
+		showPhotoFeaturedBadge = true,
+		cardDataType = 'both',
+		mixedDisplayMode = 'grouped',
+		showSectionLabels = true,
+		showHeading = undefined,
+		sortBy = 'manual',
+		sortDirection = 'asc',
+		limit = 12,
+		className: _cellClass = undefined,
+		props,
+		data = null,
+		...rest
+	}: {
+		title?: AlbumGalleryProps['title'];
+		description?: AlbumGalleryProps['description'];
+		albumHeaderFieldOrder?: AlbumGalleryProps['albumHeaderFieldOrder'];
+		showAlbumPageTitle?: AlbumGalleryProps['showAlbumPageTitle'];
+		showAlbumPageDescription?: AlbumGalleryProps['showAlbumPageDescription'];
+		showAlbumPageStats?: AlbumGalleryProps['showAlbumPageStats'];
+		showAlbumHero?: AlbumGalleryProps['showAlbumHero'];
+		albumSource?: AlbumGalleryProps['albumSource'];
+		selectedAlbums?: AlbumGalleryProps['selectedAlbums'];
+		rootAlbumId?: AlbumGalleryProps['rootAlbumId'];
+		rootGallery?: AlbumGalleryProps['rootGallery'];
+		includeRoot?: AlbumGalleryProps['includeRoot'];
+		showTitle?: AlbumGalleryProps['showTitle'];
+		showAlbumTitle?: AlbumGalleryProps['showAlbumTitle'];
+		showPhotoTitle?: AlbumGalleryProps['showPhotoTitle'];
+		showCover?: AlbumGalleryProps['showCover'];
+		coverAspect?: AlbumGalleryProps['coverAspect'];
+		showDescription?: AlbumGalleryProps['showDescription'];
+		showAlbumDescription?: AlbumGalleryProps['showAlbumDescription'];
+		showPhotoDescription?: AlbumGalleryProps['showPhotoDescription'];
+		descriptionLines?: AlbumGalleryProps['descriptionLines'];
+		cardFieldOrder?: AlbumGalleryProps['cardFieldOrder'];
+		albumCardFieldOrder?: AlbumGalleryProps['albumCardFieldOrder'];
+		photoCardFieldOrder?: AlbumGalleryProps['photoCardFieldOrder'];
+		albumCardLayout?: AlbumGalleryProps['albumCardLayout'];
+		albumCard?: AlbumGalleryProps['albumCard'];
+		photoCard?: AlbumGalleryProps['photoCard'];
+		albumCardVariant?: AlbumGalleryProps['albumCardVariant'];
+		photoGridVariant?: AlbumGalleryProps['photoGridVariant'];
+		showPhotoCount?: AlbumGalleryProps['showPhotoCount'];
+		showFeaturedBadge?: AlbumGalleryProps['showFeaturedBadge'];
+		showAlbumFeaturedBadge?: AlbumGalleryProps['showAlbumFeaturedBadge'];
+		showPhotoFeaturedBadge?: AlbumGalleryProps['showPhotoFeaturedBadge'];
+		cardDataType?: AlbumGalleryProps['cardDataType'];
+		mixedDisplayMode?: AlbumGalleryProps['mixedDisplayMode'];
+		showSectionLabels?: AlbumGalleryProps['showSectionLabels'];
+		showHeading?: AlbumGalleryProps['showHeading'];
+		sortBy?: AlbumGalleryProps['sortBy'];
+		sortDirection?: AlbumGalleryProps['sortDirection'];
+		limit?: AlbumGalleryProps['limit'];
+		className?: string;
+		props?: LegacyAlbumGalleryProps;
+		data?: unknown;
+		[key: string]: unknown;
+	} = $props();
 
-	// Temporary migration fallback for legacy nested props.config payloads
-	export let props: LegacyAlbumGalleryProps | undefined = undefined;
-	export let data: unknown = null; // Page context (e.g., URL params like alias)
-	$: config = (() => {
-		// Legacy merge:
-		// Some old saved payloads stored album view fields under `props.config`.
-		// If that exists AND the editor also stores flat fields on `props`,
-		// we must merge so editor changes take effect.
-		const p: any = props && typeof props === 'object' ? props : undefined;
+	const config = $derived.by(() => {
+		const p: LegacyAlbumGalleryProps | undefined =
+			props && typeof props === 'object' ? props : undefined;
 		const defaults: AlbumGalleryProps = {
 			title,
 			description,
@@ -144,10 +187,10 @@
 			limit
 		};
 		const legacyConfig = p?.config && typeof p.config === 'object' ? p.config : undefined;
-		const { className: _cellClass, ...pRest } = (p ?? {}) as Record<string, unknown>;
 		const { className: _nestedCell, ...legacyRest } = (legacyConfig ?? {}) as Record<string, unknown>;
-		return { ...defaults, ...legacyRest, ...pRest } satisfies AlbumGalleryProps;
-	})();
+		const { className: _pCell, ...pRest } = (p ?? {}) as Record<string, unknown>;
+		return { ...defaults, ...legacyRest, ...pRest, ...rest } satisfies AlbumGalleryProps;
+	});
 </script>
 
 <Layout config={config} {data} />

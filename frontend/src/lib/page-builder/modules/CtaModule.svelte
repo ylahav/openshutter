@@ -15,24 +15,53 @@
 		config?: CtaProps;
 	} & CtaProps;
 
-	export let title: NonNullable<CtaProps['title']> = '';
-	export let description: CtaProps['description'] = undefined;
-	export let primaryLabel: NonNullable<CtaProps['primaryLabel']> = 'Get Started';
-	export let primaryHref: NonNullable<CtaProps['primaryHref']> = '/';
-	export let secondaryLabel: CtaProps['secondaryLabel'] = undefined;
-	export let secondaryHref: CtaProps['secondaryHref'] = undefined;
+	let {
+		title = '',
+		description = undefined,
+		primaryLabel = 'Get Started',
+		primaryHref = '/',
+		secondaryLabel = undefined,
+		secondaryHref = undefined,
+		props,
+		data,
+		compact,
+		...rest
+	}: {
+		title?: CtaProps['title'];
+		description?: CtaProps['description'];
+		primaryLabel?: CtaProps['primaryLabel'];
+		primaryHref?: CtaProps['primaryHref'];
+		secondaryLabel?: CtaProps['secondaryLabel'];
+		secondaryHref?: CtaProps['secondaryHref'];
+		props?: LegacyCtaProps;
+		data?: unknown;
+		compact?: boolean;
+		[key: string]: unknown;
+	} = $props();
 
-	// Temporary migration fallback for legacy nested props.config payloads
-	export let props: LegacyCtaProps | undefined = undefined;
-	$: config = (props?.config ??
-		(props && typeof props === 'object' ? props : undefined) ?? {
-			title,
-			description,
-			primaryLabel,
-			primaryHref,
-			secondaryLabel,
-			secondaryHref
-		}) satisfies CtaProps;
+	const config = $derived.by((): CtaProps => {
+		if (props !== undefined) {
+			return (props.config ??
+				(props && typeof props === 'object' ? props : undefined) ?? {
+					title,
+					description,
+					primaryLabel,
+					primaryHref,
+					secondaryLabel,
+					secondaryHref
+				}) as CtaProps;
+		}
+		const spread = rest as CtaProps;
+		if (
+			spread.title !== undefined ||
+			spread.description !== undefined ||
+			spread.primaryLabel !== undefined ||
+			spread.primaryHref !== undefined
+		) {
+			return spread;
+		}
+		return { title, description, primaryLabel, primaryHref, secondaryLabel, secondaryHref };
+	});
 </script>
 
 <Layout config={config} />

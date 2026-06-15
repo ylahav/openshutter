@@ -11,11 +11,16 @@
 		includeRoot?: boolean;
 	};
 
-	export let config: AlbumsGridConfig = {};
-	export let data: unknown = null;
+	let {
+		config = {},
+		data = null
+	}: {
+		config?: AlbumsGridConfig;
+		data?: unknown;
+	} = $props();
 
 	/** Enables Noir-specific album card DOM and defaults (not used by albumView on album pages). */
-	$: galleryConfig = { ...config, albumsGridVariant: true };
+	const galleryConfig = $derived({ ...config, albumsGridVariant: true });
 </script>
 
 <!-- Reuse existing album listing UI while keeping a dedicated albumsGrid module contract/file structure. -->

@@ -11,7 +11,7 @@
 	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface UserProfile {
 		_id: string;
@@ -197,7 +197,7 @@ let formData = {
 					<p class="text-gray-600 mt-2">{$t('owner.editProfileDescription')}</p>
 				</div>
 				<button
-					on:click={() => goto('/owner')}
+					onclick={() => goto('/owner')}
 					class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 				>
 					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,7 +226,7 @@ let formData = {
 					</div>
 				{/if}
 
-				<form on:submit={handleSubmit} class="space-y-6">
+				<form onsubmit={handleSubmit} class="space-y-6">
 					<!-- Basic Information -->
 					<div>
 						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.basicInformation')}</h3>
@@ -271,7 +271,7 @@ let formData = {
                 <input
                   type="url"
                   value={formData.profileImage?.url || ''}
-                  on:input={(e) => {
+                  oninput={(e) => {
                     formData.profileImage = {
 										url: e.currentTarget.value,
 										storageProvider: 'local',

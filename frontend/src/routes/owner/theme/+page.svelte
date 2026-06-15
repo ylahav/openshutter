@@ -7,7 +7,7 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface MenuItem {
 		labelKey?: string;
@@ -131,7 +131,7 @@ import { t } from '$stores/i18n';
 					</a>
 					<button
 						type="button"
-						on:click={() => goto('/owner')}
+						onclick={() => goto('/owner')}
 						class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 					>
 						{$t('owner.backToDashboard')}
@@ -151,7 +151,7 @@ import { t } from '$stores/i18n';
 					</div>
 				{/if}
 
-				<form on:submit={handleSubmit} class="space-y-8">
+				<form onsubmit={handleSubmit} class="space-y-8">
 					<div>
 						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.themeHomeLayout')}</h3>
 						<p class="text-sm text-gray-600 mb-3">{$t('owner.themeHomeLayoutHelp')}</p>
@@ -199,7 +199,7 @@ import { t } from '$stores/i18n';
 											<div class="flex gap-1">
 												<button
 													type="button"
-													on:click={() => moveItem(index, true)}
+													onclick={() => moveItem(index, true)}
 													disabled={index === 0}
 													class="text-gray-600 hover:text-gray-900 disabled:opacity-40"
 													aria-label={$t('owner.themeMoveUp')}
@@ -208,7 +208,7 @@ import { t } from '$stores/i18n';
 												</button>
 												<button
 													type="button"
-													on:click={() => moveItem(index, false)}
+													onclick={() => moveItem(index, false)}
 													disabled={index === menuItems.length - 1}
 													class="text-gray-600 hover:text-gray-900 disabled:opacity-40"
 													aria-label={$t('owner.themeMoveDown')}
@@ -217,7 +217,7 @@ import { t } from '$stores/i18n';
 												</button>
 												<button
 													type="button"
-													on:click={() => removeMenuItem(index)}
+													onclick={() => removeMenuItem(index)}
 													class="text-red-600 hover:text-red-800 text-sm"
 												>
 													{$t('owner.themeRemoveItem')}
@@ -293,7 +293,7 @@ import { t } from '$stores/i18n';
 						<div class="mt-3 flex gap-2">
 							<button
 								type="button"
-								on:click={addMenuItem}
+								onclick={addMenuItem}
 								class="px-3 py-1.5 bg-gray-200 text-gray-800 rounded text-sm hover:bg-gray-300"
 							>
 								{$t('owner.themeAddItem')}
@@ -301,7 +301,7 @@ import { t } from '$stores/i18n';
 							{#if menuItems.length === 0}
 								<button
 									type="button"
-									on:click={() => {
+									onclick={() => {
 										menuItems = [
 											{ href: '/', label: $t('navigation.home'), type: 'link', showWhen: 'always' },
 											{

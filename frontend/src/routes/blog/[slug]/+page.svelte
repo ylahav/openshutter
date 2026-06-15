@@ -3,21 +3,21 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { productName } from '$stores/siteConfig';
 
-	export let data: {
+	let { data }: { data: {
 		article: Record<string, unknown> | null;
 		loadError: string | null;
-	};
+	} } = $props();
 
-	$: article = data.article;
-	$: titleText = article
-		? MultiLangUtils.getTextValue(article.title as any, $currentLanguage)
-		: '';
-	$: contentHtml = article
+const article = $derived(data.article);
+	const titleText = $derived(
+		article ? MultiLangUtils.getTextValue(article.title as any, $currentLanguage) : ''
+	);
+const contentHtml = $derived(article
 		? MultiLangUtils.getHTMLValue(article.content as any, $currentLanguage)
-		: '';
-	$: seoDesc = article?.excerpt
+		: '');
+const seoDesc = $derived(article?.excerpt
 		? MultiLangUtils.getTextValue(article.excerpt as any, $currentLanguage).replace(/<[^>]+>/g, '').slice(0, 160)
-		: '';
+		: '');
 
 	function altText(): string {
 		if (!article?.leadingImage || typeof article.leadingImage !== 'object') return titleText;

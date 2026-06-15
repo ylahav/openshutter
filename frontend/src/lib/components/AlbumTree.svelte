@@ -27,23 +27,32 @@
 		children: AlbumTreeNode[];
 	}
 
-	export let albums: Album[] = [];
-	export let onReorder:
-		| ((updates: Array<{ id: string; parentAlbumId: string | null; order: number }>) => Promise<void>)
-		| undefined = undefined;
-	export let renderActions: ((node: AlbumTreeNode) => any) | undefined = undefined;
-	export let onOpen: ((node: AlbumTreeNode) => void) | undefined = undefined;
-	export let showAccordion = true;
-	export let expandAllByDefault = false; // Option to expand all nodes by default
-	/** When not `manual`, sibling order follows name or updated date (drag-and-drop should be disabled). */
-	export let clientSortBy: 'manual' | 'name' | 'date' = 'manual';
+	let {
+		albums = [],
+		onReorder = undefined,
+		renderActions = undefined,
+		onOpen = undefined,
+		showAccordion = true,
+		expandAllByDefault = false,
+		clientSortBy = 'manual' as 'manual' | 'name' | 'date'
+	}: {
+		albums?: Album[];
+		onReorder?:
+			| ((updates: Array<{ id: string; parentAlbumId: string | null; order: number }>) => Promise<void>)
+			| undefined;
+		renderActions?: ((node: AlbumTreeNode) => any) | undefined;
+		onOpen?: ((node: AlbumTreeNode) => void) | undefined;
+		showAccordion?: boolean;
+		expandAllByDefault?: boolean;
+		clientSortBy?: 'manual' | 'name' | 'date';
+	} = $props();
 
-	let expandedNodes: Set<string> = new Set();
-	let localAlbums = albums;
-	let albumsInitialized = false;
-	let flatItems: AlbumTreeNode[] = [];
-	let flatItemsForDnd: Array<AlbumTreeNode & { id: string }> = [];
-	let isDragging = false;
+	let expandedNodes = $state(new Set<string>());
+	let localAlbums = $state(albums);
+	let albumsInitialized = $state(false);
+	let flatItems = $state<AlbumTreeNode[]>([]);
+	let flatItemsForDnd = $state<Array<AlbumTreeNode & { id: string }>>([]);
+	let isDragging = $state(false);
 
 	// Transform items to have 'id' property for svelte-dnd-action
 	function transformForDnd(items: AlbumTreeNode[]): Array<AlbumTreeNode & { id: string }> {
@@ -79,16 +88,18 @@
 		}
 	}
 
-	// Initialize expanded nodes when albums first load
-	$: if (albums.length > 0 && !albumsInitialized && expandAllByDefault) {
-		initializeExpandedNodes();
-		albumsInitialized = true;
-	}
+	$effect(() => {
+		if (albums.length > 0 && !albumsInitialized && expandAllByDefault) {
+			initializeExpandedNodes();
+			albumsInitialized = true;
+		}
+	});
 
-	// Reset flag if albums are cleared
-	$: if (albums.length === 0) {
-		albumsInitialized = false;
-	}
+	$effect(() => {
+		if (albums.length === 0) {
+			albumsInitialized = false;
+		}
+	});
 
 	// Flatten tree for drag and drop
 	function flatten(nodes: AlbumTreeNode[], expanded: Set<string>): AlbumTreeNode[] {
@@ -425,27 +436,20 @@
 		isDragging = false;
 	}
 
-	// Sync localAlbums when albums prop changes
-	$: {
+	$effect(() => {
 		localAlbums = albums;
-	}
+	});
 
-	$: tree = buildTree(localAlbums, clientSortBy);
-	// Make flatItems reactive to both tree and expandedNodes changes
-	// Convert Set to Array to ensure Svelte tracks changes properly
-	// This ensures that when expandedNodes changes, this reactive statement re-runs
-	$: expandedNodesArray = Array.from(expandedNodes).sort();
-	// flatItems depends on both tree and expandedNodesArray to ensure reactivity
-	// We reference expandedNodesArray to ensure Svelte tracks changes to expandedNodes
-	// Only update flatItems from tree if we're not currently dragging
-	$: {
-		// Reference expandedNodesArray to ensure reactivity
+	const tree = $derived(buildTree(localAlbums, clientSortBy));
+	const expandedNodesArray = $derived(Array.from(expandedNodes).sort());
+
+	$effect(() => {
 		const _ = expandedNodesArray;
 		if (!isDragging) {
 			flatItems = flatten(tree, expandedNodes);
 			flatItemsForDnd = transformForDnd(flatItems);
 		}
-	}
+	});
 
 </script>
 
@@ -461,8 +465,8 @@
 				backgroundColor: 'rgba(59, 130, 246, 0.1)'
 			}
 		}}
-		on:consider={handleDndConsider}
-		on:finalize={handleDndEnd}
+		onconsider={handleDndConsider}
+		onfinalize={handleDndEnd}
 	>
 		{#each flatItemsForDnd as node (node.id)}
 			<div class="album-tree-node" style="padding-left: {node.level * 1.5}rem;" data-id={node._id}>
@@ -470,7 +474,10 @@
 					{#if showAccordion && node.children && node.children.length > 0}
 						<button
 							type="button"
-							on:click|stopPropagation={() => toggleNode(node._id)}
+							onclick={(e) => {
+								e.stopPropagation();
+								toggleNode(node._id);
+							}}
 							class="shrink-0 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600"
 							aria-label={expandedNodes.has(node._id) ? 'Collapse' : 'Expand'}
 						>
@@ -497,8 +504,12 @@
 							<span class="text-base font-bold text-gray-600 leading-none" style="line-height: 1;">⋮⋮</span>
 						</div>
 						<div
-							on:click|stopPropagation={() => handleNodeClick(node)}
-							on:keydown|stopPropagation={(e) => {
+							onclick={(e) => {
+								e.stopPropagation();
+								handleNodeClick(node);
+							}}
+							onkeydown={(e) => {
+								e.stopPropagation();
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
 									handleNodeClick(node);

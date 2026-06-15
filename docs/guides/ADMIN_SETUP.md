@@ -44,9 +44,10 @@ If the setup wizard doesn't appear (e.g., if the database was already initialize
 
 Once you've completed the setup and logged in:
 
-1. **Change Your Password** (if you used default credentials)
-   - Go to your profile settings
-   - Update your password to something secure
+1. **Change Your Password** (required when using seeded defaults)
+   - Fresh installs seed `admin@openshutter.org` with **`forcePasswordChange: true`**
+   - You cannot use the admin dashboard until you set a new password via the modal shown on first login
+   - This applies even if you used the setup wizard with different credentials on a DB that still has the seed flag
 
 2. **Configure Storage Providers** (Optional but Recommended)
    - Navigate to `/admin/storage` in the admin dashboard

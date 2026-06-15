@@ -6,10 +6,15 @@
 	import { getPageGridForBreakpoint, getPageModulesForBreakpoint } from '$lib/template/breakpoints';
 	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
 
-	/** Resolved CMS login page document (or minimal stub from `role=login`). */
-	export let rolePage: Record<string, unknown> | null;
-	/** Modules returned with the resolved login page (may be empty). */
-	export let cmsModules: unknown[] | null;
+	let {
+		rolePage,
+		cmsModules
+	}: {
+		/** Resolved CMS login page document (or minimal stub from `role=login`). */
+		rolePage: Record<string, unknown> | null;
+		/** Modules returned with the resolved login page (may be empty). */
+		cmsModules: unknown[] | null;
+	} = $props();
 
 	function cloneModules(mods: any[]): any[] {
 		return mods.map((m) => ({
@@ -78,40 +83,47 @@
 		siteConfig.load().catch(() => {});
 	});
 
-	$: template = $siteConfigData?.template || {};
-	$: loginLayoutRaw = getPageGridForBreakpoint(
-		{
-			pageLayout: template.pageLayout,
-			pageLayoutByBreakpoint: template.pageLayoutByBreakpoint
-		},
-		'login',
-		'lg'
+	const template = $derived($siteConfigData?.template || {});
+	const loginLayoutRaw = $derived(
+		getPageGridForBreakpoint(
+			{
+				pageLayout: template.pageLayout,
+				pageLayoutByBreakpoint: template.pageLayoutByBreakpoint
+			},
+			'login',
+			'lg'
+		)
 	);
-	$: loginModulesRaw = getPageModulesForBreakpoint(
-		{
-			pageModules: template.pageModules,
-			pageModulesByBreakpoint: template.pageModulesByBreakpoint
-		},
-		'login',
-		'lg'
+	const loginModulesRaw = $derived(
+		getPageModulesForBreakpoint(
+			{
+				pageModules: template.pageModules,
+				pageModulesByBreakpoint: template.pageModulesByBreakpoint
+			},
+			'login',
+			'lg'
+		)
 	);
-	$: loginModules = mergeLoginPageModules(
-		Array.isArray(loginModulesRaw) && loginModulesRaw.length > 0 ? (loginModulesRaw as any[]) : [],
-		cmsModules
+	const loginModules = $derived(
+		mergeLoginPageModules(
+			Array.isArray(loginModulesRaw) && loginModulesRaw.length > 0 ? (loginModulesRaw as any[]) : [],
+			cmsModules
+		)
 	);
-	$: loginLayout = loginLayoutRaw ?? DEFAULT_PAGE_LAYOUTS.login;
-	$: rp = rolePage;
+	const loginLayout = $derived(loginLayoutRaw ?? DEFAULT_PAGE_LAYOUTS.login);
+	const rp = $derived(rolePage);
+
 	function truthyHideLoginTitle(raw: unknown): boolean {
 		return raw === true || raw === 'true' || raw === 1 || raw === '1';
 	}
 
-	$: loginPage = {
+	const loginPage = $derived({
 		_id: (rp?._id as string | undefined) ?? 'login',
 		title: (rp?.title as PageData['title']) ?? {},
 		subtitle: (rp?.subtitle as PageData['subtitle']) ?? {},
 		layout: loginLayout,
 		hideLoginTitle: truthyHideLoginTitle(rp?.hideLoginTitle)
-	} satisfies PageData;
+	} satisfies PageData);
 </script>
 
 <svelte:head>

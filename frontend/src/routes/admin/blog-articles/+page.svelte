@@ -21,22 +21,22 @@
 		leadingImage?: { url: string; alt?: string | { en?: string; he?: string } };
 	}
 
-	let articles: BlogArticleRow[] = [];
-	let categoryOptions: string[] = [];
-	let loading = true;
-	let searchTerm = '';
-	let categoryFilter = '';
-	let statusFilter = '';
+	let articles: BlogArticleRow[] = $state([]);
+	let categoryOptions: string[] = $state([]);
+	let loading = $state(true);
+	let searchTerm = $state('');
+	let categoryFilter = $state('');
+	let statusFilter = $state('');
 
 	let deleteArticleDialog: {
 		isOpen: boolean;
 		articleId: string | null;
 		isDeleting: boolean;
-	} = {
+	} = $state({
 		isOpen: false,
 		articleId: null,
 		isDeleting: false,
-	};
+	});
 
 	onMount(async () => {
 		await Promise.all([loadCategoryOptions(), fetchArticles()]);
@@ -148,13 +148,13 @@
 				<div class="flex flex-wrap gap-3">
 					<button
 						type="button"
-						on:click={() => goto('/admin/blog-articles/new')}
+						onclick={() => goto('/admin/blog-articles/new')}
 						class="{adminBtnPrimarySm} {adminRingPrimary} inline-flex items-center"
 					>
 						{$t('owner.createNewArticle')}
 					</button>
 					<button
-						on:click={() => goto('/admin/blogs')}
+						onclick={() => goto('/admin/blogs')}
 						class="btn preset-filled-primary-500 inline-flex items-center"
 					>
 						{$t('admin.backToBlogWorkspace')}
@@ -208,7 +208,7 @@
 				</div>
 				<button
 					type="button"
-					on:click={fetchArticles}
+					onclick={fetchArticles}
 					class="{adminBtnPrimarySm} {adminRingPrimary} mt-4 inline-flex items-center"
 				>
 					{$t('owner.filter')}
@@ -221,7 +221,7 @@
 						<p class="mb-4">{$t('owner.noArticles')}</p>
 						<button
 							type="button"
-							on:click={() => goto('/admin/blog-articles/new')}
+							onclick={() => goto('/admin/blog-articles/new')}
 							class="{adminBtnPrimarySm} {adminRingPrimary} inline-flex items-center"
 						>
 							{$t('owner.createNewArticle')}
@@ -286,21 +286,21 @@
 											{/if}
 											<button
 												type="button"
-												on:click={() => goto(`/admin/blog-articles/${article._id}/edit`)}
+												onclick={() => goto(`/admin/blog-articles/${article._id}/edit`)}
 												class="text-indigo-600 hover:underline"
 											>
 												{$t('admin.edit')}
 											</button>
 											<button
 												type="button"
-												on:click={() => handleTogglePublish(article)}
+												onclick={() => handleTogglePublish(article)}
 												class={article.isPublished ? 'text-yellow-700 hover:underline' : 'text-green-700 hover:underline'}
 											>
 												{article.isPublished ? 'Unpublish' : 'Publish'}
 											</button>
 											<button
 												type="button"
-												on:click={() => openDeleteArticleDialog(article._id)}
+												onclick={() => openDeleteArticleDialog(article._id)}
 												class="text-red-600 hover:underline"
 											>
 												{$t('admin.delete')}

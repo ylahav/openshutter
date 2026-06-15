@@ -7,30 +7,47 @@
 	import { getProductName } from '$lib/utils/productName';
 	import { stripInlineColorFromHtml } from '$lib/utils/strip-inline-color-from-html';
 
-	export let config: any = {};
-	export let compact: boolean = false;
+	let {
+		config = {},
+		compact = false
+	}: {
+		config?: Record<string, unknown>;
+		compact?: boolean;
+	} = $props();
 
-	$: titleText = config?.title ? MultiLangUtils.getTextValue(config.title, $currentLanguage) : '';
-	$: rawBody = config?.body ?? '';
-	$: bodyStr = typeof rawBody === 'string' ? rawBody : MultiLangUtils.getHTMLValue(rawBody, $currentLanguage) || '';
-	$: bodyHtml = bodyStr.replace(/\{\{productName\}\}/g, getProductName($siteConfigData ?? null, $currentLanguage));
-	$: bodyHtmlForRender =
-		String($activeTemplate ?? '').toLowerCase() === 'noir' ? stripInlineColorFromHtml(bodyHtml) : bodyHtml;
-	$: background = config?.background ?? 'white';
-	$: customBg =
-		background === 'custom' && typeof config?.backgroundColor === 'string' ? config.backgroundColor.trim() : '';
-	$: rootClass = `pb-richText ${compact ? 'pb-richText--compact' : 'pb-richText--regular'} ${
-		background === 'custom'
-			? customBg
-				? 'pb-richText--custom'
-				: 'pb-richText--transparent'
-			: background === 'gray'
-				? 'pb-richText--gray'
-				: background === 'transparent'
-					? 'pb-richText--transparent'
-					: 'pb-richText--white'
-	}`;
-	$: rootStyle = background === 'custom' && customBg ? `background:${customBg}` : undefined;
+	const titleText = $derived(
+		config?.title ? MultiLangUtils.getTextValue(config.title, $currentLanguage) : ''
+	);
+	const rawBody = $derived(config?.body ?? '');
+	const bodyStr = $derived(
+		typeof rawBody === 'string' ? rawBody : MultiLangUtils.getHTMLValue(rawBody, $currentLanguage) || ''
+	);
+	const bodyHtml = $derived(
+		bodyStr.replace(/\{\{productName\}\}/g, getProductName($siteConfigData ?? null, $currentLanguage))
+	);
+	const bodyHtmlForRender = $derived(
+		String($activeTemplate ?? '').toLowerCase() === 'noir' ? stripInlineColorFromHtml(bodyHtml) : bodyHtml
+	);
+	const background = $derived((config?.background as string) ?? 'white');
+	const customBg = $derived(
+		background === 'custom' && typeof config?.backgroundColor === 'string'
+			? config.backgroundColor.trim()
+			: ''
+	);
+	const rootClass = $derived(
+		`pb-richText ${compact ? 'pb-richText--compact' : 'pb-richText--regular'} ${
+			background === 'custom'
+				? customBg
+					? 'pb-richText--custom'
+					: 'pb-richText--transparent'
+				: background === 'gray'
+					? 'pb-richText--gray'
+					: background === 'transparent'
+						? 'pb-richText--transparent'
+						: 'pb-richText--white'
+		}`
+	);
+	const rootStyle = $derived(background === 'custom' && customBg ? `background:${customBg}` : undefined);
 </script>
 
 {#if compact}

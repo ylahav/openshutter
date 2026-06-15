@@ -16,15 +16,19 @@
 		features?: FeatureItem[];
 	};
 
-	export let config: FeatureGridLayoutConfig = {};
+	let { config = {} }: { config?: FeatureGridLayoutConfig } = $props();
 
-	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
-	$: subtitleText = config?.subtitle ? MultiLangUtils.getTextValue(config.subtitle, $currentLanguage) : '';
-	$: features = (Array.isArray(config?.features) ? config.features : []).filter((feature) => {
-		const hasTitle = MultiLangUtils.getTextValue(feature?.title, $currentLanguage)?.trim();
-		const hasDescription = MultiLangUtils.getHTMLValue(feature?.description, $currentLanguage)?.trim();
-		return Boolean(hasTitle || hasDescription);
-	});
+	const titleText = $derived(MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '');
+	const subtitleText = $derived(
+		config?.subtitle ? MultiLangUtils.getTextValue(config.subtitle, $currentLanguage) : ''
+	);
+	const features = $derived(
+		(Array.isArray(config?.features) ? config.features : []).filter((feature) => {
+			const hasTitle = MultiLangUtils.getTextValue(feature?.title, $currentLanguage)?.trim();
+			const hasDescription = MultiLangUtils.getHTMLValue(feature?.description, $currentLanguage)?.trim();
+			return Boolean(hasTitle || hasDescription);
+		})
+	);
 </script>
 
 <section class="pb-featureGrid">

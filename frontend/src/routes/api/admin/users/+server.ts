@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 
 		if (search) queryParams.set('search', search);
 		if (role && role !== 'all') queryParams.set('role', role);
-		if (blocked !== null && blocked !== undefined) queryParams.set('blocked', blocked);
+		if (blocked && blocked !== 'all') queryParams.set('blocked', blocked);
 		if (page) queryParams.set('page', page);
 		if (limit) queryParams.set('limit', limit);
 

@@ -6,8 +6,13 @@
 	import { t } from '$stores/i18n';
 
 	/** Anchor classes (theme-specific). */
-	export let linkClass = 'relative text-gray-600 hover:text-gray-900';
-	export let badgeClass =
+	let {
+		linkClass = $bindable('relative text-gray-600 hover:text-gray-900'),
+		badgeClass = $bindable('')
+	}: {
+		linkClass?: unknown;
+		badgeClass?: unknown;
+	} = $props();
 		'absolute -top-1 -right-2 min-w-[1.1rem] rounded-full bg-primary-600 px-1 text-center text-[10px] font-semibold leading-tight text-white';
 
 	let notifUnread = 0;

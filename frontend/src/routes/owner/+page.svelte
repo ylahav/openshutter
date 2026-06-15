@@ -5,7 +5,7 @@
 	import { productName } from '$stores/siteConfig';
 	import { t } from '$stores/i18n';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	const isAdmin = data.user?.role === 'admin';
 	const isOwner = data.user?.role === 'owner';
@@ -13,7 +13,6 @@
 	/** Show Storage management: own profile storage, or dedicated per-owner storage (admin flag). */
 	let showStorageManagementCard = false;
 	let profileLoaded = false;
-	let pageTitle = '';
 
 	onMount(async () => {
 		if (!isOwner) {
@@ -36,7 +35,7 @@
 		}
 	});
 
-	$: pageTitle = isAdmin ? $t('admin.adminPanel') : $t('owner.ownerPanel');
+	const pageTitle = $derived(isAdmin ? $t('admin.adminPanel') : $t('owner.ownerPanel'));
 
 	async function handleLogout() {
 		await logout();
@@ -83,7 +82,7 @@
 					{$t('navigation.home')}
 				</a>
 				<button
-					on:click={handleLogout}
+					onclick={handleLogout}
 					class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
 				>
 					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

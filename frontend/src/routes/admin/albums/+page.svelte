@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
+	import { invalidate } from '$app/navigation';
 	import { goto } from '$app/navigation';
-	import { afterNavigate } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
@@ -16,9 +15,12 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
+	import { routePageData } from '$lib/admin/routePageData';
+	import { adminNavigate } from '$lib/admin/adminNavigation';
 
-	// svelte-ignore export_let_unused - Required by SvelteKit page component
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
+
+	const pd = routePageData<PageData>();
 
 	interface Album {
 		_id: string;
@@ -60,15 +62,10 @@
 		isPublished?: boolean;
 	}
 
-	let albums: Album[] = [];
-	let loading = true;
-	let error = '';
-	let searchQuery = '';
-	type AlbumStatusFilter = 'all' | 'published' | 'draft' | 'private';
-	type AlbumSortOption = 'manual' | 'name' | 'date';
-	let statusFilter: AlbumStatusFilter = 'all';
-	let sortOption: AlbumSortOption = 'manual';
-	let albumsKey = 0; // Key to force AlbumTree re-render when albums change
+	type AlbumRow = Album;
+
+	const albums = $derived(($pd.albums ?? []) as AlbumRow[]);
+	let albumsKey = $state(0);
 
 	// Cover photo modal state
 	let coverPhotoModal: {
@@ -79,7 +76,7 @@
 		currentPage: number;
 		photosPerPage: number;
 		totalPhotos: number;
-	} = {
+	} = $state({
 		isOpen: false,
 		album: null,
 		photos: [],
@@ -87,7 +84,7 @@
 		currentPage: 1,
 		photosPerPage: 24,
 		totalPhotos: 0,
-	};
+	});
 
 	// Delete confirmation
 	let deleteDialog: {
@@ -95,23 +92,24 @@
 		albumId: string | null;
 		albumName: string;
 		isDeleting: boolean;
-	} = {
+	} = $state({
 		isOpen: false,
 		albumId: null,
 		albumName: '',
 		isDeleting: false,
-	};
-
-	// Reload albums when navigating to this page (handles both initial mount and navigation)
-	afterNavigate(() => {
-		// Only reload if we're on the admin albums page
-		if ($page.url.pathname === '/admin/albums') {
-			logger.debug('[afterNavigate] Navigating to admin albums page, reloading albums...');
-			loadAlbums().catch((err) => {
-				logger.error('Error reloading albums after navigation:', err);
-			});
-		}
 	});
+
+	let error = $state('');
+	let searchQuery = $state('');
+	type AlbumStatusFilter = 'all' | 'published' | 'draft' | 'private';
+	type AlbumSortOption = 'manual' | 'name' | 'date';
+	let statusFilter: AlbumStatusFilter = $state('all');
+	let sortOption: AlbumSortOption = $state('manual');
+
+	async function refreshAlbums() {
+		await invalidate('admin:albums');
+		albumsKey += 1;
+	}
 
 	async function togglePublished(album: Album) {
 		try {
@@ -132,8 +130,7 @@
 			}
 
 			// Reload albums to get fresh data from server
-			await loadAlbums();
-			albumsKey += 1;
+			await refreshAlbums();
 		} catch (err) {
 			logger.error('Failed to toggle published status:', err);
 			error = handleError(err, $t('admin.failedToUpdatePublishedStatus'));
@@ -159,8 +156,7 @@
 			}
 
 			// Reload albums to get fresh data from server
-			await loadAlbums();
-			albumsKey += 1;
+			await refreshAlbums();
 		} catch (err) {
 			logger.error('Failed to toggle public status:', err);
 			error = handleError(err, $t('admin.failedToUpdatePublicStatus'));
@@ -184,8 +180,7 @@
 				await handleApiErrorResponse(response);
 			}
 
-			await loadAlbums();
-			albumsKey += 1;
+			await refreshAlbums();
 		} catch (err) {
 			logger.error('Failed to toggle featured status:', err);
 			error = handleError(err, $t('admin.failedToUpdateFeaturedStatus'));
@@ -193,23 +188,12 @@
 	}
 
 	onMount(() => {
-		// Load albums asynchronously
-		(async () => {
-			logger.debug('[onMount] Starting album load...');
-			try {
-				await loadAlbums();
-				logger.debug('[onMount] Album load completed. Albums count:', albums.length, 'Loading:', loading);
-			} catch (err) {
-				logger.error('[onMount] Failed to load albums on mount:', err);
-				loading = false; // Ensure loading is set to false even if loadAlbums fails unexpectedly
-				error = handleError(err, $t('admin.failedToLoadAlbums'));
-				albums = []; // Ensure albums is always an array
-			}
-		})();
-		
 		// Set up event delegation for action buttons in AlbumTree
 		const handleActionClick = (e: MouseEvent) => {
 			const target = e.target as HTMLElement;
+
+			// Let normal links (edit, upload, view in new tab) work natively
+			if (target.closest('a[href]')) return;
 			
 			// Check if the click is on a button or its child (emoji)
 			const button = target.closest('[data-action]') as HTMLElement;
@@ -252,88 +236,12 @@
 				openDeleteDialog(album);
 			}
 		};
-		
 		// Use capture phase to ensure we catch the event early
 		document.addEventListener('click', handleActionClick, true);
 		return () => {
 			document.removeEventListener('click', handleActionClick, true);
 		};
 	});
-
-	async function loadAlbums() {
-		loading = true;
-		error = '';
-		try {
-			// Use admin endpoint to get ALL albums (including private ones)
-			// Add cache-busting timestamp to ensure fresh data
-			const cacheBuster = new Date().getTime();
-			const response = await fetch(`/api/admin/albums?t=${cacheBuster}`, {
-				cache: 'no-store',
-				headers: {
-					'Cache-Control': 'no-cache'
-				}
-			});
-			
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-			
-			let result;
-			try {
-				const responseText = await response.text();
-				logger.debug('[loadAlbums] Raw response text length:', responseText.length);
-				result = JSON.parse(responseText);
-			} catch (parseError) {
-				logger.error('Failed to parse JSON response:', parseError);
-				throw new Error('Invalid response format from server');
-			}
-			
-			logger.debug('[loadAlbums] Response received:', { 
-				isArray: Array.isArray(result), 
-				type: typeof result,
-				hasData: result?.data !== undefined,
-				hasSuccess: result?.success !== undefined,
-				resultPreview: Array.isArray(result) 
-					? `Array(${result.length})` 
-					: typeof result === 'object' 
-						? JSON.stringify(result).substring(0, 200)
-						: String(result)
-			});
-			
-			// Handle both array and object responses
-			if (Array.isArray(result)) {
-				albums = result;
-				logger.debug(`[loadAlbums] Loaded ${result.length} albums (direct array)`);
-			} else if (result && Array.isArray(result.data)) {
-				albums = result.data;
-				logger.debug(`[loadAlbums] Loaded ${result.data.length} albums from result.data`);
-			} else if (result && typeof result === 'object') {
-				// Check if it's an error object
-				if (result.error || result.success === false) {
-					throw new Error(result.error || result.message || 'Failed to fetch albums');
-				}
-				// If result is an object but not an error, try to extract albums
-				logger.warn('[loadAlbums] Unexpected response format:', result);
-				albums = [];
-			} else {
-				logger.warn('[loadAlbums] No albums found in response:', result);
-				albums = [];
-			}
-			
-			// Force reactivity update
-			albums = [...albums];
-			
-			// Debug: log order values
-			logger.debug('[loadAlbums] Albums with order values:', albums.map(a => ({ _id: a._id, name: typeof a.name === 'string' ? a.name : a.name?.en, order: a.order })));
-		} catch (err) {
-			logger.error('Error loading albums:', err);
-			error = handleError(err, 'Failed to load albums');
-			albums = []; // Ensure albums is always an array
-		} finally {
-			loading = false;
-			logger.debug('[loadAlbums] Loading complete. Albums count:', albums.length);
-		}
-	}
 
 	function escAttr(s: string): string {
 		return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -366,11 +274,13 @@
 					href="/admin/albums/${node._id}/edit"
 					class="shrink-0 text-xs font-medium text-(--color-primary-600) hover:text-(--color-primary-800) hover:underline"
 					title="${tx('admin.editAlbum')}"
+					data-sveltekit-reload
 				>${tx('admin.albumsListActionEdit')}</a>
 				<a
 					href="${uploadHref}"
 					class="shrink-0 text-xs font-medium text-(--color-primary-600) hover:text-(--color-primary-800) hover:underline"
 					title="${tx('admin.uploadPhotos')}"
+					data-sveltekit-reload
 				>${tx('admin.albumsListActionUpload')}</a>
 				<span class="mx-0.5 h-4 w-px shrink-0 self-center bg-(--color-surface-300-600)" aria-hidden="true"></span>
 				<button
@@ -420,7 +330,7 @@
 	}
 
 	function handleOpen(node: { _id: string }) {
-		goto(`/admin/albums/${node._id}`);
+		adminNavigate(`/admin/albums/${node._id}`);
 	}
 
 	// Album name function is now imported from shared utility
@@ -448,13 +358,14 @@
 	}
 
 	function getDisplayAlbums(): Album[] {
+		const list = albums;
 		const q = searchQuery.trim();
 		if (!q && statusFilter === 'all') {
-			return albums;
+			return list;
 		}
-		const byId = new Map(albums.map((x) => [x._id, x]));
+		const byId = new Map(list.map((x) => [x._id, x]));
 		const direct = new Set(
-			albums.filter((a) => albumMatchesSearch(a, q) && albumMatchesRowStatus(a)).map((a) => a._id)
+			list.filter((a) => albumMatchesSearch(a, q) && albumMatchesRowStatus(a)).map((a) => a._id)
 		);
 		const visible = new Set<string>();
 		const addAncestors = (id: string) => {
@@ -466,21 +377,21 @@
 			}
 		};
 		const addDescendants = (id: string) => {
-			for (const a of albums) {
+			for (const a of list) {
 				if (a.parentAlbumId === id) {
 					visible.add(a._id);
 					addDescendants(a._id);
 				}
 			}
-		};
+	};
 		for (const id of direct) {
 			addAncestors(id);
 			addDescendants(id);
 		}
-		return albums.filter((a) => visible.has(a._id));
+		return list.filter((a) => visible.has(a._id));
 	}
 
-	$: reorderEnabled = !searchQuery.trim() && statusFilter === 'all' && sortOption === 'manual';
+	const reorderEnabled = $derived(!searchQuery.trim() && statusFilter === 'all' && sortOption === 'manual');
 
 	async function handleReorder(
 		updates: Array<{ id: string; parentAlbumId: string | null; order: number }>
@@ -504,7 +415,7 @@
 			}
 			
 			await response.json();
-			await loadAlbums();
+			await refreshAlbums();
 		} catch (err) {
 			logger.error('Failed to reorder albums:', err);
 			error = handleError(err, 'Failed to reorder albums');
@@ -548,7 +459,7 @@
 			currentPage: 1,
 			photosPerPage: 24,
 			totalPhotos: 0,
-		};
+	};
 	}
 
 	async function setCoverPhoto(photoId: string) {
@@ -564,7 +475,7 @@
 			});
 
 			if (response.ok) {
-				await loadAlbums();
+				await refreshAlbums();
 				closeCoverPhotoModal();
 			}
 		} catch (err) {
@@ -613,7 +524,7 @@
 			if (response.ok) {
 				const deletedName = deleteDialog.albumName;
 				closeDeleteDialog();
-				await loadAlbums();
+				await refreshAlbums();
 				adminToast.success({
 					title: $t('admin.deleteAlbum'),
 					description: deletedName,
@@ -782,10 +693,9 @@
 			</div>
 		</div>
 
-		{#if loading}
+		{#if $pd.albumsLoadError}
 			<div class="text-center py-8">
-				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
-				<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingAlbums')}</p>
+				<p class="text-red-600">{$pd.albumsLoadError}</p>
 			</div>
 		{:else if albums.length === 0}
 			<div class="text-center py-12 card preset-outlined-surface-200-800 bg-surface-50-950">
@@ -852,7 +762,7 @@
 					{$t('admin.selectCoverPhoto')} - {coverPhotoModal.album ? getAlbumName(coverPhotoModal.album) : ''}
 				</h3>
 				<button 
-					on:click={closeCoverPhotoModal} 
+					onclick={closeCoverPhotoModal} 
 					class="text-(--color-surface-400-600) hover:text-(--color-surface-600-400)"
 					aria-label="Close modal"
 				>
@@ -899,7 +809,7 @@
 								class="relative cursor-pointer group {isCurrentCover
 									? 'ring-4 ring-(--color-primary-500) ring-opacity-75'
 									: ''}"
-								on:click={() => setCoverPhoto(photo._id)}
+								onclick={() => setCoverPhoto(photo._id)}
 								aria-label={$t('admin.setAsCoverPhoto')}
 							>
 								<img
@@ -924,7 +834,7 @@
 					{#if getTotalPages() > 1}
 						<div class="flex items-center justify-center space-x-2 mt-4">
 							<button
-								on:click={() => goToPage(coverPhotoModal.currentPage - 1)}
+								onclick={() => goToPage(coverPhotoModal.currentPage - 1)}
 								disabled={coverPhotoModal.currentPage === 1}
 								class="px-3 py-1 text-sm font-medium text-(--color-surface-600-400) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800) disabled:opacity-50 disabled:cursor-not-allowed"
 							>
@@ -936,7 +846,7 @@
 									.replace('{total}', String(getTotalPages()))}
 							</span>
 							<button
-								on:click={() => goToPage(coverPhotoModal.currentPage + 1)}
+								onclick={() => goToPage(coverPhotoModal.currentPage + 1)}
 								disabled={coverPhotoModal.currentPage === getTotalPages()}
 								class="px-3 py-1 text-sm font-medium text-(--color-surface-600-400) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800) disabled:opacity-50 disabled:cursor-not-allowed"
 							>
@@ -949,7 +859,7 @@
 
 			<div class="mt-6 flex justify-end">
 				<button
-					on:click={closeCoverPhotoModal}
+					onclick={closeCoverPhotoModal}
 					class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
 				>
 					{$t('admin.close')}

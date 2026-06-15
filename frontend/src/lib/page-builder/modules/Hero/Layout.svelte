@@ -18,91 +18,103 @@
 	import { urlFromGalleryLeadingPhoto } from './gallery-leading-urls';
 	import { logger } from '$lib/utils/logger';
 
-	export let config: any = {};
+	let { config = {} }: { config?: Record<string, unknown> } = $props();
 
-	$: heroPack = normalizeTemplatePackId(
-		$activeTemplate ??
-			$siteConfigData?.template?.frontendTemplate ??
-			$siteConfigData?.template?.activeTemplate
-	) as TemplatePackId;
+	const heroPack = $derived(
+		normalizeTemplatePackId(
+			$activeTemplate ??
+				$siteConfigData?.template?.frontendTemplate ??
+				$siteConfigData?.template?.activeTemplate
+		) as TemplatePackId
+	);
 
-	$: n = normalizeHeroModuleConfig(config as Record<string, unknown>);
+	const n = $derived(normalizeHeroModuleConfig(config as Record<string, unknown>));
 
-	$: titleText = MultiLangUtils.getTextValue(n.title, $currentLanguage);
-	$: subtitleText = MultiLangUtils.getTextValue(n.subtitle, $currentLanguage);
-	$: descriptionText = MultiLangUtils.getTextValue(n.description, $currentLanguage);
-	$: btn1Label = MultiLangUtils.getTextValue(n.buttonLabel ?? n.ctaLabel, $currentLanguage);
-	$: btn1Url = String(n.buttonUrl ?? n.ctaUrl ?? '').trim();
-	$: btn2Label = MultiLangUtils.getTextValue(n.button2Label, $currentLanguage);
-	$: btn2Url = String(n.button2Url ?? '').trim();
+	const titleText = $derived(MultiLangUtils.getTextValue(n.title, $currentLanguage));
+	const subtitleText = $derived(MultiLangUtils.getTextValue(n.subtitle, $currentLanguage));
+	const descriptionText = $derived(MultiLangUtils.getTextValue(n.description, $currentLanguage));
+	const btn1Label = $derived(MultiLangUtils.getTextValue(n.buttonLabel ?? n.ctaLabel, $currentLanguage));
+	const btn1Url = $derived(String(n.buttonUrl ?? n.ctaUrl ?? '').trim());
+	const btn2Label = $derived(MultiLangUtils.getTextValue(n.button2Label, $currentLanguage));
+	const btn2Url = $derived(String(n.button2Url ?? '').trim());
 
-	$: bgSrc = typeof n.backgroundImage === 'string' ? n.backgroundImage.trim() : '';
+	const bgSrc = $derived(typeof n.backgroundImage === 'string' ? n.backgroundImage.trim() : '');
 
-	$: order = n.contentMediaOrder as HeroContentMediaOrder;
-	$: mediaSource = normalizeHeroMediaSource(n.mediaSource);
-	$: mediaMax = heroGalleryLeadingMediaLimit(n as Record<string, unknown>);
-	$: arrangement = n.mediaArrangement as HeroMediaArrangement;
+	const order = $derived(n.contentMediaOrder as HeroContentMediaOrder);
+	const mediaSource = $derived(normalizeHeroMediaSource(n.mediaSource));
+	const mediaMax = $derived(heroGalleryLeadingMediaLimit(n as Record<string, unknown>));
+	const arrangement = $derived(n.mediaArrangement as HeroMediaArrangement);
 
-	$: uploadUrls = parseUrlList(n.mediaImages).slice(0, mediaMax);
+	const uploadUrls = $derived(parseUrlList(n.mediaImages).slice(0, mediaMax));
 
-	let galleryUrls: string[] = [];
+	let galleryUrls = $state<string[]>([]);
+	/** Plain counter for stale fetch cancellation — not reactive (must not live in $state). */
 	let galleryFetchGen = 0;
 
-	$: hasPrefetched =
+	const hasPrefetched = $derived(
 		mediaSource === 'galleryLeading' &&
-		Array.isArray(n.prefetchedGalleryLeadingUrls) &&
-		n.prefetchedGalleryLeadingUrls.length > 0;
+			Array.isArray(n.prefetchedGalleryLeadingUrls) &&
+			n.prefetchedGalleryLeadingUrls.length > 0
+	);
 
-	$: if (mediaSource !== 'galleryLeading') {
-		galleryUrls = [];
-		galleryFetchGen += 1;
-	} else if (hasPrefetched) {
-		galleryUrls = [...(n.prefetchedGalleryLeadingUrls as string[])];
-		galleryFetchGen += 1;
-	} else if (browser && mediaMax > 0) {
-		const gen = ++galleryFetchGen;
-		const lim = mediaMax;
-		(async () => {
-			try {
-				const res = await fetch(`/api/photos/gallery-leading?limit=${lim}`);
-				if (gen !== galleryFetchGen) return;
-				if (!res.ok) {
-					galleryUrls = [];
-					return;
-				}
-				const data = await res.json();
-				const list = Array.isArray(data) ? data : data?.data || [];
-				const urls = list
-					.map((p: unknown) => urlFromGalleryLeadingPhoto(p))
-					.filter((u: string | null): u is string => Boolean(u));
-				if (gen !== galleryFetchGen) return;
-				galleryUrls = urls;
-			} catch (e) {
-				if (gen !== galleryFetchGen) return;
-				logger.warn('[Hero] gallery-leading fetch failed', e);
-				galleryUrls = [];
+	$effect(() => {
+		if (mediaSource !== 'galleryLeading') {
+			galleryUrls = [];
+			return;
+		}
+		if (hasPrefetched) {
+			const prefetched = n.prefetchedGalleryLeadingUrls as string[];
+			if (galleryUrls.join('\0') !== prefetched.join('\0')) {
+				galleryUrls = [...prefetched];
 			}
-		})();
-	}
+			return;
+		}
+		if (browser && mediaMax > 0) {
+			const gen = ++galleryFetchGen;
+			const lim = mediaMax;
+			void (async () => {
+				try {
+					const res = await fetch(`/api/photos/gallery-leading?limit=${lim}`);
+					if (gen !== galleryFetchGen) return;
+					if (!res.ok) {
+						galleryUrls = [];
+						return;
+					}
+					const data = await res.json();
+					const list = Array.isArray(data) ? data : data?.data || [];
+					const urls = list
+						.map((p: unknown) => urlFromGalleryLeadingPhoto(p))
+						.filter((u: string | null): u is string => Boolean(u));
+					if (gen !== galleryFetchGen) return;
+					galleryUrls = urls;
+				} catch (e) {
+					if (gen !== galleryFetchGen) return;
+					logger.warn('[Hero] gallery-leading fetch failed', e);
+					galleryUrls = [];
+				}
+			})();
+		}
+	});
 
-	$: mediaUrls =
-		mediaSource === 'galleryLeading' ? galleryUrls.slice(0, mediaMax) : uploadUrls;
+	const mediaUrls = $derived(
+		mediaSource === 'galleryLeading' ? galleryUrls.slice(0, mediaMax) : uploadUrls
+	);
 
-	$: showContent =
+	const showContent = $derived(
 		order !== 'media-only' &&
-		!!(
-			titleText ||
-			subtitleText ||
-			descriptionText ||
-			(btn1Label && btn1Url) ||
-			(btn2Label && btn2Url)
-		);
-	$: showMedia = order !== 'content-only' && mediaUrls.length > 0;
+			!!(
+				titleText ||
+				subtitleText ||
+				descriptionText ||
+				(btn1Label && btn1Url) ||
+				(btn2Label && btn2Url)
+			)
+	);
+	const showMedia = $derived(order !== 'content-only' && mediaUrls.length > 0);
 
-	$: hasAnything = !!(bgSrc || showContent || showMedia);
+	const hasAnything = $derived(!!(bgSrc || showContent || showMedia));
 
-	/* --- Carousel --- */
-	let slideIndex = 0;
+	let slideIndex = $state(0);
 	let slideshowTimer: ReturnType<typeof setInterval> | null = null;
 
 	function clearTimer() {
@@ -112,22 +124,25 @@
 		}
 	}
 
-	$: carouselActive =
-		showMedia && arrangement === 'carousel' && mediaUrls.length > 1;
+	const carouselActive = $derived(
+		showMedia && arrangement === 'carousel' && mediaUrls.length > 1
+	);
 
-	$: carouselMs = Math.max(3000, Number(n.carouselIntervalMs ?? n.slideshowIntervalMs) || 5000);
+	const carouselMs = $derived(Math.max(3000, Number(n.carouselIntervalMs ?? n.slideshowIntervalMs) || 5000));
 
-	$: if (browser && carouselActive) {
-		clearTimer();
-		const nSlides = mediaUrls.length;
-		slideIndex = Math.min(slideIndex, nSlides - 1);
-		slideshowTimer = setInterval(() => {
-			slideIndex = (slideIndex + 1) % nSlides;
-		}, carouselMs);
-	} else {
-		clearTimer();
-		slideIndex = 0;
-	}
+	$effect(() => {
+		if (browser && carouselActive) {
+			clearTimer();
+			const nSlides = mediaUrls.length;
+			slideIndex = Math.min(slideIndex, nSlides - 1);
+			slideshowTimer = setInterval(() => {
+				slideIndex = (slideIndex + 1) % nSlides;
+			}, carouselMs);
+		} else {
+			clearTimer();
+			slideIndex = 0;
+		}
+	});
 
 	onDestroy(() => clearTimer());
 
@@ -203,7 +218,7 @@
 									class="hero-media__dot"
 									class:hero-media__dot--active={i === slideIndex}
 									aria-label={`Photo ${i + 1}`}
-									on:click={() => goSlide(i)}
+									onclick={() => goSlide(i)}
 								></button>
 							{/each}
 						</div>

@@ -10,7 +10,7 @@ import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 	import { normalizeHeroSplitLead } from '$lib/page-builder/modules/Hero/hero-layout';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	const isOwner = data?.user?.role === 'owner';
 	let loading = true;
@@ -293,7 +293,7 @@ import { t } from '$stores/i18n';
 					</p>
 				</div>
 				<button
-					on:click={() => goto('/owner')}
+					onclick={() => goto('/owner')}
 					class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 				>
 					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -317,16 +317,16 @@ import { t } from '$stores/i18n';
 				{/if}
 
 				<div class="mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-2">
-					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'branding' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" on:click={() => activeTab = 'branding'}>{$t('owner.siteSettingsBrandingTab')}</button>
-					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'hero' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" on:click={() => activeTab = 'hero'}>{$t('owner.siteSettingsHeroTab')}</button>
-					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'seo' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" on:click={() => activeTab = 'seo'}>{$t('owner.siteSettingsSeoTab')}</button>
-					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'contact' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" on:click={() => activeTab = 'contact'}>{$t('owner.siteSettingsContactTab')}</button>
+					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'branding' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" onclick={() => activeTab = 'branding'}>{$t('owner.siteSettingsBrandingTab')}</button>
+					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'hero' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" onclick={() => activeTab = 'hero'}>{$t('owner.siteSettingsHeroTab')}</button>
+					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'seo' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" onclick={() => activeTab = 'seo'}>{$t('owner.siteSettingsSeoTab')}</button>
+					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'contact' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" onclick={() => activeTab = 'contact'}>{$t('owner.siteSettingsContactTab')}</button>
 					<a href="/owner/theme" class="ml-auto px-3 py-1.5 rounded text-sm font-medium text-gray-600 hover:bg-gray-100">
 						{$t('owner.siteSettingsThemeLink')}
 					</a>
 				</div>
 
-				<form on:submit={handleSubmit} class="space-y-6">
+				<form onsubmit={handleSubmit} class="space-y-6">
 					{#if activeTab === 'branding'}
 					<div>
 						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.siteName')}</h3>
@@ -367,7 +367,7 @@ import { t } from '$stores/i18n';
 										type="file"
 										accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
 										class="sr-only"
-										on:change={handleLogoUpload}
+										onchange={handleLogoUpload}
 										disabled={uploadingLogo}
 									/>
 									{#if uploadingLogo}
@@ -399,7 +399,7 @@ import { t } from '$stores/i18n';
 									src={formData.logo}
 									alt={$t('owner.logoPreviewAlt')}
 									class="h-10 object-contain max-w-[200px] bg-gray-50 rounded border border-gray-200"
-									on:error={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+									onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
 								/>
 							</div>
 						{/if}
@@ -486,7 +486,7 @@ import { t } from '$stores/i18n';
 									<div class="mt-3 flex items-center gap-2">
 										<button
 											type="button"
-											on:click={openHeroPhotoPicker}
+											onclick={openHeroPhotoPicker}
 											class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50"
 										>
 											Choose from uploaded photos
@@ -494,7 +494,7 @@ import { t } from '$stores/i18n';
 										{#if formData.hero.backgroundImage}
 											<button
 												type="button"
-												on:click={() => (formData.hero.backgroundImage = '')}
+												onclick={() => (formData.hero.backgroundImage = '')}
 												class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50"
 											>
 												Clear
@@ -516,7 +516,7 @@ import { t } from '$stores/i18n';
 														<button
 															type="button"
 															class="text-left border border-gray-200 rounded-md overflow-hidden bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-															on:click={() => selectHeroPhoto(photo)}
+															onclick={() => selectHeroPhoto(photo)}
 															disabled={!photoUrl}
 															title={photoUrl ? 'Use this photo' : 'Photo has no valid URL'}
 														>

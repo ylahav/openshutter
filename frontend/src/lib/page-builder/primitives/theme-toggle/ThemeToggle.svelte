@@ -2,18 +2,19 @@
 	import { toggleTheme, resolvedTheme } from '$lib/stores/theme';
 
 	/** `icons` — sun/moon only; `text` — Light / Dark; `both` — icon + label. */
-	export let variant: 'icons' | 'text' | 'both' = 'icons';
+	let { variant = 'icons' }: { variant?: 'icons' | 'text' | 'both' } = $props();
 
-	$: currentTheme = $resolvedTheme === 'dark' ? 'dark' : 'light';
-	$: nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-	$: ariaLabel = `Switch to ${nextTheme} theme`;
-	$: textLabel = nextTheme;
-	$: variantClass =
-		variant === 'text' ? 'pb-themeToggle--text' : variant === 'both' ? 'pb-themeToggle--both' : 'pb-themeToggle--icons';
+	const currentTheme = $derived($resolvedTheme === 'dark' ? 'dark' : 'light');
+	const nextTheme = $derived(currentTheme === 'dark' ? 'light' : 'dark');
+	const ariaLabel = $derived(`Switch to ${nextTheme} theme`);
+	const textLabel = $derived(nextTheme);
+	const variantClass = $derived(
+		variant === 'text' ? 'pb-themeToggle--text' : variant === 'both' ? 'pb-themeToggle--both' : 'pb-themeToggle--icons'
+	);
 </script>
 
 <button
-	on:click={toggleTheme}
+	onclick={toggleTheme}
 	class={`pb-themeToggle ${variantClass}`}
 	type="button"
 	title={ariaLabel}

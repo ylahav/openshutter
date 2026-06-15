@@ -8,16 +8,16 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
 
-	let albumId: string | null = null;
+	let albumId: string | null  = $state(null);
 	let uploads: Array<{
 		file: File;
 		progress: number;
 		status: 'uploading' | 'success' | 'error';
 		error?: string;
 	}> = [];
-	let isUploading = false;
-	let error: string | null = null;
-	let isDragActive = false;
+	let isUploading = $state(false);
+	let error: string | null  = $state(null);
+	let isDragActive = $state(false);
 	let fileInput: HTMLInputElement | null = null;
 
 	onMount(() => {
@@ -166,11 +166,11 @@
 						? 'border-blue-400 bg-blue-50'
 						: 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'}"
 					aria-label="Upload photos. Drag and drop image files here, or press Enter or Space to choose files from your device."
-					on:dragover={handleDragOver}
-					on:dragleave={handleDragLeave}
-					on:drop={handleDrop}
-					on:click={() => fileInput?.click()}
-					on:keydown={handleDropzoneKeydown}
+					ondragover={handleDragOver}
+					ondragleave={handleDragLeave}
+					ondrop={handleDrop}
+					onclick={() => fileInput?.click()}
+					onkeydown={handleDropzoneKeydown}
 				>
 					<input
 						id="photos-upload-file-input"
@@ -181,7 +181,7 @@
 						class="hidden"
 						tabindex="-1"
 						aria-hidden="true"
-						on:change={(e) => handleFilesSelected((e.currentTarget as HTMLInputElement).files)}
+						onchange={(e) => handleFilesSelected((e.currentTarget as HTMLInputElement).files)}
 					/>
 
 					<div class="space-y-4">
@@ -297,7 +297,7 @@
 			{#if allUploadsComplete && uploads.length > 0}
 				<div class="mt-8 flex justify-end space-x-3">
 					<button
-						on:click={() => {
+						onclick={() => {
 							uploads = [];
 						}}
 						class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
@@ -305,7 +305,7 @@
 						Upload More Photos
 					</button>
 					<button
-						on:click={() => goto('/photos')}
+						onclick={() => goto('/photos')}
 						class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
 					>
 						View Photos

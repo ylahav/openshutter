@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common'
 import { connectDB } from '../../config/db'
 import mongoose from 'mongoose'
 import { BaseStorageConfig, StorageProviderId, StorageConfigError } from './types'
+import { resolveGoogleDriveStorageType, mergeGoogleDriveStorageTypeFields } from './google-drive-storage-type'
 
 export class StorageConfigService {
   private static readonly logger = new Logger(StorageConfigService.name)
@@ -24,6 +25,12 @@ export class StorageConfigService {
    */
   async getAllConfigs(): Promise<BaseStorageConfig[]> {
     await this.refreshCacheIfNeeded()
+    return Array.from(this.configCache.values())
+  }
+
+  /** Admin UI: always read latest from MongoDB (bypass TTL cache). */
+  async getAllConfigsFresh(): Promise<BaseStorageConfig[]> {
+    await this.refreshCache()
     return Array.from(this.configCache.values())
   }
 
@@ -64,6 +71,82 @@ export class StorageConfigService {
   }
 
   /**
+   * Enable or disable a storage provider (direct MongoDB update).
+   */
+  async setProviderEnabled(
+    providerId: StorageProviderId,
+    enabled: boolean,
+  ): Promise<BaseStorageConfig> {
+    await connectDB()
+    const db = mongoose.connection.db
+    if (!db) throw new Error('Database connection not established')
+    const collection = db.collection('storage_configs')
+
+    let existing = await collection.findOne({ providerId }, { sort: { updatedAt: -1 } })
+    if (!existing) {
+      await this.initializeDefaultConfigs()
+      existing = await collection.findOne({ providerId }, { sort: { updatedAt: -1 } })
+    }
+    if (!existing) {
+      throw new StorageConfigError(`Configuration not found for provider: ${providerId}`, providerId)
+    }
+
+    const now = new Date()
+    const enableResult = await collection.updateOne(
+      { _id: existing._id },
+      {
+        $set: {
+          isEnabled: enabled === true,
+          updatedAt: now,
+        },
+      },
+    )
+    if (enableResult.matchedCount === 0) {
+      throw new StorageConfigError(
+        `Enable update matched no document for providerId "${providerId}"`,
+        providerId,
+      )
+    }
+
+    await collection.updateOne(
+      { _id: existing._id, 'config.isEnabled': { $exists: true } },
+      { $unset: { 'config.isEnabled': '' } },
+    )
+
+    this.invalidateCache()
+    await this.refreshCache()
+    return this.getConfig(providerId)
+  }
+
+  /**
+   * Patch specific config.* fields without replacing the whole config object.
+   */
+  async patchConfigFields(
+    providerId: StorageProviderId,
+    fields: Record<string, unknown>,
+  ): Promise<void> {
+    await connectDB()
+    const db = mongoose.connection.db
+    if (!db) throw new Error('Database connection not established')
+    const collection = db.collection('storage_configs')
+    const existing = await collection.findOne({ providerId }, { sort: { updatedAt: -1 } })
+    if (!existing?._id) {
+      throw new StorageConfigError(`Configuration not found for provider: ${providerId}`, providerId)
+    }
+
+    const setDoc: Record<string, unknown> = { updatedAt: new Date() }
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) {
+        setDoc[`config.${key}`] = value
+      }
+    }
+
+    await collection.updateOne({ _id: existing._id }, { $set: setDoc })
+    this.invalidateCache()
+    await this.refreshCache()
+  }
+
+  /**
    * Update storage configuration
    */
   async updateConfig(providerId: StorageProviderId, updates: Partial<BaseStorageConfig>): Promise<void> {
@@ -80,12 +163,12 @@ export class StorageConfigService {
     
     // Only include top-level fields that belong there
     if (updates.name !== undefined) updateData.name = updates.name
-    if (updates.isEnabled !== undefined) updateData.isEnabled = updates.isEnabled
+    if (updates.isEnabled !== undefined) updateData.isEnabled = updates.isEnabled === true
     if (updates.config !== undefined) updateData.config = updates.config
     if (updates.createdAt !== undefined) updateData.createdAt = updates.createdAt
     
     // Set createdAt if this is a new document
-    const existing = await collection.findOne({ providerId })
+    const existing = await collection.findOne({ providerId }, { sort: { updatedAt: -1 } })
     if (!existing && !updateData.createdAt) {
       updateData.createdAt = new Date()
     }
@@ -97,6 +180,9 @@ export class StorageConfigService {
       if (updateData.config.isEnabled !== undefined) {
         delete updateData.config.isEnabled
       }
+
+      const incomingRefreshToken =
+        typeof updates.config?.refreshToken === 'string' ? updates.config.refreshToken.trim() : ''
       
       // Recursively flatten any nested config.config structures
       const flattenConfig = (obj: any, depth = 0): any => {
@@ -115,7 +201,12 @@ export class StorageConfigService {
             // If there's a nested config, recursively flatten it and merge
             StorageConfigService.logger.warn(`[StorageConfigService] Found nested config.config at depth ${depth} in ${providerId}, flattening...`)
             const nestedFlattened = flattenConfig(obj[key], depth + 1)
-            Object.assign(flattened, nestedFlattened)
+            Object.keys(nestedFlattened).forEach((nestedKey) => {
+              if (nestedKey === 'refreshToken' && incomingRefreshToken) {
+                return
+              }
+              flattened[nestedKey] = nestedFlattened[nestedKey]
+            })
           } else if (obj[key] !== undefined && obj[key] !== null) {
             flattened[key] = obj[key]
           }
@@ -123,8 +214,19 @@ export class StorageConfigService {
         
         return flattened
       }
-      
-      updateData.config = flattenConfig(updateData.config)
+
+      const incomingFlat = flattenConfig(updateData.config)
+      const existingFlat =
+        existing?.config && typeof existing.config === 'object'
+          ? flattenConfig(existing.config)
+          : {}
+      updateData.config = { ...existingFlat, ...incomingFlat }
+
+      if (incomingRefreshToken) {
+        updateData.config.refreshToken = incomingRefreshToken
+      }
+
+      delete updateData.config.config
       
       // Final safety check
       if (updateData.config.config !== undefined) {
@@ -132,13 +234,19 @@ export class StorageConfigService {
         const { config: _, ...finalClean } = updateData.config
         updateData.config = finalClean
       }
+
+      if (providerId === 'google-drive' && incomingRefreshToken) {
+        StorageConfigService.logger.log(
+          `[StorageConfigService] google-drive refreshToken save: len=${incomingRefreshToken.length} prefix=${incomingRefreshToken.slice(0, 12)}`,
+        )
+      }
     }
     
     // Use $set to update only specified fields, and $unset to remove any duplicate top-level fields
     // that shouldn't be there (they belong in config object)
     // NOTE: We cannot use $unset on nested fields (like 'config.isEnabled') when also using $set on the parent ('config')
     // So we ensure isEnabled is removed from updateData.config before saving
-    const fieldsToUnset = ['clientId', 'clientSecret', 'refreshToken', 'folderId',
+    const fieldsToUnset = ['clientId', 'clientSecret', 'refreshToken', 'folderId', 'storageType',
                            'accessKeyId', 'secretAccessKey', 'bucketName', 'region', 'endpoint',
                            'applicationKeyId', 'applicationKey', 'basePath', 'maxFileSize']
     
@@ -147,30 +255,39 @@ export class StorageConfigService {
       unsetFields[field] = ''
     })
     
+    // Target the newest row when duplicate providerId documents exist.
+    const docFilter = existing?._id ? { _id: existing._id } : { providerId }
+
     // If we're updating the config object, we need to use a separate update to remove config.isEnabled
     // to avoid MongoDB conflict. We'll do this in two steps if config is being updated.
     if (updateData.config) {
       // First, update with $set (which will replace the entire config object, removing isEnabled)
-      await collection.updateOne(
-        { providerId },
+      const writeResult = await collection.updateOne(
+        docFilter,
         {
           $set: updateData,
           $unset: unsetFields
         },
         { upsert: true }
       )
+      if (writeResult.matchedCount === 0 && writeResult.upsertedCount === 0) {
+        throw new StorageConfigError(
+          `Config update matched no document and did not upsert for providerId "${providerId}"`,
+          providerId,
+        )
+      }
       
       // Then, if config.isEnabled exists in the DB, remove it separately
       // This avoids the conflict since we're not setting config in the same operation
       await collection.updateOne(
-        { providerId, 'config.isEnabled': { $exists: true } },
-        { $unset: { 'config.isEnabled': '' } }
+        docFilter,
+        { $unset: { 'config.isEnabled': '', 'config.config': '' } },
       )
     } else {
       // If we're not updating config, we can safely unset config.isEnabled in the same operation
       unsetFields['config.isEnabled'] = ''
       await collection.updateOne(
-        { providerId },
+        docFilter,
         {
           $set: updateData,
           $unset: unsetFields
@@ -179,8 +296,9 @@ export class StorageConfigService {
       )
     }
     
-    // Invalidate cache
+    // Invalidate cache and reload immediately so subsequent reads see the write
     this.invalidateCache()
+    await this.refreshCache()
   }
 
   /**
@@ -331,6 +449,7 @@ export class StorageConfigService {
         { clientSecret: { $exists: true } },
         { refreshToken: { $exists: true } },
         { folderId: { $exists: true } },
+        { storageType: { $exists: true } },
         { accessKeyId: { $exists: true } },
         { secretAccessKey: { $exists: true } },
         { bucketName: { $exists: true } },
@@ -359,7 +478,7 @@ export class StorageConfigService {
       
       // Build unset object for duplicate top-level fields
       const unsetFields: Record<string, string> = {}
-      const fieldsToRemove = ['clientId', 'clientSecret', 'refreshToken', 'folderId',
+      const fieldsToRemove = ['clientId', 'clientSecret', 'refreshToken', 'folderId', 'storageType',
                              'accessKeyId', 'secretAccessKey', 'bucketName', 'region', 'endpoint',
                              'applicationKeyId', 'applicationKey', 'basePath', 'maxFileSize']
       
@@ -501,7 +620,16 @@ export class StorageConfigService {
         // If there's a nested config, recursively flatten it and merge
         StorageConfigService.logger.warn(`[StorageConfigService] Found nested config.config at depth ${depth}, flattening...`);
         const nestedFlattened = this.flattenConfig(obj[key], depth + 1);
-        Object.assign(flattened, nestedFlattened);
+        Object.keys(nestedFlattened).forEach((nestedKey) => {
+          if (nestedKey === 'storageType') {
+            flattened.storageType = mergeGoogleDriveStorageTypeFields(
+              flattened.storageType,
+              nestedFlattened.storageType,
+            );
+          } else {
+            flattened[nestedKey] = nestedFlattened[nestedKey];
+          }
+        });
       } else if (obj[key] !== undefined && obj[key] !== null) {
         flattened[key] = obj[key];
       }
@@ -519,12 +647,20 @@ export class StorageConfigService {
     if (!db) throw new Error('Database connection not established')
     const collection = db.collection('storage_configs')
     
-    const configs = await collection.find({}).toArray()
+    const configs = await collection.find({}).sort({ updatedAt: -1 }).toArray()
     
     StorageConfigService.logger.debug(`[StorageConfigService] Loading configs from DB: ${configs.length} configs found`)
     this.configCache.clear()
     
+    const loadedProviderIds = new Set<string>()
     configs.forEach(rawConfig => {
+      if (loadedProviderIds.has(rawConfig.providerId)) {
+        StorageConfigService.logger.warn(
+          `[StorageConfigService] Duplicate storage_configs row for ${rawConfig.providerId}; using newest updatedAt only`,
+        )
+        return
+      }
+      loadedProviderIds.add(rawConfig.providerId)
       StorageConfigService.logger.debug(`[StorageConfigService] Loading config for ${rawConfig.providerId}: ${JSON.stringify({
         hasConfig: !!rawConfig.config,
         configKeys: rawConfig.config ? Object.keys(rawConfig.config) : [],
@@ -537,16 +673,31 @@ export class StorageConfigService {
       const rawConfigObj = rawConfig.config || {}
       const flattenedConfigObj = this.flattenConfig(rawConfigObj)
       const { isEnabled: _, ...cleanConfigObj } = flattenedConfigObj
+      if (rawConfig.providerId === 'google-drive') {
+        cleanConfigObj.storageType = resolveGoogleDriveStorageType({
+          config: rawConfigObj as Record<string, unknown>,
+          root: rawConfig as Record<string, unknown>,
+        })
+      } else if (!cleanConfigObj.storageType && typeof rawConfig.storageType === 'string') {
+        cleanConfigObj.storageType = rawConfig.storageType
+      }
       
       // Check if we flattened any nested structures
       if (rawConfigObj.config !== undefined && flattenedConfigObj !== rawConfigObj) {
         StorageConfigService.logger.warn(`[StorageConfigService] Flattened nested config for ${rawConfig.providerId} during cache refresh`)
       }
       
+      const rootEnabled = rawConfig.isEnabled === true;
+      const nestedEnabled =
+        rawConfigObj &&
+        typeof rawConfigObj === 'object' &&
+        (rawConfigObj as { isEnabled?: boolean }).isEnabled === true;
+      const resolvedEnabled = rootEnabled || nestedEnabled;
+
       const cleanedConfig: BaseStorageConfig = {
         providerId: rawConfig.providerId,
         name: rawConfig.name,
-        isEnabled: rawConfig.isEnabled !== undefined ? rawConfig.isEnabled : false,
+        isEnabled: resolvedEnabled,
         config: cleanConfigObj, // Config object without isEnabled, flattened
         createdAt: rawConfig.createdAt,
         updatedAt: rawConfig.updatedAt

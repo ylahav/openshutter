@@ -10,16 +10,36 @@
 		config?: RootAlbumsListProps;
 	} & RootAlbumsListProps;
 
-	export let title: RootAlbumsListProps['title'] = undefined;
-	export let limit: RootAlbumsListProps['limit'] = undefined;
+	let {
+		title = undefined,
+		limit = undefined,
+		props,
+		data,
+		compact,
+		...rest
+	}: {
+		title?: RootAlbumsListProps['title'];
+		limit?: RootAlbumsListProps['limit'];
+		props?: LegacyRootAlbumsListProps;
+		data?: unknown;
+		compact?: boolean;
+		[key: string]: unknown;
+	} = $props();
 
-	// Temporary migration fallback for legacy nested props.config payloads
-	export let props: LegacyRootAlbumsListProps | undefined = undefined;
-	$: config = (props?.config ??
-		(props && typeof props === 'object' ? props : undefined) ?? {
-			title,
-			limit
-		}) satisfies RootAlbumsListProps;
+	const config = $derived.by((): RootAlbumsListProps => {
+		if (props !== undefined) {
+			return (props.config ??
+				(props && typeof props === 'object' ? props : undefined) ?? {
+					title,
+					limit
+				}) as RootAlbumsListProps;
+		}
+		const spread = rest as RootAlbumsListProps;
+		if (spread.title !== undefined || spread.limit !== undefined) {
+			return spread;
+		}
+		return { title, limit };
+	});
 </script>
 
 <Layout {config} />

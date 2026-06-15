@@ -6,11 +6,10 @@
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import type { PageData as BuilderPageData } from '$lib/types/page-builder';
 
-	export let data: PageData;
-	$: page = (data.page ?? null) as BuilderPageData | null;
-	$: modules = (data.modules ?? []) as PageModuleData[];
-	$: homePageStatus = data.homePageStatus ?? (page ? 'ok' : 'missing');
-</script>
+	let { data }: { data: PageData } = $props();
+const page = $derived((data.page ?? null) as BuilderPageData | null);
+	const modules = $derived((data.modules ?? []) as PageModuleData[]);
+const homePageStatus = $derived(data.homePageStatus ?? (page ? 'ok' : 'missing'));</script>
 
 <svelte:head>
 	<title>{$productName}</title>

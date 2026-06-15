@@ -4,25 +4,28 @@
 	import IconRenderer from '$components/IconRenderer.svelte';
 	import { parseLinksJson, normalizeLinksArray, linksFromSocialObject } from './resolveLinks';
 
-	export let config: any = {};
+	let { config = {} }: { config?: Record<string, unknown> } = $props();
 
-	$: iconSize = config?.iconSize || 'md';
-	$: iconColor = config?.iconColor || 'current';
-	$: showLabels = config?.showLabels ?? false;
-	$: linkDisplay = config?.linkDisplay === 'text' ? 'text' : 'icon';
-	$: orientation = config?.orientation || 'horizontal';
-	$: gap = config?.gap || 'normal';
-	$: align = config?.align === 'center' ? 'center' : config?.align === 'end' ? 'end' : 'start';
-	$: className = config?.className || '';
+	const iconSize = $derived((config?.iconSize as string) || 'md');
+	const iconColor = $derived((config?.iconColor as string) || 'current');
+	const showLabels = $derived(config?.showLabels ?? false);
+	const linkDisplay = $derived(config?.linkDisplay === 'text' ? 'text' : 'icon');
+	const orientation = $derived((config?.orientation as string) || 'horizontal');
+	const gap = $derived((config?.gap as string) || 'normal');
+	const align = $derived(
+		config?.align === 'center' ? 'center' : config?.align === 'end' ? 'end' : 'start'
+	);
+	const className = $derived((config?.className as string) || '');
 
-	$: fromJson = normalizeLinksArray(config?.links) ?? parseLinksJson(config?.linksJson);
-	$: legacyOverride =
+	const fromJson = $derived(normalizeLinksArray(config?.links) ?? parseLinksJson(config?.linksJson));
+	const legacyOverride = $derived(
 		config?.socialMedia && typeof config.socialMedia === 'object' && !Array.isArray(config.socialMedia)
 			? (config.socialMedia as Record<string, unknown>)
-			: null;
-	$: siteSocial = $siteConfigData?.contact?.socialMedia;
+			: null
+	);
+	const siteSocial = $derived($siteConfigData?.contact?.socialMedia);
 
-	$: resolvedLinks = (() => {
+	const resolvedLinks = $derived.by(() => {
 		if (fromJson?.length) return fromJson;
 		if (
 			legacyOverride &&
@@ -34,32 +37,36 @@
 			return linksFromSocialObject({ ...(siteSocial || {}), ...legacyOverride });
 		}
 		return linksFromSocialObject(siteSocial ?? {});
-	})();
+	});
 
-	$: rootClass = [
-		'pb-socialMedia',
-		orientation === 'vertical' ? 'pb-socialMedia--vertical' : 'pb-socialMedia--horizontal',
-		gap === 'tight' ? 'pb-socialMedia--gapTight' : gap === 'loose' ? 'pb-socialMedia--gapLoose' : 'pb-socialMedia--gapNormal',
-		align === 'center' ? 'pb-socialMedia--alignCenter' : align === 'end' ? 'pb-socialMedia--alignEnd' : 'pb-socialMedia--alignStart',
-		className
-	]
-		.filter(Boolean)
-		.join(' ');
+	const rootClass = $derived(
+		[
+			'pb-socialMedia',
+			orientation === 'vertical' ? 'pb-socialMedia--vertical' : 'pb-socialMedia--horizontal',
+			gap === 'tight' ? 'pb-socialMedia--gapTight' : gap === 'loose' ? 'pb-socialMedia--gapLoose' : 'pb-socialMedia--gapNormal',
+			align === 'center' ? 'pb-socialMedia--alignCenter' : align === 'end' ? 'pb-socialMedia--alignEnd' : 'pb-socialMedia--alignStart',
+			className
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
-	$: iconSizeMod =
-		iconSize === 'sm' ? 'pb-socialMedia__icon--sm' : iconSize === 'lg' ? 'pb-socialMedia__icon--lg' : 'pb-socialMedia__icon--md';
+	const iconSizeMod = $derived(
+		iconSize === 'sm' ? 'pb-socialMedia__icon--sm' : iconSize === 'lg' ? 'pb-socialMedia__icon--lg' : 'pb-socialMedia__icon--md'
+	);
 
-	$: isCustomColor =
-		iconColor && (iconColor.startsWith('#') || iconColor.includes('rgb') || iconColor.includes('hsl'));
-	$: iconColorStyle = isCustomColor ? `color: ${iconColor};` : '';
-	$: iconToneClass = (() => {
+	const isCustomColor = $derived(
+		iconColor && (iconColor.startsWith('#') || iconColor.includes('rgb') || iconColor.includes('hsl'))
+	);
+	const iconColorStyle = $derived(isCustomColor ? `color: ${iconColor};` : '');
+	const iconToneClass = $derived.by(() => {
 		if (isCustomColor) return '';
 		if (iconColor === 'current') return 'pb-socialMedia__iconTone--current';
 		if (typeof iconColor === 'string' && (/^text-/.test(iconColor) || iconColor.includes('['))) {
 			return iconColor;
 		}
 		return 'pb-socialMedia__iconTone--fg';
-	})();
+	});
 </script>
 
 {#if resolvedLinks.length > 0}

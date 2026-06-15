@@ -31,15 +31,15 @@
 		seoDescription: { en?: string; he?: string };
 	}
 
-	let saving = false;
+	let saving = $state(false);
 	interface CategoryOption {
 		alias: string;
 		title: unknown;
 	}
 
-	let categoryOptions: CategoryOption[] = [];
+	let categoryOptions: CategoryOption[] = $state([]);
 
-	let formData: BlogFormData = {
+	let formData: BlogFormData = $state({
 		title: { [$currentLanguage]: '' },
 		category: '',
 		tags: [],
@@ -49,9 +49,9 @@
 		isFeatured: false,
 		seoTitle: { [$currentLanguage]: '' },
 		seoDescription: { [$currentLanguage]: '' }
-	};
+	});
 
-	let tagInput = '';
+	let tagInput = $state('');
 
 	onMount(async () => {
 		await loadCategories();
@@ -104,7 +104,7 @@
 			formData = {
 				...formData,
 				tags: [...formData.tags, tagInput.trim()]
-			};
+	};
 			tagInput = '';
 		}
 	}
@@ -172,7 +172,7 @@
 				<p class="text-(--color-surface-600-400) mt-2">{$t('owner.createArticleDescription')}</p>
 			</div>
 			<button
-				on:click={() => goto('/admin/blog-articles')}
+				onclick={() => goto('/admin/blog-articles')}
 				class="btn preset-filled-primary-500 inline-flex items-center"
 			>
 				{$t('admin.backToBlogWorkspace')}
@@ -180,7 +180,7 @@
 		</div>
 
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-			<form on:submit={handleSubmit} class="space-y-6">
+			<form onsubmit={handleSubmit} class="space-y-6">
 				<div>
 					<h3 class="text-lg font-medium text-(--color-surface-950-50) mb-4">{$t('owner.basicInformation')}</h3>
 					<div class="space-y-4">
@@ -232,7 +232,7 @@
 										type="text"
 										id="tags"
 										bind:value={tagInput}
-										on:keypress={(e) => {
+										onkeypress={(e) => {
 											if (e.key === 'Enter') {
 												e.preventDefault();
 												handleAddTag();
@@ -243,7 +243,7 @@
 									/>
 									<button
 										type="button"
-										on:click={handleAddTag}
+										onclick={handleAddTag}
 										class="{adminBtnPrimarySm} {adminRingPrimary} rounded-l-none rounded-r-md"
 									>
 										{$t('owner.add')}
@@ -258,7 +258,7 @@
 												{tag}
 												<button
 													type="button"
-													on:click={() => handleRemoveTag(tag)}
+													onclick={() => handleRemoveTag(tag)}
 													class="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-(--color-primary-400) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_28%,transparent)] hover:text-(--color-primary-500)"
 													aria-label="Remove tag"
 												>
@@ -287,7 +287,7 @@
 							type="url"
 							id="leading-image-url-admin"
 							value={formData.leadingImage?.url || ''}
-							on:input={(e) => {
+							oninput={(e) => {
 								formData.leadingImage = {
 									url: e.currentTarget.value,
 									alt: { [$currentLanguage]: '' },

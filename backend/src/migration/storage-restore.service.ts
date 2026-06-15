@@ -1,12 +1,15 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { randomUUID } from 'crypto';
 import { Model, Types } from 'mongoose';
 import { storageManager } from '../services/storage/manager';
 import { storageConfigService } from '../services/storage/config';
 import type { IStorageService, StorageProviderId } from '../services/storage/types';
 import { IAlbum } from '../models/Album';
 import { IPhoto } from '../models/Photo';
+import type { IStorageRestoreScanCache } from '../models/StorageRestoreScanCache';
 import { ThumbnailGenerator } from '../services/thumbnail-generator';
+import { getJob, setJob, updateJob } from './job-store';
 
 const VARIANT_FOLDERS = new Set(['hero', 'large', 'medium', 'small', 'micro', 'thumb']);
 const THUMBNAIL_SIZE_NAMES = ['hero', 'large', 'medium', 'small', 'micro'] as const;
@@ -15,6 +18,9 @@ const THUMBNAIL_FILE_PATTERN = /^(hero|large|medium|small|micro)-\d{13}-/i;
 const IMAGE_EXTENSIONS = new Set(
   ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp', '.tiff', '.tif'].map((e) => e.toLowerCase()),
 );
+
+/** Reuse scan results within this window (Google Drive scans can take minutes). */
+const SCAN_CACHE_TTL_MS = 10 * 60 * 1000;
 
 export type StorageRestoreItemStatus = 'exists' | 'create' | 'orphan';
 
@@ -82,19 +88,198 @@ export class StorageRestoreService {
   constructor(
     @InjectModel('Album') private readonly albumModel: Model<IAlbum>,
     @InjectModel('Photo') private readonly photoModel: Model<IPhoto>,
+    @InjectModel('StorageRestoreScanCache')
+    private readonly scanCacheModel: Model<IStorageRestoreScanCache>,
   ) {}
 
   async getProviders(): Promise<StorageProviderId[]> {
-    const active = await storageConfigService.getActiveProviders();
-    return active.filter((p) => p !== 'google-drive');
+    return storageConfigService.getActiveProviders();
+  }
+
+  private scanCacheKey(
+    providerId: StorageProviderId,
+    stage: 'albums' | 'photos',
+    rootPrefix?: string,
+  ): string {
+    return `${providerId}|${stage}|${normalizeStoragePath(rootPrefix ?? '')}`;
+  }
+
+  private async getCachedAlbumScan(
+    providerId: StorageProviderId,
+    rootPrefix?: string,
+  ): Promise<{ report: StorageRestoreAlbumScanReport; cachedAt: Date } | null> {
+    const cacheKey = this.scanCacheKey(providerId, 'albums', rootPrefix);
+    const row = await this.scanCacheModel
+      .findOne({ cacheKey, expiresAt: { $gt: new Date() } })
+      .lean()
+      .exec();
+    if (!row?.report) return null;
+    return {
+      report: row.report as unknown as StorageRestoreAlbumScanReport,
+      cachedAt: row.createdAt ?? new Date(),
+    };
+  }
+
+  private async saveAlbumScanCache(
+    providerId: StorageProviderId,
+    rootPrefix: string | undefined,
+    report: StorageRestoreAlbumScanReport,
+    folderTree?: FolderTreeNode,
+  ): Promise<void> {
+    const cacheKey = this.scanCacheKey(providerId, 'albums', rootPrefix);
+    const expiresAt = new Date(Date.now() + SCAN_CACHE_TTL_MS);
+    await this.scanCacheModel.updateOne(
+      { cacheKey },
+      {
+        $set: {
+          cacheKey,
+          providerId,
+          stage: 'albums',
+          rootPrefix: normalizeStoragePath(rootPrefix ?? ''),
+          report,
+          folderTree,
+          createdAt: new Date(),
+          expiresAt,
+        },
+      },
+      { upsert: true },
+    );
+  }
+
+  private async getCachedFolderTree(
+    providerId: StorageProviderId,
+    rootPrefix?: string,
+  ): Promise<FolderTreeNode | null> {
+    const cacheKey = this.scanCacheKey(providerId, 'albums', rootPrefix);
+    const row = await this.scanCacheModel
+      .findOne({ cacheKey, expiresAt: { $gt: new Date() }, folderTree: { $exists: true, $ne: null } })
+      .lean()
+      .exec();
+    return (row?.folderTree as unknown as FolderTreeNode) ?? null;
+  }
+
+  /**
+   * Album scan entry: returns cached report instantly, starts async job for Google Drive, or runs sync scan.
+   */
+  async scanAlbumsStart(
+    providerId: StorageProviderId,
+    rootPrefix?: string,
+    options?: { useCache?: boolean; forceRefresh?: boolean },
+  ): Promise<
+    | { fromCache: true; cachedAt: string; report: StorageRestoreAlbumScanReport }
+    | { jobId: string }
+    | StorageRestoreAlbumScanReport
+  > {
+    const useCache = options?.useCache !== false;
+    const forceRefresh = options?.forceRefresh === true;
+
+    if (useCache && !forceRefresh) {
+      const cached = await this.getCachedAlbumScan(providerId, rootPrefix);
+      if (cached) {
+        return {
+          fromCache: true,
+          cachedAt: cached.cachedAt.toISOString(),
+          report: cached.report,
+        };
+      }
+    }
+
+    if (providerId === 'google-drive') {
+      const jobId = randomUUID();
+      setJob({
+        jobId,
+        type: 'storage-restore-scan',
+        status: 'pending',
+        progress: 0,
+        total: 100,
+        current: 'Starting Google Drive scan…',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      void this.runAlbumScanJob(jobId, providerId, rootPrefix);
+      return { jobId };
+    }
+
+    return this.scanAlbums(providerId, rootPrefix, { useCache: false, saveCache: true });
+  }
+
+  getAlbumScanJobStatus(jobId: string) {
+    const job = getJob(jobId);
+    if (!job || job.type !== 'storage-restore-scan') {
+      throw new BadRequestException('Scan job not found');
+    }
+    return {
+      jobId: job.jobId,
+      status: job.status,
+      progress: job.progress,
+      total: job.total,
+      current: job.current,
+      error: job.error,
+      report: job.result as StorageRestoreAlbumScanReport | undefined,
+      fromCache: (job.result as { fromCache?: boolean })?.fromCache,
+      cachedAt: (job.result as { cachedAt?: string })?.cachedAt,
+    };
+  }
+
+  private async runAlbumScanJob(
+    jobId: string,
+    providerId: StorageProviderId,
+    rootPrefix?: string,
+  ): Promise<void> {
+    updateJob(jobId, { status: 'running', progress: 5, current: 'Connecting to Google Drive…' });
+    try {
+      const report = await this.scanAlbums(providerId, rootPrefix, {
+        useCache: false,
+        saveCache: true,
+        onProgress: (message, progress) => {
+          updateJob(jobId, { current: message, progress: Math.min(95, progress) });
+        },
+      });
+      updateJob(jobId, {
+        status: 'completed',
+        progress: 100,
+        current: 'Scan complete',
+        result: report as unknown as Record<string, unknown>,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Album scan job ${jobId} failed: ${message}`);
+      updateJob(jobId, { status: 'failed', error: message, current: 'Scan failed' });
+    }
   }
 
   async scanAlbums(
     providerId: StorageProviderId,
     rootPrefix?: string,
+    options?: {
+      useCache?: boolean;
+      saveCache?: boolean;
+      onProgress?: (message: string, progress: number) => void;
+    },
   ): Promise<StorageRestoreAlbumScanReport> {
+    if (options?.useCache !== false) {
+      const cached = await this.getCachedAlbumScan(providerId, rootPrefix);
+      if (cached) return cached.report;
+    }
+
+    options?.onProgress?.('Loading folder structure from storage…', 15);
     const service = await this.getStorageService(providerId);
-    const tree = await this.loadFolderTree(service, rootPrefix);
+    const tree = await this.loadFolderTree(service, rootPrefix, options?.onProgress);
+    options?.onProgress?.('Comparing with database…', 85);
+    const report = await this.buildAlbumScanReport(providerId, rootPrefix, tree);
+
+    if (options?.saveCache !== false) {
+      await this.saveAlbumScanCache(providerId, rootPrefix, report, tree);
+    }
+
+    return report;
+  }
+
+  private async buildAlbumScanReport(
+    providerId: StorageProviderId,
+    rootPrefix: string | undefined,
+    tree: FolderTreeNode,
+  ): Promise<StorageRestoreAlbumScanReport> {
     const folders = this.collectAlbumFolders(tree);
     const albumsByPath = await this.buildAlbumPathIndex(providerId);
     const usedAliases = await this.loadUsedAliases();
@@ -130,7 +315,7 @@ export class StorageRestoreService {
     userId: string,
     options?: { rootPrefix?: string; itemIds?: string[] },
   ): Promise<StorageRestoreExecuteResult> {
-    const report = await this.scanAlbums(providerId, options?.rootPrefix);
+    const report = await this.scanAlbums(providerId, options?.rootPrefix, { useCache: true });
     const idSet = options?.itemIds?.length ? new Set(options.itemIds) : null;
     const toCreate = report.items.filter(
       (i) => i.status === 'create' && (!idSet || idSet.has(i.id)),
@@ -223,9 +408,10 @@ export class StorageRestoreService {
   async scanPhotos(
     providerId: StorageProviderId,
     rootPrefix?: string,
+    options?: { useCache?: boolean },
   ): Promise<StorageRestorePhotoScanReport> {
     const service = await this.getStorageService(providerId);
-    const tree = await this.loadFolderTree(service, rootPrefix);
+    const tree = await this.loadFolderTree(service, rootPrefix, undefined, options?.useCache !== false);
     const albumFolders = this.collectAlbumFolders(tree);
     const albumsByPath = await this.buildAlbumPathIndex(providerId);
     const photoPaths = await this.buildPhotoPathIndex(providerId);
@@ -362,19 +548,34 @@ export class StorageRestoreService {
     if (!active.includes(providerId)) {
       throw new BadRequestException(`Storage provider "${providerId}" is not enabled`);
     }
-    if (providerId === 'google-drive') {
-      throw new BadRequestException('Google Drive restore scan is not supported; use S3-compatible or local storage');
-    }
     return storageManager.getProvider(providerId);
   }
 
-  private async loadFolderTree(service: IStorageService, rootPrefix?: string): Promise<FolderTreeNode> {
+  private async loadFolderTree(
+    service: IStorageService,
+    rootPrefix?: string,
+    onProgress?: (message: string, progress: number) => void,
+    useCachedTree = true,
+  ): Promise<FolderTreeNode> {
+    const providerId = service.getProviderId();
+    if (useCachedTree) {
+      const cached = await this.getCachedFolderTree(providerId, rootPrefix);
+      if (cached) {
+        onProgress?.('Using cached folder structure', 50);
+        return cached;
+      }
+    }
+
     if (!service.getFolderTree) {
       throw new BadRequestException(`Provider does not support repository scanning`);
     }
     const prefix = normalizeStoragePath(rootPrefix ?? '');
     const prefixArg = prefix ? (prefix.endsWith('/') ? prefix : `${prefix}/`) : undefined;
-    return (await service.getFolderTree(prefixArg, 20)) as FolderTreeNode;
+
+    onProgress?.('Listing folders from storage (this may take a few minutes)…', 25);
+    const tree = (await service.getFolderTree(prefixArg, 20)) as FolderTreeNode;
+    onProgress?.('Folder listing complete', 80);
+    return tree;
   }
 
   private collectAlbumFolders(tree: FolderTreeNode): ScannedAlbumFolder[] {

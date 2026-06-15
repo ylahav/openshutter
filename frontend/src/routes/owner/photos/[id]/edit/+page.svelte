@@ -15,7 +15,7 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
-	export let data: { photo?: any } | undefined;
+	let { data }: { data: { photo?: any } | undefined } = $props();
 
 	interface Photo {
 		_id: string;
@@ -86,15 +86,15 @@
 	let loadPhotoCalled = false;
 	
 	// Popup states
-	let showTagsPopup = false;
-	let showPeoplePopup = false;
-	let showLocationPopup = false;
+	let showTagsPopup = $state(false);
+	let showPeoplePopup = $state(false);
+	let showLocationPopup = $state(false);
 	
 	// Track the last loaded photoId to prevent reloading the same photo
 	let lastLoadedPhotoId: string | null = null;
 	
 	// Update photoId from route params reactively
-	$: {
+$effect(() => {
 		const id = $page.params.id || '';
 		if (id && id !== photoId) {
 			photoId = id;
@@ -102,10 +102,10 @@
 			loadPhotoCalled = false;
 			lastLoadedPhotoId = null; // Reset so new photo can be loaded
 		}
-	}
+	});
 
 	// Use server-loaded photo when present (fixes auth on owner photo edit)
-	$: if (data?.photo && photoId === data.photo._id && !loadPhotoCalled) {
+$effect(() => { if (data?.photo && photoId === data.photo._id && !loadPhotoCalled) {
 		photo = data.photo;
 		lastLoadedPhotoId = photoId;
 		loadPhotoCalled = true;
@@ -134,11 +134,11 @@
 			model: (ex.model as string) ?? '',
 		};
 		formData = { ...formData };
-	}
+	} });
 	
 	// Load photo when photoId changes (for navigation between photos)
 	// Only trigger once per photoId change; skip if we already applied server-loaded photo
-	$: if (browser && photoId && !loadPhotoCalled && photoId !== lastLoadedPhotoId) {
+$effect(() => { if (browser && photoId && !loadPhotoCalled && photoId !== lastLoadedPhotoId) {
 		loadPhoto().catch((err) => {
 			logger.error('[Reactive] loadPhoto error:', err);
 			error = handleError(err, 'Failed to load photo');
@@ -146,7 +146,7 @@
 			loadPhotoCalled = false; // Reset on error so it can retry
 			lastLoadedPhotoId = null; // Reset on error
 		});
-	}
+	} });
 
 	let formData = {
 		title: {} as Record<string, string>,
@@ -748,7 +748,7 @@
 								alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename}
 								class="max-w-full max-h-96 object-contain rounded-lg"
 								style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
-								on:error={(e) => {
+								onerror={(e) => {
 									const target = e.currentTarget as HTMLImageElement;
 									logger.error('[Photo Edit] Image load error:', {
 										src: target.src,
@@ -757,7 +757,7 @@
 									});
 									if (target) target.style.display = 'none';
 								}}
-								on:load={() => {
+								onload={() => {
 									logger.debug('[Photo Edit] Image loaded successfully:', photoUrl);
 								}}
 							/>
@@ -789,7 +789,7 @@
 						<div class="flex flex-wrap gap-2">
 							<button
 								type="button"
-								on:click={() => handleRotate(-90)}
+								onclick={() => handleRotate(-90)}
 								disabled={rotatingPhoto}
 								class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
 								title="90° counter-clockwise"
@@ -798,7 +798,7 @@
 							</button>
 							<button
 								type="button"
-								on:click={() => handleRotate(90)}
+								onclick={() => handleRotate(90)}
 								disabled={rotatingPhoto}
 								class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
 								title="90° clockwise"
@@ -807,7 +807,7 @@
 							</button>
 							<button
 								type="button"
-								on:click={() => handleRotate(180)}
+								onclick={() => handleRotate(180)}
 								disabled={rotatingPhoto}
 								class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
 								title="180°"
@@ -824,7 +824,7 @@
 						{#if photo.canRestoreOriginal}
 							<button
 								type="button"
-								on:click={handleRestoreOriginal}
+								onclick={handleRestoreOriginal}
 								disabled={restoringOriginal}
 								class="px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 disabled:opacity-50"
 								title="Restore photo to the version before crop/edit"
@@ -844,7 +844,7 @@
 					<div class="mt-4 text-center">
 						<button
 							type="button"
-							on:click={handleRegenerateThumbnails}
+							onclick={handleRegenerateThumbnails}
 							disabled={regeneratingThumbnails}
 							class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
@@ -859,7 +859,7 @@
 
 			<!-- Form -->
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200">
-				<form on:submit={handleSubmit} class="p-6 space-y-6">
+				<form onsubmit={handleSubmit} class="p-6 space-y-6">
 					<!-- Title -->
 					<div>
 						<div class="block text-sm font-medium text-gray-700 mb-2">
@@ -899,7 +899,7 @@
 								id="isPublished"
 								name="isPublished"
 								checked={formData.isPublished}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 							/>
 							<label for="isPublished" class="ml-2 block text-sm text-gray-700">
@@ -912,7 +912,7 @@
 								id="isLeading"
 								name="isLeading"
 								checked={formData.isLeading}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 							/>
 							<label for="isLeading" class="ml-2 block text-sm text-gray-700">
@@ -925,7 +925,7 @@
 								id="isGalleryLeading"
 								name="isGalleryLeading"
 								checked={formData.isGalleryLeading}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 							/>
 							<label for="isGalleryLeading" class="ml-2 block text-sm text-gray-700">
@@ -957,7 +957,7 @@
 														{getTagName(tag)}
 														<button
 															type="button"
-															on:click={() => {
+															onclick={() => {
 																formData.tags = formData.tags.filter((id) => id !== tagId);
 																formData = formData;
 															}}
@@ -973,7 +973,7 @@
 									<!-- Add Tag Button -->
 									<button
 										type="button"
-										on:click={() => (showTagsPopup = true)}
+										onclick={() => (showTagsPopup = true)}
 										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1006,7 +1006,7 @@
 														{getPersonName(person)}
 														<button
 															type="button"
-															on:click={() => {
+															onclick={() => {
 																formData.people = formData.people.filter((id) => id !== personId);
 																formData = formData;
 															}}
@@ -1022,9 +1022,9 @@
 									<!-- Add Person Button -->
 									<button
 										type="button"
-										on:click|preventDefault|stopPropagation={() => {
+										onclick={(e) => { e.preventDefault(); e.stopPropagation(); () => {
 											showPeoplePopup = true;
-										}}
+										(e); }}}
 										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1056,7 +1056,7 @@
 													{getLocationName(location)}
 													<button
 														type="button"
-														on:click={() => {
+														onclick={() => {
 															formData = { ...formData, location: null };
 														}}
 														class="hover:text-purple-900"
@@ -1070,7 +1070,7 @@
 									<!-- Add Location Button -->
 									<button
 										type="button"
-										on:click={() => (showLocationPopup = true)}
+										onclick={() => (showLocationPopup = true)}
 										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1152,7 +1152,7 @@
 								<h3 class="text-sm font-medium text-gray-700">EXIF (from camera/file)</h3>
 								<button
 									type="button"
-									on:click={handleReExtractExif}
+									onclick={handleReExtractExif}
 									disabled={reExtractingExif}
 									class="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 disabled:opacity-50"
 								>
@@ -1191,7 +1191,7 @@
 										type="datetime-local"
 										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
 										value={formData.exifOverrides.dateTime}
-										on:input={(e) => {
+										oninput={(e) => {
 											formData.exifOverrides = { ...formData.exifOverrides, dateTime: (e.currentTarget as HTMLInputElement).value };
 											formData = formData;
 										}}
@@ -1205,7 +1205,7 @@
 										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
 										placeholder="e.g. Canon"
 										value={formData.exifOverrides.make}
-										on:input={(e) => {
+										oninput={(e) => {
 											formData.exifOverrides = { ...formData.exifOverrides, make: (e.currentTarget as HTMLInputElement).value };
 											formData = formData;
 										}}
@@ -1219,7 +1219,7 @@
 										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
 										placeholder="e.g. EOS R5"
 										value={formData.exifOverrides.model}
-										on:input={(e) => {
+										oninput={(e) => {
 											formData.exifOverrides = { ...formData.exifOverrides, model: (e.currentTarget as HTMLInputElement).value };
 											formData = formData;
 										}}
@@ -1238,7 +1238,7 @@
 										id="meta-rating"
 										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
 										value={formData.metadata?.rating ?? ''}
-										on:change={(e) => {
+										onchange={(e) => {
 											const v = (e.currentTarget as HTMLSelectElement).value;
 											formData.metadata = { ...formData.metadata, rating: v === '' ? undefined : Number(v) };
 											formData = formData;
@@ -1258,7 +1258,7 @@
 										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
 										placeholder="e.g. Event, Project"
 										value={formData.metadata?.category ?? ''}
-										on:input={(e) => {
+										oninput={(e) => {
 											const v = (e.currentTarget as HTMLInputElement).value.trim();
 											formData.metadata = { ...formData.metadata, category: v || undefined };
 											formData = formData;

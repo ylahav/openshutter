@@ -1,12 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { onMount, tick } from 'svelte';
+	import { goto, invalidate } from '$app/navigation';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
-	import { useCrudLoader } from '$lib/composables/useCrudLoader';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
-	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import { handleError } from '$lib/utils/errorHandler';
 	import {
@@ -21,14 +19,9 @@
 	import type { PageData } from './$types';
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
+	import AdminCrudDialog from '$lib/components/admin/AdminCrudDialog.svelte';
 
-	// svelte-ignore export_let_unused - Required by SvelteKit page component
-	export let data: PageData;
-
-	// Provide a safe default in case reactive assignment hasn't run yet.
-	// Otherwise, calling translate(...) during initialization can throw.
-	let translate: (key: string, fallback?: string) => string = (key, fallback) => fallback || key;
-	$: translate = $t;
+	let { data }: { data: PageData } = $props();
 
 	interface Tag {
 		_id: string;
@@ -40,6 +33,28 @@
 		usageCount?: number;
 	}
 
+	const tags = $derived((data.tags ?? []) as Tag[]);
+
+	let searchTerm = $state(data.filters?.search ?? '');
+	let categoryFilter = $state(data.filters?.category ?? 'all');
+
+	async function refreshTags() {
+		await invalidate('admin:tags');
+	}
+
+	async function applyFilters() {
+		const params = new URLSearchParams();
+		if (searchTerm.trim()) params.set('search', searchTerm.trim());
+		if (categoryFilter !== 'all') params.set('category', categoryFilter);
+		const query = params.toString();
+		await goto(query ? `/admin/tags?${query}` : '/admin/tags', {
+			keepFocus: true,
+			noScroll: true,
+			invalidateAll: true
+		});
+	}
+	// Otherwise, calling translate(...) during initialization can throw.
+	const translate = $derived($t);
 	const TAG_CATEGORIES = [
 		{ value: 'general', labelKey: 'admin.tagsCategoryGeneral' },
 		{ value: 'location', labelKey: 'admin.tagsCategoryLocation' },
@@ -102,17 +117,9 @@
 		return cleaned;
 	}
 
-	let feedbackAdvancedOpen = false;
-	let feedbackTelemetryLoadStarted = false;
+	let feedbackAdvancedOpen = $state(false);
+	let feedbackTelemetryLoadStarted = $state(false);
 
-	// Use CRUD composables
-	const crudLoader = useCrudLoader<Tag>('/api/admin/tags', {
-		searchParam: 'search',
-		searchValue: () => searchTerm,
-		filterParams: {
-			category: () => categoryFilter
-		}
-	});
 	/** Payload sent to create/update tag API. */
 	type TagPayload = Pick<Partial<Tag>, 'name' | 'description' | 'color' | 'category' | 'isActive'>;
 
@@ -131,98 +138,75 @@
 				isActive: data.isActive
 			};
 		},
-		onCreateSuccess: (newTag) => {
-			crudLoader.items.update(items => [...items, newTag]);
-			dialogs.closeAll();
+		onCreateSuccess: async () => {
+			closeAllDialogs();
 			resetForm();
+			await refreshTags();
 		},
-		onUpdateSuccess: (updatedTag) => {
-			const currentEditingTag = editingTag;
-			if (currentEditingTag) {
-				crudLoader.items.update(items => 
-					items.map(t => t._id === currentEditingTag._id ? updatedTag : t)
-				);
-			}
-			dialogs.closeAll();
+		onUpdateSuccess: async () => {
+			closeAllDialogs();
 			editingTag = null;
 			resetForm();
+			await refreshTags();
 		},
-		onDeleteSuccess: () => {
-			const currentTagToDelete = tagToDelete;
-			if (currentTagToDelete) {
-				crudLoader.items.update(items => 
-					items.filter(t => t._id !== currentTagToDelete._id)
-				);
-			}
-			dialogs.closeAll();
+		onDeleteSuccess: async () => {
+			closeAllDialogs();
 			tagToDelete = null;
+			await refreshTags();
 		}
 	});
-	const dialogs = useDialogManager();
+	const crudSaving = crudOps.saving;
+	const crudError = crudOps.error;
+	const crudMessage = crudOps.message;
+	let error = $state('');
+	let editingTag: Tag | null = $state(null);
+	let tagToDelete: Tag | null = $state(null);
+	let createDialog: AdminCrudDialog | undefined;
+	let editDialog: AdminCrudDialog | undefined;
+	let deleteDialog: AdminCrudDialog | undefined;
 
-	// Reactive stores from composables
-	let tags: Tag[] = [];
-	let loading = false;
-	let saving = false;
-	let error = '';
-	let searchTerm = '';
-	let categoryFilter = 'all';
-	let showCreateDialog = false;
-	let showEditDialog = false;
-	let showDeleteDialog = false;
-	let editingTag: Tag | null = null;
-	let tagToDelete: Tag | null = null;
-	let feedbackStatsLoading = false;
-	let feedbackStatsError = '';
+	function closeAllDialogs() {
+		createDialog?.close();
+		editDialog?.close();
+		deleteDialog?.close();
+	}
+	let feedbackStatsLoading = $state(false);
+	let feedbackStatsError = $state('');
 	let feedbackStats: {
 		total: number;
 		bySource: Record<string, number>;
 		byAction: Record<string, number>;
 		bySourceAction: Record<string, Record<string, number>>;
-	} = {
+	} = $state({
 		total: 0,
 		bySource: {},
 		byAction: {},
 		bySourceAction: {}
-	};
+	});
 
-	let importExportBusy = false;
+	let importExportBusy = $state(false);
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => tags = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.saving.subscribe(value => saving = value);
-	crudOps.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.message.subscribe((value) => {
-		if (!value) return;
-		adminToast.success({ title: value });
-	});
-	dialogs.showCreate.subscribe(value => showCreateDialog = value);
-	dialogs.showEdit.subscribe(value => showEditDialog = value);
-	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
+$effect(() => { if ($crudError) error = $crudError; });
+$effect(() => { if ($crudMessage) adminToast.success({ title: $crudMessage }); });
 
 	// Form state
-	let formData = {
+	let formData = $state({
 		name: { en: '', he: '' } as MultiLangText,
 		description: { en: '', he: '' } as MultiLangText,
 		color: '#3B82F6',
 		category: 'general',
 		isActive: true
-	};
-
-	onMount(async () => {
-		await crudLoader.loadItems();
 	});
 
-	$: if (feedbackAdvancedOpen && !feedbackTelemetryLoadStarted) {
+	onMount(async () => {
+		searchTerm = data.filters?.search ?? '';
+		categoryFilter = data.filters?.category ?? 'all';
+	});
+
+$effect(() => { if (feedbackAdvancedOpen && !feedbackTelemetryLoadStarted) {
 		feedbackTelemetryLoadStarted = true;
 		void loadFeedbackStats();
-	}
+	} });
 
 	async function loadFeedbackStats() {
 		try {
@@ -239,7 +223,7 @@
 				bySource: {},
 				byAction: {},
 				bySourceAction: {}
-			};
+	};
 		} catch (err) {
 			feedbackStatsError = err instanceof Error ? err.message : translate('admin.tagsFeedbackSignalsLoadError', 'Failed to load feedback stats');
 		} finally {
@@ -257,13 +241,14 @@
 		};
 	}
 
-	function openCreateDialog() {
+	async function openCreateDialog() {
 		resetForm();
-		dialogs.openCreate();
-		crudOps.error.set('');
+		crudError.set('');
+		await tick();
+		createDialog?.open();
 	}
 
-	function openEditDialog(tag: Tag) {
+	async function openEditDialog(tag: Tag) {
 		editingTag = tag;
 		formData = {
 			name: normalizeMultiLangText(tag.name),
@@ -271,15 +256,17 @@
 			color: tag.color || '#3B82F6',
 			category: tag.category || 'general',
 			isActive: tag.isActive !== undefined ? tag.isActive : true
-		};
-		dialogs.openEdit();
-		crudOps.error.set('');
+	};
+		crudError.set('');
+		await tick();
+		editDialog?.open();
 	}
 
-	function openDeleteDialog(tag: Tag) {
+	async function openDeleteDialog(tag: Tag) {
 		tagToDelete = tag;
-		dialogs.openDelete();
-		crudOps.error.set('');
+		crudError.set('');
+		await tick();
+		deleteDialog?.open();
 	}
 
 	async function handleCreate() {
@@ -361,12 +348,12 @@
 	function setImportSummaryMessage(created: number, failed: number) {
 		const template = translate('admin.collectionImportResult');
 		const text = applyTemplateVars(template, { created, failed });
-		crudOps.message.set(text);
+		crudMessage.set(text);
 	}
 
 	async function handleTagsExport() {
 		importExportBusy = true;
-		crudOps.error.set('');
+		crudError.set('');
 		try {
 			const rows = await fetchAdminPaginatedList('/api/admin/tags');
 			const items = rows.map((raw) => {
@@ -385,7 +372,7 @@
 				items
 			});
 		} catch (err) {
-			crudOps.error.set(handleError(err, translate('admin.collectionExportFailed')));
+			crudError.set(handleError(err, translate('admin.collectionExportFailed')));
 		} finally {
 			importExportBusy = false;
 		}
@@ -393,9 +380,9 @@
 
 	async function handleTagsImport(file: File) {
 		importExportBusy = true;
-		crudOps.error.set('');
-		let created = 0;
-		let failed = 0;
+		crudError.set('');
+		let created = $state(0);
+		let failed = $state(0);
 		const failureLines: string[] = [];
 		try {
 			const list = parseImportItems(await file.text());
@@ -411,7 +398,7 @@
 					description: o.description ?? {},
 					color: typeof o.color === 'string' ? o.color : undefined,
 					category: typeof o.category === 'string' ? o.category : undefined
-				};
+	};
 				if (payload.name == null) {
 					failed++;
 					failureLines.push(`#${i + 1}: ${translate('admin.tagsTagNameLabel')}`);
@@ -425,13 +412,13 @@
 					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
 				}
 			}
-			await crudLoader.loadItems();
+			await refreshTags();
 			setImportSummaryMessage(created, failed);
 			if (failureLines.length) {
-				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
+				crudError.set(failureLines.slice(0, 8).join(' · '));
 			}
 		} catch (err) {
-			crudOps.error.set(importFileErrorMessage(err));
+			crudError.set(importFileErrorMessage(err));
 		} finally {
 			importExportBusy = false;
 		}
@@ -462,7 +449,7 @@
 							type="text"
 							placeholder={$t('admin.searchTagsPlaceholder')}
 							bind:value={searchTerm}
-							on:input={() => crudLoader.loadItems()}
+							oninput={() => applyFilters()}
 							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 						/>
 						<svg
@@ -482,7 +469,7 @@
 
 					<select
 						bind:value={categoryFilter}
-						on:change={() => crudLoader.loadItems()}
+						onchange={() => applyFilters()}
 						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					>
 						<option value="all">{$t('admin.allCategories')}</option>
@@ -502,7 +489,8 @@
 					/>
 					<button
 						type="button"
-						on:click={openCreateDialog}
+						data-open-dialog="admin-tags-create"
+						onclick={openCreateDialog}
 						class="{adminBtnPrimarySm} {adminRingPrimary} flex items-center gap-2"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -519,10 +507,9 @@
 			</div>
 
 			<!-- Tags List -->
-			{#if loading}
+			{#if data.tagsLoadError}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
-					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingTags')}</p>
+					<p class="text-red-600">{data.tagsLoadError}</p>
 				</div>
 			{:else if tags.length === 0}
 				<div class="text-center py-8">
@@ -573,7 +560,7 @@
 								<div class="flex space-x-1">
 									<button
 										type="button"
-										on:click={() => openEditDialog(tag)}
+										onclick={() => openEditDialog(tag)}
 										class="p-1 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 										aria-label="Edit tag"
 									>
@@ -588,7 +575,7 @@
 									</button>
 									<button
 										type="button"
-										on:click={() => openDeleteDialog(tag)}
+										onclick={() => openDeleteDialog(tag)}
 										class="p-1 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 rounded"
 										aria-label={$t('admin.tagsDeleteAriaLabel')}
 									>
@@ -657,7 +644,7 @@
 						</div>
 						<button
 							type="button"
-							on:click={loadFeedbackStats}
+							onclick={loadFeedbackStats}
 							class="px-3 py-1.5 text-xs font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded hover:bg-(--color-surface-100-900)"
 						>
 							{$t('admin.tagsFeedbackSignalsRefresh')}
@@ -695,286 +682,270 @@
 </div>
 
 <!-- Create Dialog -->
-{#if showCreateDialog}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.tagsAddNewTagTitle')}</h2>
+<AdminCrudDialog
+	bind:this={createDialog}
+	dialogId="admin-tags-create"
+	title={$t('admin.tagsAddNewTagTitle')}
+>
+	{#if error}
+		<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
+	{/if}
 
-			{#if error}
-				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
-			{/if}
+	<div class="space-y-4">
+		<div>
+			<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+				{$t('admin.tagsTagNameLabel')}
+			</p>
+			<MultiLangInput
+				bind:value={formData.name}
+				placeholder={$t('admin.tagsTagNamePlaceholder')}
+				required
+			/>
+		</div>
 
-			<div class="space-y-4">
-				<div>
-					<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						{$t('admin.tagsTagNameLabel')}
-					</p>
-					<MultiLangInput
-						bind:value={formData.name}
-						placeholder={$t('admin.tagsTagNamePlaceholder')}
-						required
-					/>
-				</div>
+		<div>
+			<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+				{$t('admin.tagsDescriptionLabel')}
+			</p>
+			<MultiLangInput
+				bind:value={formData.description}
+				placeholder={$t('admin.tagsDescriptionPlaceholder')}
+			/>
+		</div>
 
-				<div>
-					<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						{$t('admin.tagsDescriptionLabel')}
-					</p>
-					<MultiLangInput
-						bind:value={formData.description}
-						placeholder={$t('admin.tagsDescriptionPlaceholder')}
-					/>
-				</div>
+		<div>
+			<label for="tag-category" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+				{$t('admin.tagsCategoryLabel')}
+			</label>
+			<select
+				id="tag-category"
+				bind:value={formData.category}
+				class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+			>
+				{#each TAG_CATEGORIES as cat}
+					<option value={cat.value}>{$t(cat.labelKey)}</option>
+				{/each}
+			</select>
+		</div>
 
-				<div>
-					<label for="tag-category" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						{$t('admin.tagsCategoryLabel')}
-					</label>
-					<select
-						id="tag-category"
-						bind:value={formData.category}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-					>
-						{#each TAG_CATEGORIES as cat}
-							<option value={cat.value}>{$t(cat.labelKey)}</option>
-						{/each}
-					</select>
-				</div>
-
-				<div>
-					<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						{$t('admin.tagsColorLabel')}
-					</p>
-					<div class="flex items-center gap-3">
-						<input
-							type="color"
-							bind:value={formData.color}
-							class="w-16 h-10 border border-surface-300-700 rounded cursor-pointer"
-						/>
-						<input
-							type="text"
-							bind:value={formData.color}
-							placeholder="#3B82F6"
-							class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-						/>
-					</div>
-					<div class="flex flex-wrap gap-2 mt-2">
-						{#each COLOR_PRESETS as preset}
-							<button
-								type="button"
-								on:click={() => (formData.color = preset)}
-								class="w-8 h-8 rounded border-2 {formData.color === preset
-									? 'border-(--color-surface-800)'
-									: 'border-surface-300-700'} hover:border-(--color-surface-500)"
-								style="background-color: {preset}"
-								aria-label={`${$t('admin.tagsSelectColorAriaLabel')} ${preset}`}
-							></button>
-						{/each}
-					</div>
-				</div>
-
-				<div class="flex justify-end space-x-2 pt-4">
+		<div>
+			<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+				{$t('admin.tagsColorLabel')}
+			</p>
+			<div class="flex items-center gap-3">
+				<input
+					type="color"
+					bind:value={formData.color}
+					class="w-16 h-10 border border-surface-300-700 rounded cursor-pointer"
+				/>
+				<input
+					type="text"
+					bind:value={formData.color}
+					placeholder="#3B82F6"
+					class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+				/>
+			</div>
+			<div class="flex flex-wrap gap-2 mt-2">
+				{#each COLOR_PRESETS as preset}
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
-							resetForm();
-						}}
-						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
-					>
-						{$t('admin.tagsCancelButton')}
-					</button>
-					<button
-						type="button"
-						on:click={handleCreate}
-						disabled={saving || MultiLangUtils.getLanguagesWithContent(formData.name).length === 0}
-						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
-					>
-						{#if saving}
-							{$t('admin.tagsCreatingButton')}
-						{:else}
-							{$t('admin.tagsCreateTagButton')}
-						{/if}
-					</button>
-				</div>
+						onclick={() => (formData.color = preset)}
+						class="w-8 h-8 rounded border-2 {formData.color === preset
+							? 'border-(--color-surface-800)'
+							: 'border-surface-300-700'} hover:border-(--color-surface-500)"
+						style="background-color: {preset}"
+						aria-label={`${$t('admin.tagsSelectColorAriaLabel')} ${preset}`}
+					></button>
+				{/each}
 			</div>
 		</div>
+
+		<div class="flex justify-end space-x-2 pt-4">
+			<button
+				type="button"
+				onclick={() => {
+					closeAllDialogs();
+					resetForm();
+				}}
+				class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+			>
+				{$t('admin.tagsCancelButton')}
+			</button>
+			<button
+				type="button"
+				onclick={handleCreate}
+				disabled={$crudSaving || MultiLangUtils.getLanguagesWithContent(formData.name).length === 0}
+				class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
+			>
+				{#if $crudSaving}
+					{$t('admin.tagsCreatingButton')}
+				{:else}
+					{$t('admin.tagsCreateTagButton')}
+				{/if}
+			</button>
+		</div>
 	</div>
-{/if}
+</AdminCrudDialog>
 
 <!-- Edit Dialog -->
-{#if showEditDialog && editingTag}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.tagsEditTagTitle')}</h2>
+<AdminCrudDialog bind:this={editDialog} title={$t('admin.tagsEditTagTitle')}>
+	{#if error}
+		<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
+	{/if}
 
-			{#if error}
-				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
-			{/if}
+	<div class="space-y-4">
+		<div>
+			<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+				{$t('admin.tagsTagNameLabel')}
+			</p>
+			<MultiLangInput
+				bind:value={formData.name}
+				placeholder={$t('admin.tagsTagNamePlaceholder')}
+				required
+			/>
+		</div>
 
-			<div class="space-y-4">
-				<div>
-					<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						{$t('admin.tagsTagNameLabel')}
-					</p>
-					<MultiLangInput
-						bind:value={formData.name}
-						placeholder={$t('admin.tagsTagNamePlaceholder')}
-						required
-					/>
-				</div>
+		<div>
+			<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+				{$t('admin.tagsDescriptionLabel')}
+			</p>
+			<MultiLangInput
+				bind:value={formData.description}
+				placeholder={$t('admin.tagsDescriptionPlaceholder')}
+			/>
+		</div>
 
-				<div>
-					<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						{$t('admin.tagsDescriptionLabel')}
-					</p>
-					<MultiLangInput
-						bind:value={formData.description}
-						placeholder={$t('admin.tagsDescriptionPlaceholder')}
-					/>
-				</div>
+		<div>
+			<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+				{$t('admin.tagsCategoryLabel')}
+			</p>
+			<select
+				bind:value={formData.category}
+				class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+			>
+				{#each TAG_CATEGORIES as cat}
+					<option value={cat.value}>{$t(cat.labelKey)}</option>
+				{/each}
+			</select>
+		</div>
 
-				<div>
-					<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						{$t('admin.tagsCategoryLabel')}
-					</p>
-					<select
-						bind:value={formData.category}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-					>
-						{#each TAG_CATEGORIES as cat}
-							<option value={cat.value}>{$t(cat.labelKey)}</option>
-						{/each}
-					</select>
-				</div>
-
-				<div>
-					<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						{$t('admin.tagsColorLabel')}
-					</p>
-					<div class="flex items-center gap-3">
-						<input
-							type="color"
-							bind:value={formData.color}
-							class="w-16 h-10 border border-surface-300-700 rounded cursor-pointer"
-						/>
-						<input
-							type="text"
-							bind:value={formData.color}
-							placeholder="#3B82F6"
-							class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-						/>
-					</div>
-					<div class="flex flex-wrap gap-2 mt-2">
-						{#each COLOR_PRESETS as preset}
-							<button
-								type="button"
-								on:click={() => (formData.color = preset)}
-								class="w-8 h-8 rounded border-2 {formData.color === preset
-									? 'border-(--color-surface-800)'
-									: 'border-surface-300-700'} hover:border-(--color-surface-500)"
-								style="background-color: {preset}"
-								aria-label={`${$t('admin.tagsSelectColorAriaLabel')} ${preset}`}
-							></button>
-						{/each}
-					</div>
-				</div>
-
-				<div class="flex items-center">
-					<label class="relative inline-flex items-center cursor-pointer">
-						<input
-							type="checkbox"
-							bind:checked={formData.isActive}
-							class="sr-only peer"
-						/>
-						<div
-							class="w-11 h-6 bg-(--color-surface-200-800) peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-(--color-surface-50-950) after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-(--color-primary-600)"
-						></div>
-						<span class="ml-3 text-sm font-medium text-(--color-surface-800-200)">
-							{$t('admin.tagsActiveLabel')}
-						</span>
-					</label>
-				</div>
-
-				<div class="flex justify-end space-x-2 pt-4">
+		<div>
+			<p class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+				{$t('admin.tagsColorLabel')}
+			</p>
+			<div class="flex items-center gap-3">
+				<input
+					type="color"
+					bind:value={formData.color}
+					class="w-16 h-10 border border-surface-300-700 rounded cursor-pointer"
+				/>
+				<input
+					type="text"
+					bind:value={formData.color}
+					placeholder="#3B82F6"
+					class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+				/>
+			</div>
+			<div class="flex flex-wrap gap-2 mt-2">
+				{#each COLOR_PRESETS as preset}
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
-							editingTag = null;
-							resetForm();
-						}}
-						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
-					>
-						{$t('admin.tagsCancelButton')}
-					</button>
-					<button
-						type="button"
-						on:click={handleEdit}
-						disabled={saving || MultiLangUtils.getLanguagesWithContent(formData.name).length === 0}
-						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
-					>
-						{#if saving}
-							{$t('admin.tagsUpdatingButton')}
-						{:else}
-							{$t('admin.tagsUpdateTagButton')}
-						{/if}
-					</button>
-				</div>
+						onclick={() => (formData.color = preset)}
+						class="w-8 h-8 rounded border-2 {formData.color === preset
+							? 'border-(--color-surface-800)'
+							: 'border-surface-300-700'} hover:border-(--color-surface-500)"
+						style="background-color: {preset}"
+						aria-label={`${$t('admin.tagsSelectColorAriaLabel')} ${preset}`}
+					></button>
+				{/each}
 			</div>
 		</div>
+
+		<div class="flex items-center">
+			<label class="relative inline-flex items-center cursor-pointer">
+				<input type="checkbox" bind:checked={formData.isActive} class="sr-only peer" />
+				<div
+					class="w-11 h-6 bg-(--color-surface-200-800) peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-(--color-surface-50-950) after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-(--color-primary-600)"
+				></div>
+				<span class="ml-3 text-sm font-medium text-(--color-surface-800-200)">
+					{$t('admin.tagsActiveLabel')}
+				</span>
+			</label>
+		</div>
+
+		<div class="flex justify-end space-x-2 pt-4">
+			<button
+				type="button"
+				onclick={() => {
+					closeAllDialogs();
+					editingTag = null;
+					resetForm();
+				}}
+				class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+			>
+				{$t('admin.tagsCancelButton')}
+			</button>
+			<button
+				type="button"
+				onclick={handleEdit}
+				disabled={$crudSaving || MultiLangUtils.getLanguagesWithContent(formData.name).length === 0}
+				class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
+			>
+				{#if $crudSaving}
+					{$t('admin.tagsUpdatingButton')}
+				{:else}
+					{$t('admin.tagsUpdateTagButton')}
+				{/if}
+			</button>
+		</div>
 	</div>
-{/if}
+</AdminCrudDialog>
 
 <!-- Delete Dialog -->
-{#if showDeleteDialog && tagToDelete}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.tagsDeleteTagTitle')}</h2>
+<AdminCrudDialog bind:this={deleteDialog} title={$t('admin.tagsDeleteTagTitle')}>
+	{#if error}
+		<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
+	{/if}
 
-			{#if error}
-				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
-			{/if}
-
-			<div class="space-y-4">
-				<p class="text-(--color-surface-600-400)">
-					{$t('admin.tagsDeleteConfirmPrefix')}
-					<strong>{getTagDisplayName(tagToDelete)}</strong>
-					{$t('admin.tagsDeleteConfirmSuffix')}
-				</p>
-				{#if tagToDelete.usageCount && tagToDelete.usageCount > 0}
-					<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-						<p class="text-sm text-yellow-800">
-							{$t('admin.tagsDeleteUsedWarningPrefix')} {tagToDelete.usageCount}
-							{' '}{tagToDelete.usageCount === 1 ? $t('admin.tagsPhotoSingular') : $t('admin.tagsPhotoPlural')}{$t('admin.tagsDeleteUsedWarningSuffix')}
-						</p>
-					</div>
-				{/if}
-				<div class="flex justify-end space-x-2">
-					<button
-						type="button"
-						on:click={() => {
-							dialogs.closeAll();
-							tagToDelete = null;
-						}}
-						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
-					>
-						{$t('admin.tagsCancelButton')}
-					</button>
-					<button
-						type="button"
-						on:click={handleDelete}
-						disabled={saving}
-						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
-					>
-						{#if saving}
-							{$t('admin.tagsDeletingButton')}
-						{:else}
-							{$t('admin.tagsDeleteButton')}
-						{/if}
-					</button>
+	{#if tagToDelete}
+		<div class="space-y-4">
+			<p class="text-(--color-surface-600-400)">
+				{$t('admin.tagsDeleteConfirmPrefix')}
+				<strong>{getTagDisplayName(tagToDelete)}</strong>
+				{$t('admin.tagsDeleteConfirmSuffix')}
+			</p>
+			{#if tagToDelete.usageCount && tagToDelete.usageCount > 0}
+				<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+					<p class="text-sm text-yellow-800">
+						{$t('admin.tagsDeleteUsedWarningPrefix')} {tagToDelete.usageCount}
+						{' '}{tagToDelete.usageCount === 1 ? $t('admin.tagsPhotoSingular') : $t('admin.tagsPhotoPlural')}{$t('admin.tagsDeleteUsedWarningSuffix')}
+					</p>
 				</div>
+			{/if}
+			<div class="flex justify-end space-x-2">
+				<button
+					type="button"
+					onclick={() => {
+						closeAllDialogs();
+						tagToDelete = null;
+					}}
+					class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+				>
+					{$t('admin.tagsCancelButton')}
+				</button>
+				<button
+					type="button"
+					onclick={handleDelete}
+					disabled={$crudSaving}
+					class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
+				>
+					{#if $crudSaving}
+						{$t('admin.tagsDeletingButton')}
+					{:else}
+						{$t('admin.tagsDeleteButton')}
+					{/if}
+				</button>
 			</div>
 		</div>
-	</div>
-{/if}
+	{/if}
+</AdminCrudDialog>

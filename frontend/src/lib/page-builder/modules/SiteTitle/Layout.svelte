@@ -3,10 +3,10 @@
 	import { currentLanguage } from '$stores/language';
 	import { getProductName } from '$lib/utils/productName';
 
-	export let config: any = {};
+	let { config = {} }: { config?: Record<string, unknown> } = $props();
 
-	$: title = getProductName($siteConfigData ?? null, $currentLanguage);
-	$: linkToHome = config?.showAsLink !== false;
+	const title = $derived(getProductName($siteConfigData ?? null, $currentLanguage));
+	const linkToHome = $derived(config?.showAsLink !== false);
 </script>
 
 <span class="pb-siteTitle">

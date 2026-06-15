@@ -12,14 +12,22 @@
 		secondaryHref?: string;
 	};
 
-	export let config: CtaLayoutConfig = {};
+	let { config = {} }: { config?: CtaLayoutConfig } = $props();
 
-	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
-	$: descriptionText = config?.description ? MultiLangUtils.getTextValue(config.description, $currentLanguage) : '';
-	$: primaryLabel = MultiLangUtils.getTextValue(config?.primaryLabel, $currentLanguage) || 'Get Started';
-	$: primaryHref = typeof config?.primaryHref === 'string' && config.primaryHref.trim() ? config.primaryHref : '/';
-	$: secondaryLabel = MultiLangUtils.getTextValue(config?.secondaryLabel, $currentLanguage) || '';
-	$: secondaryHref = typeof config?.secondaryHref === 'string' && config.secondaryHref.trim() ? config.secondaryHref : '';
+	const titleText = $derived(MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '');
+	const descriptionText = $derived(
+		config?.description ? MultiLangUtils.getTextValue(config.description, $currentLanguage) : ''
+	);
+	const primaryLabel = $derived(
+		MultiLangUtils.getTextValue(config?.primaryLabel, $currentLanguage) || 'Get Started'
+	);
+	const primaryHref = $derived(
+		typeof config?.primaryHref === 'string' && config.primaryHref.trim() ? config.primaryHref : '/'
+	);
+	const secondaryLabel = $derived(MultiLangUtils.getTextValue(config?.secondaryLabel, $currentLanguage) || '');
+	const secondaryHref = $derived(
+		typeof config?.secondaryHref === 'string' && config.secondaryHref.trim() ? config.secondaryHref : ''
+	);
 </script>
 
 <section

@@ -10,10 +10,10 @@
 	const LS_LAST_DB = 'openshutter.admin.lastBackup.database';
 	const LS_LAST_FILES = 'openshutter.admin.lastBackup.files';
 
-	let loading = false;
+	let loading = $state(false);
 
-	let lastBackupDatabaseIso = '';
-	let lastBackupFilesIso = '';
+	let lastBackupDatabaseIso = $state('');
+	let lastBackupFilesIso = $state('');
 
 	function loadBackupTimesFromStorage() {
 		if (typeof localStorage === 'undefined') return;
@@ -61,12 +61,12 @@
 		backupData: Record<string, unknown> | null;
 		fileInput: HTMLInputElement | null;
 		isRestoring: boolean;
-	} = {
+	} = $state({
 		isOpen: false,
 		backupData: null,
 		fileInput: null,
 		isRestoring: false,
-	};
+	});
 
 	const backupPrimaryClass = `${adminBtnPrimarySm} w-full justify-center items-center ${adminRingPrimary} disabled:opacity-50`;
 
@@ -146,7 +146,7 @@
 			backupData: null,
 			fileInput: null,
 			isRestoring: false,
-		};
+	};
 		if (inp) inp.value = '';
 	}
 
@@ -307,7 +307,7 @@
 				<div class="space-y-4">
 					<button
 						type="button"
-						on:click={handleDatabaseBackup}
+						onclick={handleDatabaseBackup}
 						disabled={loading}
 						class={backupPrimaryClass}
 					>
@@ -349,7 +349,7 @@
 						<input
 							type="file"
 							accept=".json"
-							on:change={handleDatabaseRestore}
+							onchange={handleDatabaseRestore}
 							disabled={loading}
 							class="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
 							id="database-restore"
@@ -420,7 +420,7 @@
 				<div class="space-y-4">
 					<button
 						type="button"
-						on:click={handleFilesBackup}
+						onclick={handleFilesBackup}
 						disabled={loading}
 						class={backupPrimaryClass}
 					>
@@ -462,7 +462,7 @@
 						<input
 							type="file"
 							accept=".zip"
-							on:change={handleFilesRestore}
+							onchange={handleFilesRestore}
 							disabled={loading}
 							class="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
 							id="files-restore"

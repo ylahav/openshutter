@@ -2,16 +2,28 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 
-	export let data: Record<string, unknown> = {};
-	export let compact = false;
-	export let showTitle = true;
-	export let showSubtitle = true;
-	export let align: 'left' | 'center' = 'center';
+	let {
+		data = {},
+		compact = false,
+		showTitle = true,
+		showSubtitle = true,
+		align = 'center'
+	}: {
+		data?: Record<string, unknown>;
+		compact?: boolean;
+		showTitle?: boolean;
+		showSubtitle?: boolean;
+		align?: 'left' | 'center';
+	} = $props();
 
-	$: page = (data?.page as { title?: unknown; subtitle?: unknown } | undefined) ?? undefined;
-	$: titleText = page?.title != null ? MultiLangUtils.getTextValue(page.title as any, $currentLanguage) : '';
-	$: subtitleText = page?.subtitle != null ? MultiLangUtils.getTextValue(page.subtitle as any, $currentLanguage) : '';
-	$: hasAny = (showTitle && !!titleText) || (showSubtitle && !!subtitleText);
+	const page = $derived((data?.page as { title?: unknown; subtitle?: unknown } | undefined) ?? undefined);
+	const titleText = $derived(
+		page?.title != null ? MultiLangUtils.getTextValue(page.title as any, $currentLanguage) : ''
+	);
+	const subtitleText = $derived(
+		page?.subtitle != null ? MultiLangUtils.getTextValue(page.subtitle as any, $currentLanguage) : ''
+	);
+	const hasAny = $derived((showTitle && !!titleText) || (showSubtitle && !!subtitleText));
 </script>
 
 {#if hasAny}

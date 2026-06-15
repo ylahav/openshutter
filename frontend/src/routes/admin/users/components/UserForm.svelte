@@ -4,17 +4,33 @@
 	import type { UserFormData } from '../types';
 	import type { Group } from '../types';
 
-	export let formData: UserFormData;
-	export let showPassword = false;
-	export let mode: 'create' | 'edit' = 'create';
-	export let groups: Group[] = [];
-	export let loadingGroups = false;
-	export let roles: Array<{ value: string; label: string; description?: string }> = [];
-	export let supportedLanguages: Array<{ code: string; name: string; nativeName?: string }> = [];
-	export let storageProviders: Array<{ id: string; name: string }> = [];
-	export let onToggleGroup: (alias: string) => void = () => {};
-	export let onToggleStorageProvider: (id: string) => void = () => {};
-	export let onRoleChange: ((role: string) => void) | undefined = undefined;
+	let {
+		formData = $bindable<UserFormData>(),
+		showPassword = $bindable(false),
+		mode = 'create',
+		groups = [],
+		loadingGroups = $bindable(false),
+		roles = [],
+		supportedLanguages = [],
+		storageProviders = [],
+		onToggleGroup = () => {},
+		onToggleStorageProvider = () => {},
+		onRoleChange = undefined,
+		extra
+	}: {
+		formData: UserFormData;
+		showPassword?: boolean;
+		mode?: 'create' | 'edit';
+		groups?: Group[];
+		loadingGroups?: boolean;
+		roles?: Array<{ value: string; label: string; description?: string }>;
+		supportedLanguages?: Array<{ code: string; name: string; nativeName?: string }>;
+		storageProviders?: Array<{ id: string; name: string }>;
+		onToggleGroup?: (alias: string) => void;
+		onToggleStorageProvider?: (id: string) => void;
+		onRoleChange?: ((role: string) => void) | undefined;
+		extra?: import('svelte').Snippet;
+	} = $props();
 
 	function getGroupName(group: Group): string {
 		const nameField = typeof group.name === 'string' ? group.name : group.name;
@@ -74,7 +90,7 @@
 			{/if}
 			<button
 				type="button"
-				on:click={() => (showPassword = !showPassword)}
+				onclick={() => (showPassword = !showPassword)}
 				class="absolute right-3 top-1/2 transform -translate-y-1/2 text-(--color-surface-400-600) hover:text-(--color-surface-600-400)"
 				aria-label={showPassword ? 'Hide password' : 'Show password'}
 			>
@@ -97,7 +113,7 @@
 		<select
 			id="user-form-role"
 			bind:value={formData.role}
-			on:change={() => onRoleChange?.(formData.role)}
+			onchange={() => onRoleChange?.(formData.role)}
 			class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 		>
 			{#each roles as role}
@@ -106,7 +122,7 @@
 		</select>
 	</div>
 
-	<slot name="extra" />
+	{@render extra?.()}
 
 	<div>
 		<label for="user-form-language" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Preferred language</label>
@@ -135,7 +151,7 @@
 							<input
 								type="checkbox"
 								checked={formData.groupAliases.includes(group.alias)}
-								on:change={() => onToggleGroup(group.alias)}
+								onchange={() => onToggleGroup(group.alias)}
 								class="mr-2"
 							/>
 							<span class="text-sm text-(--color-surface-800-200)">{getGroupName(group)}</span>
@@ -183,7 +199,7 @@
 						<input
 							type="checkbox"
 							checked={formData.allowedStorageProviders.includes(provider.id)}
-							on:change={() => onToggleStorageProvider(provider.id)}
+							onchange={() => onToggleStorageProvider(provider.id)}
 							class="mr-2"
 						/>
 						<span class="text-sm text-(--color-surface-800-200)">{provider.name}</span>

@@ -3,10 +3,13 @@
 	import { getTemplatePack } from '$lib/template/packs/registry';
 	import type { PackContactPageProps } from '$lib/template-packs/pack-page-props';
 
-	export let page: PackContactPageProps['page'] = null;
+	let {
+		page = null
+	}: {
+		page?: PackContactPageProps['page'];
+	} = $props();
 
-	$: packPromise = getTemplatePack($activeTemplate);
-</script>
+const packPromise = $derived(getTemplatePack($activeTemplate));</script>
 
 {#await packPromise then pack}
 	<svelte:component this={pack.pages.Contact} {page} />

@@ -5,15 +5,23 @@
 	import { logger } from '$lib/utils/logger';
 	import AlbumComments from './AlbumComments.svelte';
 
-	export let albumId: string;
-	export let albumCreatorId: string;
-	export let albumAlias: string;
-	/** Visibility for current viewer (admin already applies session). */
-	export let showActivity = true;
-	export let showTasks = true;
-	export let showComments = true;
+	let {
+		albumId,
+		albumCreatorId,
+		albumAlias,
+		showActivity = $bindable(true),
+		showTasks = $bindable(true),
+		showComments = $bindable(true)
+	}: {
+		albumId: string;
+		albumCreatorId: string;
+		albumAlias: string;
+		showActivity?: unknown;
+		showTasks?: unknown;
+		showComments?: unknown;
+	} = $props();
 
-	let activityOpen = false;
+	let activityOpen = $state(false);
 	let events: Array<{ _id: string; type: string; actorUserId: string; payload: unknown; createdAt: string }> = [];
 	let tasks: Array<{
 		_id: string;
@@ -28,10 +36,9 @@
 	let needsApproval = false;
 	let creatingTask = false;
 
-	$: canModerate =
-		$auth.authenticated &&
+const canModerate = $derived($auth.authenticated &&
 		$auth.user &&
-		($auth.user.role === 'admin' || $auth.user.id === albumCreatorId);
+		($auth.user.role === 'admin' || $auth.user.id === albumCreatorId));
 
 	onMount(async () => {
 		await loadSession();
@@ -201,7 +208,7 @@
 								<button
 									type="button"
 									class="text-xs text-primary-600 hover:underline"
-									on:click={() => patchTask(task._id, { status: 'done' })}
+									onclick={() => patchTask(task._id, { status: 'done' })}
 								>
 									{$t('albums.collabMarkDone')}
 								</button>
@@ -209,7 +216,7 @@
 								<button
 									type="button"
 									class="text-xs text-primary-600 hover:underline"
-									on:click={() => patchTask(task._id, { status: 'open' })}
+									onclick={() => patchTask(task._id, { status: 'open' })}
 								>
 									{$t('albums.collabReopen')}
 								</button>
@@ -218,14 +225,14 @@
 								<button
 									type="button"
 									class="text-xs text-green-700 hover:underline"
-									on:click={() => patchTask(task._id, { approvalStatus: 'approved' })}
+									onclick={() => patchTask(task._id, { approvalStatus: 'approved' })}
 								>
 									{$t('albums.collabApprove')}
 								</button>
 								<button
 									type="button"
 									class="text-xs text-red-600 hover:underline"
-									on:click={() => patchTask(task._id, { approvalStatus: 'rejected' })}
+									onclick={() => patchTask(task._id, { approvalStatus: 'rejected' })}
 								>
 									{$t('albums.collabReject')}
 								</button>
@@ -253,7 +260,7 @@
 					type="button"
 					disabled={creatingTask || !taskTitle.trim()}
 					class="mt-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-					on:click={createTask}
+					onclick={createTask}
 				>
 					{$t('albums.collabTaskAdd')}
 				</button>

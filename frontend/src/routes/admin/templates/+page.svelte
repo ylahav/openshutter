@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 	import { t } from '$stores/i18n';
@@ -26,6 +26,13 @@
 		adminSelectSmClass
 	} from '$lib/admin/admin-cerberus';
 
+	import type { PageData } from './$types';
+	import { routePageData } from '$lib/admin/routePageData';
+
+	let { data }: { data: PageData } = $props();
+
+	const pd = routePageData<PageData>();
+
 	interface Theme {
 		_id: string;
 		name: string;
@@ -43,19 +50,23 @@
 		updatedAt?: string;
 	}
 
-	let themes: Theme[] = [];
-	let loading = true;
-	let showCreateModal = false;
-	let createSubmitting = false;
-	let createName = '';
-	let createBaseTemplate = 'noir';
-	let createBasePalette = 'light';
-	let duplicateName = '';
-	let duplicateThemeId: string | null = null;
-	let deleteThemeId: string | null = null;
-	let applyThemeId: string | null = null;
-	let previewTemplate: string | null = null;
-	let previewThemeId: string | null = null;
+	let themes = $state<Theme[]>([]);
+	$effect(() => {
+		themes = ($pd.themes ?? []) as Theme[];
+	});
+
+	let loading = $state(false);
+	let showCreateModal = $state(false);
+	let createSubmitting = $state(false);
+	let createName = $state('');
+	let createBaseTemplate = $state('noir');
+	let createBasePalette = $state('light');
+	let duplicateName = $state('');
+	let duplicateThemeId: string | null = $state(null);
+	let deleteThemeId: string | null = $state(null);
+	let applyThemeId: string | null = $state(null);
+	let previewTemplate: string | null = $state(null);
+	let previewThemeId: string | null = $state(null);
 
 	const BASE_TEMPLATE_PREVIEW: Record<
 		string,
@@ -74,56 +85,23 @@
 		}
 	};
 
-	$: frontendTemplate = $siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'noir';
-	$: liveThemeId = $siteConfigData?.template?.activeThemeId;
+const frontendTemplate = $derived($siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'noir');
+	const liveThemeId = $derived( $siteConfigData?.template?.activeThemeId);
 	/** Resolved preset name from DB for the default public theme */
-	$: defaultPublicThemeLabel =
-		liveThemeId && themes.length > 0
+const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 			? themes.find((t) => t._id === liveThemeId)?.name ?? '—'
-			: '—';
+			: '—');
 
 	onMount(async () => {
 		await siteConfig.load();
-		await loadThemes();
 	});
 
+	async function refreshThemes() {
+		await invalidate('admin:templates');
+	}
+
 	async function loadThemes() {
-		loading = true;
-		try {
-			const response = await fetch('/api/admin/themes', { credentials: 'include' });
-			if (!response.ok) {
-				handleAuthError({ error: '', status: response.status }, $page.url.pathname);
-				const text = await response.text();
-				let errMsg = `Failed to load themes (${response.status})`;
-				try {
-					const err = JSON.parse(text);
-					errMsg = err.error || err.message || errMsg;
-				} catch {
-					if (text) errMsg = text.slice(0, 200);
-				}
-				throw new Error(errMsg);
-			}
-			const result = await response.json();
-			const validPacks = new Set(['noir', 'studio', 'atelier']);
-			const raw = (Array.isArray(result) ? result : result.data || []).filter((t: Theme) =>
-				validPacks.has(String(t.baseTemplate ?? 'noir').toLowerCase())
-			);
-			// Sort: built-in first (noir, studio, atelier), then custom by date
-			const order = ['noir', 'studio', 'atelier'];
-			themes = [...raw].sort((a, b) => {
-				const aIdx = a.isBuiltIn ? order.indexOf(a.baseTemplate) : -1;
-				const bIdx = b.isBuiltIn ? order.indexOf(b.baseTemplate) : -1;
-				if (aIdx >= 0 && bIdx >= 0) return aIdx - bIdx;
-				if (aIdx >= 0) return -1;
-				if (bIdx >= 0) return 1;
-				return (new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-			});
-		} catch (err) {
-			if (handleAuthError(err, $page.url.pathname)) return;
-			adminToast.error({ title: handleError(err, $t('admin.errorLoadingTemplates')) });
-		} finally {
-			loading = false;
-		}
+		await refreshThemes();
 	}
 
 	async function createTheme() {
@@ -277,7 +255,7 @@
 				<div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
 					<button
 						type="button"
-						on:click={() => (showCreateModal = true)}
+						onclick={() => (showCreateModal = true)}
 						class="{adminBtnSecondary} text-sm shrink-0"
 					>
 						+ {$t('admin.createNewTheme')}
@@ -289,7 +267,7 @@
 						<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
 							<button
 								type="button"
-								on:click={openApplyPreview}
+								onclick={openApplyPreview}
 								class="{adminBtnPrimarySm} {adminRingPrimary} shrink-0"
 								title={$t('admin.applyPreview')}
 							>
@@ -300,7 +278,7 @@
 					{#if previewTemplate}
 						<button
 							type="button"
-							on:click={clearPreview}
+							onclick={clearPreview}
 							class="{adminBtnSecondary} text-sm shrink-0"
 							title={$t('admin.revertPreview')}
 						>
@@ -310,19 +288,16 @@
 				</div>
 			</div>
 
-			{#if loading}
+			{#if $pd.themesLoadError}
 				<div class="text-center py-12">
-					<div
-						class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"
-					></div>
-					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingTemplates')}</p>
+					<p class="text-red-600">{$pd.themesLoadError}</p>
 				</div>
 			{:else if themes.length === 0}
 				<div class="text-center py-8 border-2 border-dashed border-surface-200-800 rounded-lg">
 					<p class="text-(--color-surface-600-400) mb-4">{$t('admin.noTemplatesYetRestartBackend')}</p>
 					<button
 						type="button"
-						on:click={() => (showCreateModal = true)}
+						onclick={() => (showCreateModal = true)}
 						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						{$t('admin.createYourFirstTheme')}
@@ -363,14 +338,14 @@
 									</a>
 									<button
 										type="button"
-										on:click={() => (applyThemeId = theme._id)}
+										onclick={() => (applyThemeId = theme._id)}
 										class="{adminBtnSmPrimary} {adminRingPrimary} shrink-0"
 									>
 										{$t('admin.setAsDefaultTheme')}
 									</button>
 									<button
 										type="button"
-										on:click={() => previewTheme(theme)}
+										onclick={() => previewTheme(theme)}
 										class="{adminBtnSmSecondary} shrink-0"
 										title={$t('admin.previewCurrentPageTitle')}
 										aria-label={$t('admin.previewCurrentPageTitle')}
@@ -380,14 +355,14 @@
 									</button>
 									<button
 										type="button"
-										on:click={() => { duplicateThemeId = theme._id; duplicateName = `${theme.name} (copy)`; }}
+										onclick={() => { duplicateThemeId = theme._id; duplicateName = `${theme.name} (copy)`; }}
 										class="{adminBtnSmSecondary} shrink-0"
 									>
 										{$t('admin.duplicate')}
 									</button>
 									<button
 										type="button"
-										on:click={() => (deleteThemeId = theme._id)}
+										onclick={() => (deleteThemeId = theme._id)}
 										class="{adminBtnSmDanger} shrink-0"
 									>
 										{$t('admin.delete')}
@@ -455,14 +430,14 @@
 			<div class="flex justify-end gap-2 mt-6">
 				<button
 					type="button"
-					on:click={() => (showCreateModal = false)}
+					onclick={() => (showCreateModal = false)}
 					class="{adminBtnSecondary}"
 					>
 						{$t('admin.cancel')}
 					</button>
 				<button
 					type="button"
-					on:click={createTheme}
+					onclick={createTheme}
 					disabled={!createName.trim() || createSubmitting}
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>
@@ -494,14 +469,14 @@
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
-					on:click={() => { duplicateThemeId = null; duplicateName = ''; }}
+					onclick={() => { duplicateThemeId = null; duplicateName = ''; }}
 					class="{adminBtnSecondary}"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
 					type="button"
-					on:click={() => duplicateTheme(duplicateThemeId!, duplicateName)}
+					onclick={() => duplicateTheme(duplicateThemeId!, duplicateName)}
 					class="{adminBtnPrimarySm} {adminRingPrimary}"
 				>
 					{$t('admin.duplicate')}
@@ -524,14 +499,14 @@
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
-					on:click={() => (applyThemeId = null)}
+					onclick={() => (applyThemeId = null)}
 					class="{adminBtnSecondary}"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
 					type="button"
-					on:click={() => applyTheme(applyThemeId!)}
+					onclick={() => applyTheme(applyThemeId!)}
 					class="{adminBtnPrimarySm} {adminRingPrimary}"
 				>
 					{$t('admin.setAsDefaultTheme')}
@@ -552,10 +527,10 @@
 				{$t('admin.deleteThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
-				<button type="button" on:click={() => (deleteThemeId = null)} class="{adminBtnSecondary}">
+				<button type="button" onclick={() => (deleteThemeId = null)} class="{adminBtnSecondary}">
 					{$t('admin.cancel')}
 				</button>
-				<button type="button" on:click={() => deleteTheme(deleteThemeId!)} class="{adminBtnDanger}">
+				<button type="button" onclick={() => deleteTheme(deleteThemeId!)} class="{adminBtnDanger}">
 					{$t('admin.delete')}
 				</button>
 			</div>

@@ -10,47 +10,45 @@
 	import { logger } from '$lib/utils/logger';
 	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
 
-	let rolePageModules: PageModuleData[] = [];
-	let rolePageLayout: { gridRows?: number; gridColumns?: number } | null = null;
-	let rolePageLoadedForPack = '';
+	let rolePageModules: PageModuleData[]  = $state([]);
+	let rolePageLayout: { gridRows?: number; gridColumns?: number } | null  = $state(null);
+	let rolePageLoadedForPack = $state('');
 
 	// Backward-compatible fallback: template overrides in site_config.
-	$: pageModulesRaw = getEffectivePageModules($siteConfigData?.template, 'album', $viewportWidth);
-	$: fallbackModules = (Array.isArray(pageModulesRaw) ? pageModulesRaw : []) as PageModuleData[];
-	$: hasRolePageModules = Array.isArray(rolePageModules) && rolePageModules.length > 0;
-	$: pageModules = (hasRolePageModules ? rolePageModules : fallbackModules) as PageModuleData[];
+const pageModulesRaw = $derived(getEffectivePageModules($siteConfigData?.template, 'album', $viewportWidth));
+	const fallbackModules = $derived((Array.isArray(pageModulesRaw) ? pageModulesRaw : []) as PageModuleData[]);
+const hasRolePageModules = $derived(Array.isArray(rolePageModules) && rolePageModules.length > 0);
+	const pageModules = $derived((hasRolePageModules ? rolePageModules : fallbackModules) as PageModuleData[]);
 	/** Always page-builder: use built-in album modules when nothing is configured. */
-	$: albumModulesSource =
-		pageModules.length > 0
+const albumModulesSource = $derived(pageModules.length > 0
 			? pageModules
-			: (DEFAULT_PAGE_MODULES.album.map((m) => ({ ...m })) as PageModuleData[]);
-	$: routeParams = ($page?.params || {}) as Record<string, string | undefined>;
-	$: routeAlias =
-		routeParams?.param || routeParams?.albumAlias || routeParams?.alias || null;
-	$: isAlbumDetailRoute =
-		(typeof routeAlias === 'string' && routeAlias.trim().length > 0) ||
+			: (DEFAULT_PAGE_MODULES.album.map((m) => ({ ...m })) as PageModuleData[]));
+const routeParams = $derived(($page?.params || {}) as Record<string, string | undefined>);
+const routeAlias = $derived(
+	routeParams?.param || routeParams?.albumAlias || routeParams?.alias || null);
+const isAlbumDetailRoute = $derived((typeof routeAlias === 'string' && routeAlias.trim().length > 0) ||
 		(/^\/albums\/[^/?#]+/.test($page?.url?.pathname || '')) ||
-		(/^\/(?:album|gallery)\/[^/?#]+/i.test($page?.url?.pathname || ''));
-	$: normalizedPageModules = normalizeAlbumDetailModules(albumModulesSource, isAlbumDetailRoute);
-	$: pageLayout = getEffectivePageGrid($siteConfigData?.template, 'album', $viewportWidth);
-	$: effectiveLayout = hasRolePageModules
+		(/^\/(?:album|gallery)\/[^/?#]+/i.test($page?.url?.pathname || '')));
+const normalizedPageModules = $derived(normalizeAlbumDetailModules(albumModulesSource, isAlbumDetailRoute));
+	const pageLayout = $derived(getEffectivePageGrid($siteConfigData?.template, 'album', $viewportWidth));
+const effectiveLayout = $derived(hasRolePageModules
 		? rolePageLayout ?? pageLayout ?? DEFAULT_PAGE_LAYOUTS.album
-		: pageLayout ?? DEFAULT_PAGE_LAYOUTS.album;
+		: pageLayout ?? DEFAULT_PAGE_LAYOUTS.album);
 
-	$: pageForRenderer = {
+const pageForRenderer = $derived({
 		_id: 'album',
 		title: {} as any,
 		subtitle: {} as any,
 		layout: effectiveLayout
 			? { gridRows: effectiveLayout.gridRows, gridColumns: effectiveLayout.gridColumns }
 			: DEFAULT_PAGE_LAYOUTS.album
-	} as any;
+	} as any);
 
 	function normalizeAlbumDetailModules(modules: PageModuleData[], onAlbumDetailRoute: boolean): PageModuleData[] {
 		const list = Array.isArray(modules) ? [...modules] : [];
 		if (!onAlbumDetailRoute || list.length === 0) return list;
 
-		let hasAlbumView = false;
+		let hasAlbumView = $state(false);
 		const normalized = list.map((m) => {
 			const type = String((m as any)?.type || '');
 			if (type === 'albumView' || type === 'albumGallery') {
@@ -106,9 +104,9 @@
 		}
 	}
 
-	$: if ($activeTemplate) {
+$effect(() => { if ($activeTemplate) {
 		loadAlbumRolePage();
-	}
+	} });
 
 	onMount(() => {
 		loadAlbumRolePage();

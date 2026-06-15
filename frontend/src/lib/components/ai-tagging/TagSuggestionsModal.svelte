@@ -1,72 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-
-	export let isOpen = false;
-	export let suggestions: Array<{
-		label: string;
-		confidence: number;
-		category?: string;
-		matchedTag?: {
-			id: string;
-			name: string;
-		};
-		isNewTag: boolean;
-		source?: string;
-		reason?: string;
-	}> = [];
-	export let loading = false;
-	export let error: string | null = null;
-	export let provider: string = 'local';
-	export let processingTime: number = 0;
-export let onApply:
-	| ((selected: Array<{
-			label: string;
-			confidence: number;
-			category?: string;
-			matchedTag?: { id: string; name: string };
-			isNewTag: boolean;
-			source?: string;
-			reason?: string;
-	  }>) => void)
-	| undefined = undefined;
-export let onDismiss:
-	| ((suggestion: {
-			label: string;
-			confidence: number;
-			category?: string;
-			matchedTag?: { id: string; name: string };
-			isNewTag: boolean;
-			source?: string;
-			reason?: string;
-	  }) => void)
-	| undefined = undefined;
-
-	const dispatch = createEventDispatcher();
-
-	let selectedSuggestions: Set<string> = new Set();
-
-	function handleClose() {
-		selectedSuggestions.clear();
-		dispatch('close');
-	}
-
-	function toggleSuggestion(label: string) {
-		if (selectedSuggestions.has(label)) {
-			selectedSuggestions.delete(label);
-		} else {
-			selectedSuggestions.add(label);
-		}
-		selectedSuggestions = selectedSuggestions; // Trigger reactivity
-	}
-
-	function handleApply() {
-		const selected = suggestions.filter((s) => selectedSuggestions.has(s.label));
-		if (onApply) onApply(selected);
-		dispatch('apply', selected);
-		selectedSuggestions.clear();
-	}
-
-	function handleDismiss(suggestion: {
+	type TagSuggestion = {
 		label: string;
 		confidence: number;
 		category?: string;
@@ -74,11 +7,61 @@ export let onDismiss:
 		isNewTag: boolean;
 		source?: string;
 		reason?: string;
-	}) {
-		selectedSuggestions.delete(suggestion.label);
-		selectedSuggestions = selectedSuggestions;
-		if (onDismiss) onDismiss(suggestion);
-		dispatch('dismiss', suggestion);
+	};
+
+	let {
+		isOpen = $bindable(false),
+		suggestions = [],
+		loading = $bindable(false),
+		error = null,
+		provider = 'local',
+		processingTime = 0,
+		onApply = undefined,
+		onDismiss = undefined,
+		onclose = undefined,
+		onapply = undefined,
+		ondismiss = undefined
+	}: {
+		isOpen?: boolean;
+		suggestions?: TagSuggestion[];
+		loading?: boolean;
+		error?: string | null;
+		provider?: string;
+		processingTime?: number;
+		onApply?: (selected: TagSuggestion[]) => void;
+		onDismiss?: (suggestion: TagSuggestion) => void;
+		onclose?: () => void;
+		onapply?: (event: { detail: TagSuggestion[] }) => void;
+		ondismiss?: (event: { detail: TagSuggestion }) => void;
+	} = $props();
+
+	let selectedSuggestions = $state(new Set<string>());
+
+	function handleClose() {
+		selectedSuggestions = new Set();
+		onclose?.();
+	}
+
+	function toggleSuggestion(label: string) {
+		const next = new Set(selectedSuggestions);
+		if (next.has(label)) next.delete(label);
+		else next.add(label);
+		selectedSuggestions = next;
+	}
+
+	function handleApply() {
+		const selected = suggestions.filter((s) => selectedSuggestions.has(s.label));
+		onApply?.(selected);
+		onapply?.({ detail: selected });
+		selectedSuggestions = new Set();
+	}
+
+	function handleDismiss(suggestion: TagSuggestion) {
+		const next = new Set(selectedSuggestions);
+		next.delete(suggestion.label);
+		selectedSuggestions = next;
+		onDismiss?.(suggestion);
+		ondismiss?.({ detail: suggestion });
 	}
 
 	function formatConfidence(confidence: number): string {
@@ -101,15 +84,15 @@ export let onDismiss:
 {#if isOpen}
 	<div
 		class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-		on:click={handleClose}
-		on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && handleClose()}
+		onclick={handleClose}
+		onkeydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && handleClose()}
 		role="button"
 		tabindex="0"
 	>
 		<div
 			class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col"
-			on:click|stopPropagation
-			on:keydown|stopPropagation
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
 			role="dialog"
 			tabindex="0"
 		>
@@ -117,7 +100,7 @@ export let onDismiss:
 				<h3 class="text-lg font-semibold">{provider === 'context' ? 'Context-Based Tag Suggestions' : 'AI Tag Suggestions'}</h3>
 				<button
 					type="button"
-					on:click={handleClose}
+					onclick={handleClose}
 					class="text-gray-400 hover:text-gray-600 focus:outline-none"
 					aria-label="Close suggestions modal"
 				>
@@ -205,7 +188,7 @@ export let onDismiss:
 								<input
 									type="checkbox"
 									checked={isSelected}
-									on:change={() => toggleSuggestion(suggestion.label)}
+									onchange={() => toggleSuggestion(suggestion.label)}
 									class="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
 								/>
 								<div class="flex-1 min-w-0">
@@ -239,7 +222,10 @@ export let onDismiss:
 								<button
 									type="button"
 									class="px-2 py-1 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50"
-									on:click|stopPropagation={() => handleDismiss(suggestion)}
+									onclick={(e) => {
+										e.stopPropagation();
+										handleDismiss(suggestion);
+									}}
 								>
 									Dismiss
 								</button>
@@ -251,14 +237,14 @@ export let onDismiss:
 				<div class="flex justify-end gap-2 pt-4 border-t border-gray-200">
 					<button
 						type="button"
-						on:click={handleClose}
+						onclick={handleClose}
 						class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
 					>
 						Cancel
 					</button>
 					<button
 						type="button"
-						on:click={handleApply}
+						onclick={handleApply}
 						disabled={selectedSuggestions.size === 0}
 						class="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
 					>

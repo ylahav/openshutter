@@ -2,29 +2,28 @@
 	import { browser } from '$app/environment';
 	import { activeTemplate } from '$stores/template';
 	import SearchForm from '$lib/components/search/SearchForm.svelte';
-	import { searchModulesState, type SearchModuleFilters } from '$lib/components/search/search-modules-store';
+	import { searchModulesState } from '$lib/components/search/search-modules-store';
 
 	const templateSearchFormStyleLoaders = import.meta.glob('/src/templates/*/styles/_searchForm.scss');
 	const defaultSearchFormStyleLoaders = import.meta.glob('/src/lib/page-builder/modules/SearchForm/_styles.scss');
 	const loadedTemplateSearchFormStyles = new Set<string>();
 
-	export let placeholder = '';
-	export let showFiltersButton = true;
-	export let filterWrapClass = '';
+	let {
+		placeholder = '',
+		showFiltersButton = true,
+		filterWrapClass = ''
+	}: {
+		placeholder?: string;
+		showFiltersButton?: boolean;
+		filterWrapClass?: string;
+	} = $props();
 
-	let filters: SearchModuleFilters = {
-		albumId: null,
-		tags: [],
-		people: [],
-		locationIds: [],
-		dateFrom: '',
-		dateTo: '',
-		sortOrder: 'desc'
-	};
-	let query = '';
-	let loading = false;
+	let loading = $state(false);
+	const query = $derived($searchModulesState.query);
+	const filters = $derived($searchModulesState.filters);
 
-	$: if (browser) {
+	$effect(() => {
+		if (!browser) return;
 		const templateId = String($activeTemplate || '').trim().toLowerCase();
 		const templateStylePath = `/src/templates/${templateId}/styles/_searchForm.scss`;
 		const defaultStylePath = '/src/lib/page-builder/modules/SearchForm/_styles.scss';
@@ -41,11 +40,6 @@
 				loadedTemplateSearchFormStyles.add(styleKey);
 			}
 		}
-	}
-
-	searchModulesState.subscribe((state) => {
-		query = state.query;
-		filters = state.filters;
 	});
 </script>
 
@@ -57,7 +51,7 @@
 		{showFiltersButton}
 		{filterWrapClass}
 		{filters}
-		on:search={(e) => searchModulesState.update((state) => ({ ...state, query: e.detail }))}
-		on:filtersChange={(e) => searchModulesState.update((state) => ({ ...state, filters: e.detail }))}
+		onsearch={(value) => searchModulesState.update((state) => ({ ...state, query: value }))}
+		onfiltersChange={(detail) => searchModulesState.update((state) => ({ ...state, filters: detail }))}
 	/>
 </div>

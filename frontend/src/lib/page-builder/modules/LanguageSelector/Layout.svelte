@@ -2,14 +2,13 @@
 <script lang="ts">
 	import LanguageSelector from '$pageBuilder/primitives/language-selector/LanguageSelector.svelte';
 
-	export let config: any = {};
+	let { config = {} }: { config?: Record<string, unknown> } = $props();
 
-	let variant: 'flags' | 'dropdown' = 'dropdown';
-	$: variant = config?.variant === 'flags' ? 'flags' : 'dropdown';
-	$: showFlags = config?.showFlags !== false;
-	$: showNativeNames = config?.showNativeNames !== false;
-	$: compact = config?.compact ?? false;
-	$: className = config?.className || '';
+	const variant = $derived(config?.variant === 'flags' ? 'flags' : 'dropdown');
+	const showFlags = $derived(config?.showFlags !== false);
+	const showNativeNames = $derived(config?.showNativeNames !== false);
+	const compact = $derived(config?.compact ?? false);
+	const className = $derived((config?.className as string) || '');
 </script>
 
 <div class="pb-languageSelectorModule">

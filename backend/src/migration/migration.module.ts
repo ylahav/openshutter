@@ -6,6 +6,7 @@ import { TagSchema } from '../models/Tag';
 import { PersonSchema } from '../models/Person';
 import { LocationSchema } from '../models/Location';
 import { PageSchema } from '../models/Page';
+import { StorageRestoreScanCacheSchema } from '../models/StorageRestoreScanCache';
 import { MigrationService } from './migration.service';
 import { MigrationController } from './migration.controller';
 import { StorageRestoreService } from './storage-restore.service';
@@ -19,6 +20,7 @@ import { StorageRestoreService } from './storage-restore.service';
       { name: 'Person', schema: PersonSchema },
       { name: 'Location', schema: LocationSchema },
       { name: 'Page', schema: PageSchema },
+      { name: 'StorageRestoreScanCache', schema: StorageRestoreScanCacheSchema },
     ]),
   ],
   controllers: [MigrationController],

@@ -1,8 +1,13 @@
 <script lang="ts">
 	import type { AdminNavGlyph } from '$lib/admin/admin-nav-sections';
 
-	export let name: AdminNavGlyph;
-	export let className = 'h-5 w-5 shrink-0 text-(--color-surface-600-400)';
+	let {
+		name,
+		className = $bindable('h-5 w-5 shrink-0 text-(--color-surface-600-400)')
+	}: {
+		name: AdminNavGlyph;
+		className?: unknown;
+	} = $props();
 </script>
 
 <svg class={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

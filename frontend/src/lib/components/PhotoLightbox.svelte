@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher, tick } from 'svelte';
+	import { tick } from 'svelte';
 	import { page } from '$app/stores';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
@@ -14,9 +14,6 @@
 	import { logger } from '$lib/utils/logger';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import AlbumComments from '$lib/components/AlbumComments.svelte';
-
-	const dispatch = createEventDispatcher();
-
 	function iptcXmpFieldLabelFallback(fieldId: string): string {
 		return IPTC_XMP_DISPLAY_FIELDS.find((f) => f.id === fieldId)?.label ?? fieldId;
 	}
@@ -350,8 +347,7 @@
 		if (!isOpen) return;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') {
-				if (onClose) onClose();
-				dispatch('close');
+				onClose?.();
 			}
 			if (e.key === 'ArrowRight') next();
 			if (e.key === 'ArrowLeft') prev();
@@ -665,10 +661,7 @@
 					</button>
 				{/if}
 				<button
-					onclick={() => {
-						if (onClose) onClose();
-						dispatch('close');
-					}}
+					onclick={() => onClose?.()}
 					class="p-2 rounded hover:bg-white/10 shrink-0"
 					aria-label="Close"
 				>

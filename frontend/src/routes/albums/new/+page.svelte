@@ -8,7 +8,7 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface AlbumFormData {
 		name: string;
@@ -35,7 +35,7 @@ import { t } from '$stores/i18n';
 		isEnabled: boolean;
 	}
 
-	let formData: AlbumFormData = {
+	let formData: AlbumFormData  = $state({
 		name: '',
 		alias: '',
 		description: '',
@@ -43,9 +43,9 @@ import { t } from '$stores/i18n';
 		isFeatured: false,
 		storageProvider: 'local',
 		parentAlbumId: '',
-	};
+	});
 
-	let parentAlbums: AlbumOption[] = [];
+	let parentAlbums: AlbumOption[]  = $state([]);
 	let storageOptions: StorageOption[] = [];
 	let loadingStorageOptions = true;
 	let isLoading = false;
@@ -361,7 +361,7 @@ import { t } from '$stores/i18n';
 
 		<!-- Album Creation Form -->
 		<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-			<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+			<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
 				<!-- Basic Information -->
 				<div>
 					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.basicInformation')}</h3>
@@ -374,7 +374,7 @@ import { t } from '$stores/i18n';
 								type="text"
 								id="name"
 								bind:value={formData.name}
-								on:input={(e) => handleNameChange(e.currentTarget.value)}
+								oninput={(e) => handleNameChange(e.currentTarget.value)}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 								placeholder={$t('admin.enterAlbumName')}
 								required

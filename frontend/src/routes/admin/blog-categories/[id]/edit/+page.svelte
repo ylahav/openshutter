@@ -28,16 +28,16 @@
 		sortOrder: number;
 	}
 
-	let categoryId = $page.params.id;
-	let formData: BlogCategoryFormData = {
+	let categoryId = $state($page.params.id);
+	let formData: BlogCategoryFormData = $state({
 		title: { [$currentLanguage]: '' },
 		description: { [$currentLanguage]: '' },
 		isActive: true,
 		sortOrder: 0
-	};
+	});
 
-	let loading = true;
-	let saving = false;
+	let loading = $state(true);
+	let saving = $state(false);
 
 	onMount(async () => {
 		await fetchCategory();
@@ -61,7 +61,7 @@
 					leadingImage: category.leadingImage,
 					isActive: category.isActive,
 					sortOrder: category.sortOrder
-				};
+	};
 			}
 		} catch (err) {
 			adminToast.error({
@@ -129,7 +129,7 @@
 					<p class="text-(--color-surface-600-400) mt-2">{$t('admin.editCategoryDescription')}</p>
 				</div>
 				<button
-					on:click={() => goto('/admin/blog-categories')}
+					onclick={() => goto('/admin/blog-categories')}
 					class="btn preset-filled-primary-500 inline-flex items-center"
 				>
 					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +144,7 @@
 				</button>
 			</div>
 
-			<form on:submit={handleSubmit} class="space-y-6">
+			<form onsubmit={handleSubmit} class="space-y-6">
 				<!-- Basic Information -->
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 					<h3 class="text-lg font-medium text-(--color-surface-950-50) mb-4">{$t('admin.basicInformation')}</h3>
@@ -180,7 +180,7 @@
 							type="url"
 							id="leading-image-url"
 							value={formData.leadingImage?.url || ''}
-							on:input={(e) => {
+							oninput={(e) => {
 								formData.leadingImage = {
 									url: e.currentTarget.value,
 									alt: formData.leadingImage?.alt || { [$currentLanguage]: '' },

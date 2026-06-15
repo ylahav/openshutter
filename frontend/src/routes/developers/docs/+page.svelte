@@ -4,7 +4,7 @@
 	import { productName } from '$stores/siteConfig';
 
 	// Swagger UI is served by the backend at /api/v1/docs when backend is running
-	let docsUrl = '';
+	let docsUrl = $state('');
 	onMount(() => {
 		if (browser) {
 			// Same origin as frontend; backend proxy serves /api

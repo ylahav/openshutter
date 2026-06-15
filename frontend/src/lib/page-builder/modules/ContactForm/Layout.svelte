@@ -42,61 +42,78 @@
 		errorMessage?: string | Record<string, string>;
 	};
 
-	export let config: ContactFormConfig = {};
+	let { config = {} }: { config?: ContactFormConfig } = $props();
 
-	let name = '';
-	let email = '';
-	let phone = '';
-	let message = '';
-	let busy = false;
-	let success = '';
-	let error = '';
+	let name = $state('');
+	let email = $state('');
+	let phone = $state('');
+	let message = $state('');
+	let busy = $state(false);
+	let success = $state('');
+	let error = $state('');
 	type SocialLink = { platform: string; url: string };
 
-	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
-	$: descriptionText = MultiLangUtils.getTextValue(config?.description, $currentLanguage) || '';
-	$: showPhone = config?.showPhoneField ?? config?.showPhone ?? false;
-	$: showSidebar = config?.showSidebar !== false;
-	$: sidebarTitleText = MultiLangUtils.getTextValue(config?.sidebarTitle, $currentLanguage) || '';
-	$: showSidebarEmail = config?.showSidebarEmail !== false;
-	$: showSidebarPhone = config?.showSidebarPhone !== false;
-	$: showSidebarAddress = config?.showSidebarAddress === true;
-	$: showSidebarSocial = config?.showSidebarSocial !== false;
-	$: enabledSocialPlatforms = buildEnabledSocialPlatforms(config);
-	$: sidebarEmail =
+	const titleText = $derived(MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '');
+	const descriptionText = $derived(MultiLangUtils.getTextValue(config?.description, $currentLanguage) || '');
+	const showPhone = $derived(config?.showPhoneField ?? config?.showPhone ?? false);
+	const showSidebar = $derived(config?.showSidebar !== false);
+	const sidebarTitleText = $derived(MultiLangUtils.getTextValue(config?.sidebarTitle, $currentLanguage) || '');
+	const showSidebarEmail = $derived(config?.showSidebarEmail !== false);
+	const showSidebarPhone = $derived(config?.showSidebarPhone !== false);
+	const showSidebarAddress = $derived(config?.showSidebarAddress === true);
+	const showSidebarSocial = $derived(config?.showSidebarSocial !== false);
+	const enabledSocialPlatforms = $derived(buildEnabledSocialPlatforms(config));
+	const sidebarEmail = $derived(
 		typeof config?.sidebarEmail === 'string' && config.sidebarEmail.trim()
 			? config.sidebarEmail.trim()
-			: String($siteConfigData?.contact?.email || '').trim();
-	$: sidebarPhone =
+			: String($siteConfigData?.contact?.email || '').trim()
+	);
+	const sidebarPhone = $derived(
 		typeof config?.sidebarPhone === 'string' && config.sidebarPhone.trim()
 			? config.sidebarPhone.trim()
-			: String($siteConfigData?.contact?.phone || '').trim();
-	$: sidebarAddress = MultiLangUtils.getTextValue(
-		config?.sidebarAddress ?? $siteConfigData?.contact?.address,
-		$currentLanguage,
-	).trim();
+			: String($siteConfigData?.contact?.phone || '').trim()
+	);
+	const sidebarAddress = $derived(
+		MultiLangUtils.getTextValue(
+			config?.sidebarAddress ?? $siteConfigData?.contact?.address,
+			$currentLanguage
+		).trim()
+	);
 
-	$: submitLabel = MultiLangUtils.getTextValue(config?.submitLabel, $currentLanguage) || 'Send Message';
-	$: nameLabel = MultiLangUtils.getTextValue(config?.nameLabel, $currentLanguage) || 'Name';
-	$: emailLabel = MultiLangUtils.getTextValue(config?.emailLabel, $currentLanguage) || 'Email';
-	$: phoneLabel = MultiLangUtils.getTextValue(config?.phoneLabel, $currentLanguage) || 'Phone';
-	$: messageLabel = MultiLangUtils.getTextValue(config?.messageLabel, $currentLanguage) || 'Message';
+	const submitLabel = $derived(MultiLangUtils.getTextValue(config?.submitLabel, $currentLanguage) || 'Send Message');
+	const nameLabel = $derived(MultiLangUtils.getTextValue(config?.nameLabel, $currentLanguage) || 'Name');
+	const emailLabel = $derived(MultiLangUtils.getTextValue(config?.emailLabel, $currentLanguage) || 'Email');
+	const phoneLabel = $derived(MultiLangUtils.getTextValue(config?.phoneLabel, $currentLanguage) || 'Phone');
+	const messageLabel = $derived(MultiLangUtils.getTextValue(config?.messageLabel, $currentLanguage) || 'Message');
 
-	$: namePlaceholder = MultiLangUtils.getTextValue(config?.namePlaceholder, $currentLanguage) || 'Your full name';
-	$: emailPlaceholder = MultiLangUtils.getTextValue(config?.emailPlaceholder, $currentLanguage) || 'you@example.com';
-	$: phonePlaceholder = MultiLangUtils.getTextValue(config?.phonePlaceholder, $currentLanguage) || '+1 555 000 0000';
-	$: messagePlaceholder =
-		MultiLangUtils.getTextValue(config?.messagePlaceholder, $currentLanguage) || 'How can we help?';
-	$: successMessage = MultiLangUtils.getTextValue(config?.successMessage, $currentLanguage) || 'Message sent.';
-	$: errorMessage =
+	const namePlaceholder = $derived(
+		MultiLangUtils.getTextValue(config?.namePlaceholder, $currentLanguage) || 'Your full name'
+	);
+	const emailPlaceholder = $derived(
+		MultiLangUtils.getTextValue(config?.emailPlaceholder, $currentLanguage) || 'you@example.com'
+	);
+	const phonePlaceholder = $derived(
+		MultiLangUtils.getTextValue(config?.phonePlaceholder, $currentLanguage) || '+1 555 000 0000'
+	);
+	const messagePlaceholder = $derived(
+		MultiLangUtils.getTextValue(config?.messagePlaceholder, $currentLanguage) || 'How can we help?'
+	);
+	const successMessage = $derived(
+		MultiLangUtils.getTextValue(config?.successMessage, $currentLanguage) || 'Message sent.'
+	);
+	const errorMessage = $derived(
 		MultiLangUtils.getTextValue(config?.errorMessage, $currentLanguage) ||
-		'Unable to send your message. Please try again.';
-	$: sidebarSocialLinks = normalizeSocialLinks(config, $siteConfigData?.contact?.socialMedia, enabledSocialPlatforms);
-	$: hasSidebarContent =
+			'Unable to send your message. Please try again.'
+	);
+	const sidebarSocialLinks = $derived(
+		normalizeSocialLinks(config, $siteConfigData?.contact?.socialMedia, enabledSocialPlatforms)
+	);
+	const hasSidebarContent = $derived(
 		(showSidebarEmail && !!sidebarEmail) ||
-		(showSidebarPhone && !!sidebarPhone) ||
-		(showSidebarAddress && !!sidebarAddress) ||
-		(showSidebarSocial && sidebarSocialLinks.length > 0);
+			(showSidebarPhone && !!sidebarPhone) ||
+			(showSidebarAddress && !!sidebarAddress) ||
+			(showSidebarSocial && sidebarSocialLinks.length > 0)
+	);
 
 	function normalizeSocialLinks(
 		cfg: ContactFormConfig,
@@ -271,7 +288,7 @@
 			</aside>
 		{/if}
 
-		<form class="pb-contactForm__form" on:submit={handleSubmit}>
+		<form class="pb-contactForm__form" onsubmit={handleSubmit}>
 			<label class="pb-contactForm__field">
 				<span>{nameLabel}</span>
 				<input bind:value={name} required placeholder={namePlaceholder} />

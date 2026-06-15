@@ -3,7 +3,7 @@
 	import { productName } from '$stores/siteConfig';
 	import { t } from '$stores/i18n';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>

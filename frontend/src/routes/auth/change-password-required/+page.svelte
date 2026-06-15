@@ -3,7 +3,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { productName } from '$stores/siteConfig';
 
-	export let data: { redirect: string };
+	let { data }: { data: { redirect: string } } = $props();
 
 	async function onSuccess() {
 		await invalidateAll();

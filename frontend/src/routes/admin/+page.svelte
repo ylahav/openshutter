@@ -7,9 +7,9 @@
 	import type { AdminDashboardSummary } from '$lib/types/admin-dashboard';
 	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	let retrying = false;
+	let retrying = $state(false);
 
 	function formatBytes(n: number): string {
 		if (!Number.isFinite(n) || n <= 0) return '0 B';
@@ -39,21 +39,24 @@
 		}
 	}
 
-	$: welcomeName = (data.user?.name?.trim() || data.user?.email || '').trim();
-	$: dash = data.dashboard as AdminDashboardSummary | null | undefined;
-	$: loadFailed = data.dashboardLoadFailed === true;
-	$: backendUnreachable = data.dashboardBackendUnreachable === true;
-	$: stats = dash?.stats;
-	$: storageQuota =
-		dash?.storage?.quotaBytes != null && dash.storage.quotaBytes > 0 ? dash.storage.quotaBytes : null;
-	$: storagePct =
+	const welcomeName = $derived((data.user?.name?.trim() || data.user?.email || '').trim());
+	const dash = $derived(data.dashboard as AdminDashboardSummary | null | undefined);
+	const loadFailed = $derived(data.dashboardLoadFailed === true);
+	const backendUnreachable = $derived(data.dashboardBackendUnreachable === true);
+	const stats = $derived(dash?.stats);
+	const storageQuota = $derived(
+		dash?.storage?.quotaBytes != null && dash.storage.quotaBytes > 0 ? dash.storage.quotaBytes : null
+	);
+	const storagePct = $derived(
 		storageQuota != null && dash
 			? Math.min(100, Math.round((dash.storage.usedBytes / storageQuota) * 1000) / 10)
-			: null;
-	$: storagePercentRounded =
+			: null
+	);
+	const storagePercentRounded = $derived(
 		storageQuota != null && dash
 			? Math.min(100, Math.round((dash.storage.usedBytes / storageQuota) * 100))
-			: null;
+			: null
+	);
 </script>
 
 <svelte:head>
@@ -102,7 +105,7 @@
 						type="button"
 						class="{adminBtnSecondary} mt-3 {adminRingPrimary} disabled:opacity-50"
 						disabled={retrying}
-						on:click={retryDashboard}
+						onclick={retryDashboard}
 					>
 						{retrying ? '…' : $t('admin.dashboardRetry')}
 					</button>

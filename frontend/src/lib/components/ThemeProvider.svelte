@@ -4,14 +4,24 @@
 	import { themeStore, resolvedTheme, setSystemPreferenceTrackingEnabled } from '$lib/stores/theme';
 	import { browser } from '$app/environment';
 
-	export let defaultTheme: 'light' | 'dark' | 'system' = 'system';
-	/** When false, OS light/dark changes are not applied while the selected theme is `system` (see `setSystemPreferenceTrackingEnabled`). */
-	export let enableSystem = true;
-	export let disableTransitionOnChange = false;
+	let {
+		defaultTheme = 'system',
+		children,
+		enableSystem = $bindable(true),
+		disableTransitionOnChange = $bindable(false),
+	}: {
+		defaultTheme?: 'light' | 'dark' | 'system';
+		children: import('svelte').Snippet;
+		enableSystem?: unknown;
+		disableTransitionOnChange?: unknown;
+	} = $props();
 
-	$: if (browser) setSystemPreferenceTrackingEnabled(enableSystem);
+	/** When false, OS light/dark changes are not applied while the selected theme is `system`. */
+	let mounted = $state(false);
 
-	let mounted = false;
+	$effect(() => {
+		if (browser) setSystemPreferenceTrackingEnabled(enableSystem);
+	});
 
 	onMount(() => {
 		mounted = true;
@@ -81,10 +91,10 @@
 </script>
 
 {#if mounted}
-	<slot />
+	{@render children?.()}
 {:else}
 	<!-- Suppress hydration warning during SSR -->
 	<div style="display: contents;">
-		<slot />
+		{@render children?.()}
 	</div>
 {/if}

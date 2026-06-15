@@ -1,8 +1,13 @@
 <script lang="ts">
 	import BaseSearchResultsModule from '$lib/page-builder/modules/SearchResultsModule.svelte';
 
-	export let limit = 20;
-	export let showSearchSummary = true;
+	let {
+		limit = $bindable(20),
+		showSearchSummary = $bindable(true)
+	}: {
+		limit?: unknown;
+		showSearchSummary?: unknown;
+	} = $props();
 </script>
 
 <BaseSearchResultsModule {limit} {showSearchSummary} />

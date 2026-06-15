@@ -2,15 +2,14 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth';
 
-	export let config: any = {};
+	let { config = {} }: { config?: Record<string, unknown> } = $props();
 
-	$: greeting = config?.greeting || 'Hello';
-	$: showEmail = config?.showEmail ?? false;
-	$: className = config?.className || '';
-	$: user = $auth.user;
-	$: authenticated = $auth.authenticated;
-
-	$: displayName = user?.name || (showEmail ? user?.email : null) || 'User';
+	const greeting = $derived((config?.greeting as string) || 'Hello');
+	const showEmail = $derived(config?.showEmail ?? false);
+	const className = $derived((config?.className as string) || '');
+	const user = $derived($auth.user);
+	const authenticated = $derived($auth.authenticated);
+	const displayName = $derived(user?.name || (showEmail ? user?.email : null) || 'User');
 </script>
 
 {#if authenticated && user}

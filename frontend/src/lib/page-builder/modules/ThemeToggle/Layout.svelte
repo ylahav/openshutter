@@ -2,7 +2,7 @@
 <script lang="ts">
 	import ThemeToggle from '$pageBuilder/primitives/theme-toggle/ThemeToggle.svelte';
 
-	export let variant: 'icons' | 'text' | 'both' = 'icons';
+	let { variant = 'icons' }: { variant?: 'icons' | 'text' | 'both' } = $props();
 </script>
 
 <div class="pb-themeToggleModule">

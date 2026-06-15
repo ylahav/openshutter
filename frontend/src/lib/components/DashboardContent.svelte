@@ -4,9 +4,9 @@
 	import AlertModal from '$lib/components/AlertModal.svelte';
 	
 	// Alert modal state
-	let showInfoModal = false;
-	let infoModalTitle = '';
-	let infoModalMessage = '';
+	let showInfoModal = $state(false);
+	let infoModalTitle = $state('');
+	let infoModalMessage = $state('');
 	
 	async function showInfo(title: string, message: string) {
 		infoModalTitle = title;
@@ -202,7 +202,7 @@
 							Share your gallery with others and manage access permissions.
 						</p>
 						<button
-							on:click={() => showInfo('Coming Soon', 'Share functionality coming soon')}
+							onclick={() => showInfo('Coming Soon', 'Share functionality coming soon')}
 							class="btn-secondary w-full"
 							type="button"
 						>

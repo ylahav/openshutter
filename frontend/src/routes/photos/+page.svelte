@@ -19,9 +19,9 @@
 		};
 	}
 
-	let photos: Photo[] = [];
-	let loading = true;
-	let error: string | null = null;
+	let photos: Photo[]  = $state([]);
+	let loading = $state(true);
+	let error: string | null  = $state(null);
 
 	onMount(async () => {
 		await loadPhotos();
@@ -57,7 +57,7 @@
 				<p class="text-lg text-gray-600">Browse and organize your photo collection</p>
 			</div>
 			<button
-				on:click={() => goto('/photos/upload')}
+				onclick={() => goto('/photos/upload')}
 				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 			>
 				Upload Photos
@@ -95,7 +95,7 @@
 					</p>
 					<div class="mt-6">
 						<button
-							on:click={() => goto('/photos/upload')}
+							onclick={() => goto('/photos/upload')}
 							class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 						>
 							Upload Your First Photo
@@ -146,7 +146,7 @@
 									{photo.size ? `${(photo.size / 1024 / 1024).toFixed(1)} MB` : 'Unknown size'}
 								</span>
 								<button
-									on:click={() => goto(`/photos/${photo._id}`)}
+									onclick={() => goto(`/photos/${photo._id}`)}
 									class="text-blue-600 hover:text-blue-700 text-xs font-medium"
 								>
 									View →

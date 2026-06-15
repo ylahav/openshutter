@@ -11,6 +11,7 @@ import {
   StorageOperationError
 } from '../types'
 import { storageConfigService } from '../config'
+import { resolveGoogleOAuthRedirectUri } from '../google-oauth-redirect'
 
 export class GoogleDriveService implements IStorageService {
   private readonly logger = new Logger(GoogleDriveService.name)
@@ -75,6 +76,24 @@ export class GoogleDriveService implements IStorageService {
   }
 
   /**
+   * Normalize token expiry from persisted config (Date | string | number) to a valid Date.
+   */
+  private getTokenExpiryDate(): Date | undefined {
+    const raw = this.config.tokenExpiry
+    if (!raw) return undefined
+    if (raw instanceof Date) {
+      return Number.isNaN(raw.getTime()) ? undefined : raw
+    }
+    if (typeof raw === 'string' || typeof raw === 'number') {
+      const parsed = new Date(raw)
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed
+      }
+    }
+    return undefined
+  }
+
+  /**
    * Parse service account credentials from config (serviceAccountJson string or client_email + private_key).
    */
   private getServiceAccountCredentials(): { client_email: string; private_key: string } {
@@ -120,10 +139,13 @@ export class GoogleDriveService implements IStorageService {
       this.config.clientId,
       this.config.clientSecret
     )
-    if (this.config.redirectUri) {
-      this.auth.redirectUri = this.config.redirectUri
+    const redirectUri = resolveGoogleOAuthRedirectUri(this.config.redirectUri)
+    if (redirectUri) {
+      this.config.redirectUri = redirectUri
+      this.auth.redirectUri = redirectUri
     }
-    if (this.config.accessToken && this.config.tokenExpiry && new Date() < this.config.tokenExpiry) {
+    const tokenExpiry = this.getTokenExpiryDate()
+    if (this.config.accessToken && tokenExpiry && new Date() < tokenExpiry) {
       this.auth.setCredentials({ access_token: this.config.accessToken })
     } else if (this.config.refreshToken) {
       this.auth.setCredentials({ refresh_token: this.config.refreshToken })
@@ -136,7 +158,8 @@ export class GoogleDriveService implements IStorageService {
    */
   private async ensureAuth(): Promise<void> {
     if (this.isServiceAccount()) return
-    if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
+    const tokenExpiry = this.getTokenExpiryDate()
+    if (!this.config.accessToken || (tokenExpiry && new Date() >= tokenExpiry)) {
       await this.refreshAccessToken()
     }
   }
@@ -149,7 +172,7 @@ export class GoogleDriveService implements IStorageService {
     if (this.isServiceAccount()) return
     if (!this.config.refreshToken) return
     const now = new Date()
-    const expiry = this.config.tokenExpiry
+    const expiry = this.getTokenExpiryDate()
     const bufferMs = 10 * 60 * 1000 // 10 minutes
     const shouldRefresh =
       !this.config.accessToken ||
@@ -286,13 +309,10 @@ export class GoogleDriveService implements IStorageService {
     try {
       this.lastTokenSave = now
       
-      // Update only the accessToken and tokenExpiry in the config
-      await storageConfigService.updateConfig(this.providerId, {
-        config: {
-          ...this.config,
-          accessToken: accessToken,
-          tokenExpiry: expiryDate ? new Date(expiryDate) : undefined
-        }
+      // Update only accessToken / tokenExpiry — never replace the whole config blob.
+      await storageConfigService.patchConfigFields(this.providerId, {
+        accessToken: accessToken,
+        tokenExpiry: expiryDate ? new Date(expiryDate) : undefined,
       })
       
       this.logger.debug('Successfully saved Google Drive access token to database')

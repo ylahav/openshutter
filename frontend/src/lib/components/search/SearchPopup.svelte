@@ -1,15 +1,17 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
-	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	// Using inline SVG icons
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
 
-	export let isOpen = false;
-
-	const dispatch = createEventDispatcher();
+	let {
+		isOpen = false,
+		onclose = undefined
+	}: {
+		isOpen?: boolean;
+		onclose?: () => void;
+	} = $props();
 
 	interface AdvancedFilters {
 		albumId: string | null;
@@ -20,35 +22,31 @@
 		dateTo: string;
 	}
 
-	let filters: AdvancedFilters = {
+	let filters = $state<AdvancedFilters>({
 		albumId: null,
 		tags: [],
 		people: [],
 		locationIds: [],
 		dateFrom: '',
 		dateTo: ''
-	};
+	});
 
-	let sectionsExpanded = {
+	let sectionsExpanded = $state({
 		albums: true,
 		tags: true,
 		people: true,
 		locations: true,
 		dateRange: false
-	};
+	});
 
-	let availableAlbums: Array<{ _id: string; name: string | Record<string, string> }> = [];
-	let availableTags: Array<{ _id: string; name: string | Record<string, string> }> = [];
-	let availablePeople: Array<{ _id: string; name: string | Record<string, string> }> = [];
-	let availableLocations: Array<{ _id: string; name: string | Record<string, string> }> = [];
+	let availableAlbums = $state<Array<{ _id: string; name: string | Record<string, string> }>>([]);
+	let availableTags = $state<Array<{ _id: string; name: string | Record<string, string> }>>([]);
+	let availablePeople = $state<Array<{ _id: string; name: string | Record<string, string> }>>([]);
+	let availableLocations = $state<Array<{ _id: string; name: string | Record<string, string> }>>([]);
 
-	let loading = false;
-
-	$: activeFilterCount =
-		(filters.albumId ? 1 : 0) +
-		filters.tags.length +
-		filters.people.length +
-		filters.locationIds.length;
+	const activeFilterCount = $derived(
+		(filters.albumId ? 1 : 0) + filters.tags.length + filters.people.length + filters.locationIds.length
+	);
 
 	onMount(async () => {
 		await loadFilterData();
@@ -91,7 +89,7 @@
 	}
 
 	function toggleSection(section: keyof typeof sectionsExpanded) {
-		sectionsExpanded[section] = !sectionsExpanded[section];
+		sectionsExpanded = { ...sectionsExpanded, [section]: !sectionsExpanded[section] };
 	}
 
 	function handleFilterChange(newFilters: Partial<AdvancedFilters>) {
@@ -127,7 +125,11 @@
 
 		const searchUrl = `/search${params.toString() ? `?${params.toString()}` : ''}`;
 		goto(searchUrl);
-		dispatch('close');
+		onclose?.();
+	}
+
+	function closePopup() {
+		onclose?.();
 	}
 
 	function getDisplayName(item: { name: string | Record<string, string> }): string {
@@ -140,14 +142,14 @@
 	<!-- Backdrop -->
 	<div
 		class="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4 overflow-y-auto"
-		on:click={() => dispatch('close')}
+		onclick={closePopup}
 		role="button"
 		tabindex="-1"
 	>
 		<!-- Modal -->
 		<div
 			class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col my-auto"
-			on:click|stopPropagation
+			onclick={(e) => e.stopPropagation()}
 		>
 			<!-- Header -->
 			<div class="flex items-center justify-between p-6 border-b">
@@ -163,7 +165,7 @@
 					{/if}
 				</div>
 				<button
-					on:click={() => dispatch('close')}
+					onclick={closePopup}
 					class="p-2 hover:bg-gray-100 rounded-full transition-colors"
 					type="button"
 				>
@@ -180,7 +182,7 @@
 					<div class="border rounded-lg">
 						<button
 							type="button"
-							on:click={() => toggleSection('albums')}
+							onclick={() => toggleSection('albums')}
 							class="w-full flex items-center justify-between p-4 hover:bg-gray-50"
 						>
 							<h3 class="font-semibold text-gray-900">Albums</h3>
@@ -198,7 +200,7 @@
 							<div class="p-4 border-t">
 								<select
 									bind:value={filters.albumId}
-									on:change={(e) => handleFilterChange({ albumId: e.currentTarget.value || null })}
+									onchange={(e) => handleFilterChange({ albumId: e.currentTarget.value || null })}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md"
 								>
 									<option value="">All Albums</option>
@@ -214,7 +216,7 @@
 					<div class="border rounded-lg">
 						<button
 							type="button"
-							on:click={() => toggleSection('tags')}
+							onclick={() => toggleSection('tags')}
 							class="w-full flex items-center justify-between p-4 hover:bg-gray-50"
 						>
 							<h3 class="font-semibold text-gray-900">Tags</h3>
@@ -235,7 +237,7 @@
 										<input
 											type="checkbox"
 											checked={filters.tags.includes(tag._id)}
-											on:change={(e) => {
+											onchange={(e) => {
 												if (e.currentTarget.checked) {
 													handleFilterChange({ tags: [...filters.tags, tag._id] });
 												} else {
@@ -257,7 +259,7 @@
 					<div class="border rounded-lg">
 						<button
 							type="button"
-							on:click={() => toggleSection('people')}
+							onclick={() => toggleSection('people')}
 							class="w-full flex items-center justify-between p-4 hover:bg-gray-50"
 						>
 							<h3 class="font-semibold text-gray-900">People</h3>
@@ -278,7 +280,7 @@
 										<input
 											type="checkbox"
 											checked={filters.people.includes(person._id)}
-											on:change={(e) => {
+											onchange={(e) => {
 												if (e.currentTarget.checked) {
 													handleFilterChange({ people: [...filters.people, person._id] });
 												} else {
@@ -300,7 +302,7 @@
 					<div class="border rounded-lg">
 						<button
 							type="button"
-							on:click={() => toggleSection('locations')}
+							onclick={() => toggleSection('locations')}
 							class="w-full flex items-center justify-between p-4 hover:bg-gray-50"
 						>
 							<h3 class="font-semibold text-gray-900">Locations</h3>
@@ -321,7 +323,7 @@
 										<input
 											type="checkbox"
 											checked={filters.locationIds.includes(location._id)}
-											on:change={(e) => {
+											onchange={(e) => {
 												if (e.currentTarget.checked) {
 													handleFilterChange({
 														locationIds: [...filters.locationIds, location._id]
@@ -347,7 +349,7 @@
 			<div class="flex items-center justify-between p-6 border-t">
 				<button
 					type="button"
-					on:click={clearAllFilters}
+					onclick={clearAllFilters}
 					class="px-4 py-2 text-gray-600 hover:text-gray-800"
 					disabled={activeFilterCount === 0}
 				>
@@ -356,14 +358,14 @@
 				<div class="flex gap-3">
 					<button
 						type="button"
-						on:click={() => dispatch('close')}
+						onclick={closePopup}
 						class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
 					>
 						Cancel
 					</button>
 					<button
 						type="button"
-						on:click={handleSubmit}
+						onclick={handleSubmit}
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 					>
 						Search

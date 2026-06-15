@@ -11,7 +11,7 @@
 	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface BlogCategoryFormData {
 		title: { en?: string; he?: string };
@@ -33,7 +33,7 @@
 		sortOrder: 0
 	};
 
-	let saving = false;
+	let saving = $state(false);
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
@@ -87,7 +87,7 @@
 				<p class="text-(--color-surface-600-400) mt-2">{$t('admin.createCategoryDescription')}</p>
 			</div>
 			<button
-				on:click={() => goto('/admin/blog-categories')}
+				onclick={() => goto('/admin/blog-categories')}
 				class="btn preset-filled-primary-500 inline-flex items-center"
 			>
 				<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +102,7 @@
 			</button>
 		</div>
 
-		<form on:submit={handleSubmit} class="space-y-6">
+		<form onsubmit={handleSubmit} class="space-y-6">
 			<!-- Basic Information -->
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 				<h3 class="text-lg font-medium text-(--color-surface-950-50) mb-4">{$t('admin.basicInformation')}</h3>
@@ -138,7 +138,7 @@
 						type="url"
 						id="leading-image-url-new"
 						value={formData.leadingImage?.url || ''}
-						on:input={(e) => {
+						oninput={(e) => {
 							formData.leadingImage = {
 								url: e.currentTarget.value,
 								alt: { [$currentLanguage]: '' },

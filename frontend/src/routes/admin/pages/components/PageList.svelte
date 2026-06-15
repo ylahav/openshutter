@@ -6,17 +6,25 @@
 	import { t } from '$stores/i18n';
 	import { adminBtnSecondary } from '$lib/admin/admin-cerberus';
 
-	export let pages: Page[] = [];
-	export let categories: PageCategoryOption[] = [];
-	export let sortBy: 'title-asc' | 'title-desc' | 'alias-asc' | 'alias-desc' = 'title-asc';
-	export let onEdit: (page: Page) => void = () => {};
-	export let onDuplicate: (page: Page) => void = () => {};
-	export let onDelete: (page: Page) => void = () => {};
-	/** Add a theme variant from an existing page in this title group (site pages only). */
-	export let onAddVariant: (pages: Page[]) => void = () => {};
+	let {
+		pages = [],
+		categories = [],
+		sortBy = 'title-asc',
+		onEdit = () => {},
+		onDuplicate = () => {},
+		onDelete = () => {},
+		onAddVariant = () => {}
+	}: {
+		pages?: Page[];
+		categories?: PageCategoryOption[];
+		sortBy?: 'title-asc' | 'title-desc' | 'alias-asc' | 'alias-desc';
+		onEdit?: (page: Page) => void;
+		onDuplicate?: (page: Page) => void;
+		onDelete?: (page: Page) => void;
+		onAddVariant?: (pages: Page[]) => void;
+	} = $props();
 
-	$: lang = $currentLanguage;
-
+	const lang = $derived($currentLanguage);
 	const PACK_SORT: Record<string, number> = { atelier: 0, noir: 1, studio: 2 };
 
 	const PAGE_ROLE_LABELS: Record<string, string> = {
@@ -174,8 +182,8 @@
 		);
 	}
 
-	$: sortedPages = [...pages].sort(comparePages);
-	$: groupedPages = (() => {
+	const sortedPages = $derived([...pages].sort(comparePages));
+	const groupedPages = $derived( (() => {
 		const byTitle = new Map<string, Page[]>();
 		for (const page of sortedPages) {
 			const key = getPageDisplayTitle(page).trim().toLowerCase();
@@ -187,7 +195,7 @@
 			title: getPageDisplayTitle(items[0]),
 			pages: sortVariantPages(items)
 		}));
-	})();
+	})());
 
 	const ALL_PACK_IDS = ['atelier', 'noir', 'studio'] as const;
 
@@ -240,7 +248,7 @@
 					<button
 						type="button"
 						class="{adminBtnSecondary} text-xs shrink-0"
-						on:click|stopPropagation|preventDefault={() => onAddVariant(group.pages)}
+						onclick={(e) => { e.stopPropagation(); e.preventDefault(); () => onAddVariant(group.pages)(e); }}
 					>
 						+ {$t('admin.pagesListAddVariant')}
 					</button>
@@ -250,7 +258,7 @@
 						disabled
 						class="{adminBtnSecondary} text-xs shrink-0 opacity-50 cursor-not-allowed"
 						title={$t('admin.pagesListAllVariantsExist')}
-						on:click|stopPropagation|preventDefault
+						onclick={(e) => { e.stopPropagation(); e.preventDefault(); }}
 					>
 						+ {$t('admin.pagesListAddVariant')}
 					</button>
@@ -311,7 +319,7 @@
 							{/if}
 							<button
 								type="button"
-								on:click|stopPropagation={() => onEdit(page)}
+								onclick={(e) => { e.stopPropagation(); () => onEdit(page)(e); }}
 								class="p-1.5 text-(--color-surface-600-400) hover:text-(--color-primary-600) rounded"
 								aria-label="Edit page"
 								title="Edit"
@@ -335,7 +343,7 @@
 							{:else}
 								<button
 									type="button"
-									on:click|stopPropagation={() => onDelete(page)}
+									onclick={(e) => { e.stopPropagation(); () => onDelete(page)(e); }}
 									class="p-1.5 text-(--color-surface-600-400) hover:text-red-600 rounded"
 									aria-label="Delete page"
 									title="Delete"

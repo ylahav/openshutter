@@ -22,7 +22,7 @@
 		variant = 'default',
 		confirmDisabled = false,
 		onOpenChange,
-		onConfirm,
+		onConfirm
 	}: Props = $props();
 
 	const anim =
@@ -63,9 +63,11 @@
 				>
 					{title}
 				</Dialog.Title>
-				<Dialog.Description class="mt-2 text-sm text-(--color-surface-600-400) {variant === 'danger'
-					? 'text-center'
-					: ''}">
+				<Dialog.Description
+					class="mt-2 text-sm text-(--color-surface-600-400) {variant === 'danger'
+						? 'text-center'
+						: ''}"
+				>
 					{message}
 				</Dialog.Description>
 				<div class="mt-6 flex justify-end gap-3">

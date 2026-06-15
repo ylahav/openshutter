@@ -5,10 +5,10 @@
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import type { PageData as BuilderPageData } from '$lib/types/page-builder';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	$: page = (data.page ?? null) as BuilderPageData | null;
-	$: modules = (data.modules ?? []) as PageModuleData[];
+const page = $derived((data.page ?? null) as BuilderPageData | null);
+	const modules = $derived((data.modules ?? []) as PageModuleData[]);
 </script>
 
 <svelte:head>

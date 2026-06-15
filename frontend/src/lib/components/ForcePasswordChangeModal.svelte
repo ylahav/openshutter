@@ -1,12 +1,11 @@
 <script lang="ts">
-	/** Called after password is changed and session refreshed. Parent should invalidate or redirect. */
-	export let onSuccess: () => void | Promise<void> = () => {};
+	let { onSuccess = () => {} }: { onSuccess?: () => void | Promise<void> } = $props();
 
-	let currentPassword = '';
-	let newPassword = '';
-	let confirmPassword = '';
-	let error = '';
-	let saving = false;
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmPassword = $state('');
+	let error = $state('');
+	let saving = $state(false);
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
@@ -40,7 +39,10 @@
 				saving = false;
 				return;
 			}
-			const refreshRes = await fetch('/api/auth/refresh-session', { method: 'POST', credentials: 'include' });
+			const refreshRes = await fetch('/api/auth/refresh-session', {
+				method: 'POST',
+				credentials: 'include'
+			});
 			if (!refreshRes.ok) {
 				error = 'Password updated but session refresh failed. Please log in again.';
 				saving = false;
@@ -67,16 +69,16 @@
 			Change password required
 		</h2>
 		<p id="force-password-desc" class="text-sm text-gray-600 mb-4">
-		 You must set a new password before continuing.
+			You must set a new password before continuing.
 		</p>
-		<form on:submit|preventDefault={handleSubmit} class="space-y-4">
+		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-4">
 			{#if error}
-				<div class="p-3 rounded-md bg-red-50 text-red-700 text-sm">
-					{error}
-				</div>
+				<div class="p-3 rounded-md bg-red-50 text-red-700 text-sm">{error}</div>
 			{/if}
 			<div>
-				<label for="force-current-pw" class="block text-sm font-medium text-gray-700 mb-1">Current password</label>
+				<label for="force-current-pw" class="block text-sm font-medium text-gray-700 mb-1"
+					>Current password</label
+				>
 				<input
 					id="force-current-pw"
 					type="password"
@@ -101,7 +103,9 @@
 				/>
 			</div>
 			<div>
-				<label for="force-confirm-pw" class="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
+				<label for="force-confirm-pw" class="block text-sm font-medium text-gray-700 mb-1"
+					>Confirm new password</label
+				>
 				<input
 					id="force-confirm-pw"
 					type="password"

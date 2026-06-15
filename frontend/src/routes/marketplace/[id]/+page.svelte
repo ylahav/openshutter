@@ -2,7 +2,7 @@
 	import type { PageData } from './$types';
 	import { productName } from '$stores/siteConfig';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	const CATEGORY_LABELS: Record<string, string> = {
 		integration: 'Integration',

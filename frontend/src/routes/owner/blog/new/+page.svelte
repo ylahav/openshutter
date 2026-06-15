@@ -10,7 +10,7 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface BlogFormData {
 		title: { en?: string; he?: string };
@@ -154,7 +154,7 @@ import { t } from '$stores/i18n';
 				<p class="text-gray-600 mt-2">{$t('owner.createArticleDescription')}</p>
 			</div>
 			<button
-				on:click={() => goto('/owner/blog')}
+				onclick={() => goto('/owner/blog')}
 				class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 			>
 				<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,7 +183,7 @@ import { t } from '$stores/i18n';
 				</div>
 			{/if}
 
-			<form on:submit={handleSubmit} class="space-y-6">
+			<form onsubmit={handleSubmit} class="space-y-6">
 				<!-- Basic Information -->
 				<div>
 					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.basicInformation')}</h3>
@@ -229,7 +229,7 @@ import { t } from '$stores/i18n';
 										type="text"
 										id="tags"
 										bind:value={tagInput}
-										on:keypress={(e) => {
+										onkeypress={(e) => {
 											if (e.key === 'Enter') {
 												e.preventDefault();
 												handleAddTag();
@@ -240,7 +240,7 @@ import { t } from '$stores/i18n';
 									/>
 									<button
 										type="button"
-										on:click={handleAddTag}
+										onclick={handleAddTag}
 										class="px-3 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700"
 									>
 										{$t('owner.add')}
@@ -255,7 +255,7 @@ import { t } from '$stores/i18n';
 												{tag}
 												<button
 													type="button"
-													on:click={() => handleRemoveTag(tag)}
+													onclick={() => handleRemoveTag(tag)}
 													class="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-500"
 													aria-label="Remove tag"
 												>
@@ -285,7 +285,7 @@ import { t } from '$stores/i18n';
                 type="url"
                 id="leading-image-url-owner"
                 value={formData.leadingImage?.url || ''}
-                on:input={(e) => {
+                oninput={(e) => {
                   formData.leadingImage = {
 									url: e.currentTarget.value,
 									alt: { [$currentLanguage]: '' },

@@ -42,26 +42,24 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 		};
 	}
 
-	$: alias = albumSlugFromRouteParams($page.params) ?? '';
-	let albumData: AlbumData | null = null;
-	let loading = true;
-	let error: string | null = null;
-	let lightboxOpen = false;
-	let lightboxIndex = 0;
-	let loadingMore = false;
-	let isInitialLoad = true;
+	let alias = $state(albumSlugFromRouteParams($page.params) ?? '');
+	let albumData: AlbumData | null  = $state(null);
+	let loading = $state(true);
+	let error: string | null  = $state(null);
+	let lightboxOpen = $state(false);
+	let lightboxIndex = $state(0);
+	let loadingMore = $state(false);
+	let isInitialLoad = $state(true);
 	let photoLoaded: Record<string, boolean> = {};
 
-	$: collabVis = resolveCollaborationVisibility($siteConfigData?.features);
-	$: isAuthed = $auth.authenticated && !!$auth.user;
-	$: canModerateAlbum =
-		isAuthed &&
+const collabVis = $derived(resolveCollaborationVisibility($siteConfigData?.features));
+	const isAuthed = $derived($auth.authenticated && !!$auth.user);
+const canModerateAlbum = $derived(isAuthed &&
 		$auth.user &&
 		albumData &&
-		($auth.user.role === 'admin' || $auth.user.id === albumData.album.createdBy);
-	$: showCollabPanel =
-		!!albumData && anyCollaborationSectionVisible(collabVis, isAuthed, !!canModerateAlbum);
-	let subAlbumCoverImages: Record<string, string> = {};
+		($auth.user.role === 'admin' || $auth.user.id === albumData.album.createdBy));
+const showCollabPanel = $derived(!!albumData && anyCollaborationSectionVisible(collabVis, isAuthed, !!canModerateAlbum));
+	let subAlbumCoverImages: Record<string, string>  = $state({});
 
 	// React to route parameter changes
 	afterNavigate(({ to, from }) => {
@@ -116,7 +114,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 						limit,
 						total: typeof total === 'number' ? total : albumData.photos.length,
 						pages: Math.max(1, Math.ceil((typeof total === 'number' ? total : albumData.photos.length) / limit)),
-					};
+	};
 				}
 			}
 			logger.debug('Album data loaded:', albumData);
@@ -168,7 +166,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 					...albumData,
 					photos: [...albumData.photos, ...newPhotos],
 					pagination: nextPagination,
-				};
+	};
 			}
 		} finally {
 			loadingMore = false;
@@ -196,15 +194,15 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	}
 
 	// Photo URL function is now imported from shared utility
-	$: showAlbumShare = $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false;
-	$: showPhotoShare = $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false;
+const showAlbumShare = $derived($siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false);
+	const showPhotoShare = $derived($siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false);
 
-	$: hasMorePhotos = albumData?.photos && (
+const hasMorePhotos = $derived(albumData?.photos && (
 		(albumData.pagination && albumData.pagination.page < albumData.pagination.pages) ||
 		((albumData.pagination?.total ?? albumData.album?.photoCount ?? albumData.photos.length) > albumData.photos.length)
-	);
-	$: totalPhotoCount = albumData?.pagination?.total ?? albumData?.album?.photoCount ?? albumData?.photos?.length ?? 0;
-	$: remainingCount = albumData?.photos ? Math.max(0, totalPhotoCount - albumData.photos.length) : 0;
+	));
+const totalPhotoCount = $derived(albumData?.pagination?.total ?? albumData?.album?.photoCount ?? albumData?.photos?.length ?? 0);
+	const remainingCount = $derived(albumData?.photos ? Math.max(0, totalPhotoCount - albumData.photos.length) : 0);
 </script>
 
 {#if loading}
@@ -335,7 +333,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 							class="rounded-lg transition-all duration-300 p-5 border mb-6 break-inside-avoid bg-(--tp-surface-1) border-(--tp-border) hover:border-(--tp-fg-muted)"
 						>
 							<button
-								on:click={() => openLightbox(index)}
+								onclick={() => openLightbox(index)}
 								class="w-full mb-4"
 							>
 								<div
@@ -365,8 +363,8 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 											? "w-full h-full object-cover hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')
 											: "absolute inset-0 w-full h-full object-cover hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')}
 										style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
-										on:load={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
-										on:error={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
+										onload={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
+										onerror={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
 									/>
 								</div>
 							</button>
@@ -464,7 +462,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 				{#if hasMorePhotos}
 					<div class="text-center mt-10">
 						<button
-							on:click={loadMorePhotos}
+							onclick={loadMorePhotos}
 							disabled={loadingMore}
 							class="px-6 py-3 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-[10px] uppercase tracking-[0.18em] bg-[color:var(--tp-fg)] text-[color:var(--tp-canvas)] hover:opacity-90 [font-family:var(--os-font-body)]"
 						>
@@ -505,7 +503,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 						albumAlias: albumData.album.alias,
 					}
 				: undefined}
-			on:close={() => (lightboxOpen = false)}
+			onclose={() => (lightboxOpen = false)}
 		/>
 	{/if}
 {/if}

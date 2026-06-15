@@ -1,24 +1,22 @@
 <script lang="ts">
 	import SearchFilter from '$lib/components/search/SearchFilter.svelte';
-	import { searchModulesState, type SearchModuleFilters } from '$lib/components/search/search-modules-store';
+	import { searchModulesState } from '$lib/components/search/search-modules-store';
 
-	export let showFiltersButton = true;
-	export let buttonClass = '';
-	export let chipsWrapClass = '';
+	let {
+		showFiltersButton = true,
+		buttonClass = '',
+		chipsWrapClass = ''
+	}: {
+		showFiltersButton?: boolean;
+		buttonClass?: string;
+		chipsWrapClass?: string;
+	} = $props();
 
-	let filters: SearchModuleFilters = {
-		albumId: null,
-		tags: [],
-		people: [],
-		locationIds: [],
-		dateFrom: '',
-		dateTo: '',
-		sortOrder: 'desc'
-	};
+	const filters = $derived($searchModulesState.filters);
 
-	searchModulesState.subscribe((state) => {
-		filters = state.filters;
-	});
+	function handleChange(detail: typeof $searchModulesState.filters) {
+		searchModulesState.update((state) => ({ ...state, filters: detail }));
+	}
 </script>
 
 <div class="os-search-filter-module w-full">
@@ -27,6 +25,6 @@
 		{showFiltersButton}
 		{buttonClass}
 		{chipsWrapClass}
-		on:change={(e) => searchModulesState.update((state) => ({ ...state, filters: e.detail }))}
+		onchange={handleChange}
 	/>
 </div>

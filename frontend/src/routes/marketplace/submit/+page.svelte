@@ -5,7 +5,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { logger } from '$lib/utils/logger';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	const CATEGORIES = [
 		{ value: 'integration', label: 'Integration' },
@@ -29,7 +29,7 @@
 	};
 	let submitting = false;
 	let error = '';
-	let success = false;
+	let success = $state(false);
 
 	async function submitListing() {
 		if (!form.name.trim() || !form.description.trim() || !form.developerName.trim() || !form.developerEmail.trim()) {
@@ -90,7 +90,7 @@
 			<p class="text-sm mt-1">It will appear in the marketplace after admin approval. Redirecting...</p>
 		</div>
 	{:else}
-		<form on:submit|preventDefault={submitListing} class="mt-6 space-y-4">
+		<form onsubmit={(e) => { e.preventDefault(); submitListing(e); }} class="mt-6 space-y-4">
 			{#if error}
 				<div class="rounded-md bg-red-50 p-4 text-red-700 text-sm">{error}</div>
 			{/if}

@@ -15,17 +15,24 @@
 
 	Chart.register(BarController, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-	export let data: Array<{ label: string; value: number }>;
-	export let label: string = 'Value';
-	export let color: string = '#3b82f6';
-	export let height: number = 300;
+	let {
+		data,
+		label = 'Value',
+		color = '#3b82f6',
+		height = 300
+	}: {
+		data: Array<{ label: string; value: number }>;
+		label?: string;
+		color?: string;
+		height?: number;
+	} = $props();
 
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | null = null;
 
-	$: if (canvas && data) {
+$effect(() => { if (canvas && data) {
 		updateChart();
-	}
+	} });
 
 	function updateChart() {
 		if (!canvas) return;

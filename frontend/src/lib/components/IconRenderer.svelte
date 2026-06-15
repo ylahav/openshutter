@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { AVAILABLE_ICON_NAMES } from '$lib/icons';
 
-	export let icon: string | undefined;
+	let {
+		icon = undefined
+	}: {
+		icon?: string | undefined;
+	} = $props();
 
 	// Check if string is likely an emoji (contains emoji characters)
 	function isEmoji(str: string): boolean {
@@ -77,10 +81,10 @@
 		Fast: '<svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>',
 	};
 
-	$: iconContent = icon ? getIconContent(icon) : null;
-	$: isIconEmoji = icon ? isEmoji(icon) : false;
-	$: iconSVGString = icon && iconSVGs[icon] ? iconSVGs[icon] : null;
-	$: isIconSVG = !!iconSVGString;
+const iconContent = $derived(icon ? getIconContent(icon) : null);
+	const isIconEmoji = $derived(icon ? isEmoji(icon) : false);
+const iconSVGString = $derived(icon && iconSVGs[icon] ? iconSVGs[icon] : null);
+	const isIconSVG = $derived(!!iconSVGString);
 	
 	function getIconContent(iconStr: string): string | null {
 		if (!iconStr) return null;

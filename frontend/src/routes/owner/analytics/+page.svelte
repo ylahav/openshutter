@@ -8,7 +8,7 @@
 	import LineChart from '$lib/components/analytics/LineChart.svelte';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	let dateFrom = '';
 	let dateTo = '';
@@ -139,7 +139,7 @@
 			<button
 				type="button"
 				class="px-4 py-2 bg-gray-200 rounded-md text-gray-800"
-				on:click={loadStats}
+				onclick={loadStats}
 			>
 				{$t('owner.tryAgain')}
 			</button>
@@ -181,7 +181,7 @@
 					<button
 						type="button"
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
-						on:click={applyRange}
+						onclick={applyRange}
 					>
 						{$t('owner.analyticsApplyRange')}
 					</button>

@@ -17,15 +17,14 @@
 		description?: string;
 	}
 
-	let templates: TemplateSummary[] = [];
-	let activeTemplate = '';
-	let selected = '';
-	let raw = '';
-	let originalRaw = '';
-	let loading = true;
-	let saving = false;
-	$: hasUnsavedChanges = raw !== originalRaw;
-
+	let templates: TemplateSummary[] = $state([]);
+	let activeTemplate = $state('');
+	let selected = $state('');
+	let raw = $state('');
+	let originalRaw = $state('');
+	let loading = $state(true);
+	let saving = $state(false);
+	const hasUnsavedChanges = $derived(raw !== originalRaw);
 	onMount(() => {
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 			if (!hasUnsavedChanges) return;
@@ -88,11 +87,12 @@
 		}
 	}
 
-	$: currentTemplate = templates.find((t) => t.templateName === selected);
-
-	$: if (selected) {
-		loadTemplateConfig();
-	}
+	const currentTemplate = $derived(templates.find((t) => t.templateName === selected));
+	$effect(() => {
+		if (selected) {
+			void loadTemplateConfig();
+		}
+	});
 
 	async function save() {
 		try {
@@ -162,7 +162,7 @@
 			<div class="flex items-center justify-between">
 				<h1 class="text-2xl font-semibold text-(--color-surface-950-50)">Template Customization</h1>
 				<button
-					on:click={() => goto('/admin/templates')}
+					onclick={() => goto('/admin/templates')}
 					class="{adminBtnSecondary} text-sm shrink-0"
 				>
 					Back to Templates
@@ -214,14 +214,14 @@
 					></textarea>
 					<div class="flex gap-2">
 						<button
-							on:click={save}
+							onclick={save}
 							disabled={saving}
 							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 						>
 							{saving ? 'Saving...' : 'Save'}
 						</button>
 						<button
-							on:click={cancel}
+							onclick={cancel}
 							disabled={saving || raw === originalRaw}
 							class="{adminBtnSecondary} disabled:opacity-50"
 						>

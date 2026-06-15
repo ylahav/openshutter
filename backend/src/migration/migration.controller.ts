@@ -229,13 +229,27 @@ export class MigrationController {
 
   @Post('storage-restore/scan-albums')
   async storageRestoreScanAlbums(
-    @Body() body: { providerId: StorageProviderId; rootPrefix?: string },
+    @Body()
+    body: {
+      providerId: StorageProviderId;
+      rootPrefix?: string;
+      useCache?: boolean;
+      forceRefresh?: boolean;
+    },
   ) {
-    const { providerId, rootPrefix } = body ?? {};
+    const { providerId, rootPrefix, useCache, forceRefresh } = body ?? {};
     if (!providerId || typeof providerId !== 'string') {
       throw new BadRequestException('providerId is required');
     }
-    return this.storageRestoreService.scanAlbums(providerId, rootPrefix);
+    return this.storageRestoreService.scanAlbumsStart(providerId, rootPrefix, {
+      useCache,
+      forceRefresh,
+    });
+  }
+
+  @Get('storage-restore/scan-albums/status/:jobId')
+  async storageRestoreScanAlbumsStatus(@Param('jobId') jobId: string) {
+    return this.storageRestoreService.getAlbumScanJobStatus(jobId);
   }
 
   @Post('storage-restore/execute-albums')

@@ -60,7 +60,7 @@
 				id="cell-place-h"
 				class="select w-full text-sm"
 				value={h}
-				on:change={(e) =>
+				onchange={(e) =>
 					setAxis('horizontal', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
 			>
 				{#each axisOptions as opt}
@@ -76,7 +76,7 @@
 				id="cell-place-v"
 				class="select w-full text-sm"
 				value={v}
-				on:change={(e) =>
+				onchange={(e) =>
 					setAxis('vertical', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
 			>
 				{#each axisOptions as opt}

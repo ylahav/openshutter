@@ -31,27 +31,27 @@
 		theme: 'Theme',
 	};
 
-	let listings: Listing[] = [];
-	let loading = true;
-	let error = '';
+	let listings: Listing[] = $state([]);
+	let loading = $state(true);
+	let error = $state('');
 	let filterApproved: 'all' | 'true' | 'false' = 'all';
-	let togglingId: string | null = null;
-	let deletingId: string | null = null;
-	let editingTagsId: string | null = null;
-	let tagEditValue = '';
-	let savingTagsId: string | null = null;
+	let togglingId: string | null = $state(null);
+	let deletingId: string | null = $state(null);
+	let editingTagsId: string | null = $state(null);
+	let tagEditValue = $state('');
+	let savingTagsId: string | null = $state(null);
 
 	let deleteListingDialog: {
 		isOpen: boolean;
 		listingId: string | null;
 		listingName: string;
 		isDeleting: boolean;
-	} = {
+	} = $state({
 		isOpen: false,
 		listingId: null,
 		listingName: '',
 		isDeleting: false,
-	};
+	});
 
 	onMount(() => fetchListings());
 
@@ -161,7 +161,7 @@
 			listingId: null,
 			listingName: '',
 			isDeleting: false,
-		};
+	};
 	}
 
 	async function confirmDeleteListing() {
@@ -205,7 +205,7 @@
 		<div class="flex items-center gap-2">
 			<select
 				bind:value={filterApproved}
-				on:change={fetchListings}
+				onchange={fetchListings}
 				class="rounded-md border border-surface-300-700 px-3 py-2 text-sm"
 			>
 				<option value="all">All</option>
@@ -262,7 +262,7 @@
 											<button
 												type="button"
 												disabled={savingTagsId === listing._id}
-												on:click={() => saveTags(listing)}
+												onclick={() => saveTags(listing)}
 												class="text-xs text-primary-600 hover:underline disabled:opacity-50"
 											>
 												Save
@@ -270,7 +270,7 @@
 											<button
 												type="button"
 												disabled={savingTagsId === listing._id}
-												on:click={cancelEditTags}
+												onclick={cancelEditTags}
 												class="text-xs text-(--color-surface-600-400) hover:underline disabled:opacity-50"
 											>
 												Cancel
@@ -281,7 +281,7 @@
 									<p class="text-xs text-(--color-surface-600-400) line-clamp-2">{listing.tags?.length ? listing.tags.join(', ') : '—'}</p>
 									<button
 										type="button"
-										on:click={() => startEditTags(listing)}
+										onclick={() => startEditTags(listing)}
 										class="mt-1 text-xs text-primary-600 hover:underline"
 									>
 										Edit
@@ -308,7 +308,7 @@
 								<button
 									type="button"
 									disabled={togglingId === listing._id}
-									on:click={() => toggleFeatured(listing)}
+									onclick={() => toggleFeatured(listing)}
 									class="text-sm {listing.featured ? 'text-primary-600' : 'text-(--color-surface-600-400)'} hover:underline disabled:opacity-50"
 									title={listing.featured ? 'Remove from featured' : 'Set as featured'}
 								>
@@ -319,7 +319,7 @@
 								<button
 									type="button"
 									disabled={togglingId === listing._id}
-									on:click={() => toggleApproved(listing)}
+									onclick={() => toggleApproved(listing)}
 									class="text-sm text-primary-600 hover:underline disabled:opacity-50"
 								>
 									{listing.isApproved ? 'Unapprove' : 'Approve'}
@@ -327,7 +327,7 @@
 								<button
 									type="button"
 									disabled={deletingId === listing._id}
-									on:click={() => openDeleteListingDialog(listing)}
+									onclick={() => openDeleteListingDialog(listing)}
 									class="text-sm text-red-600 hover:underline disabled:opacity-50"
 								>
 									Delete

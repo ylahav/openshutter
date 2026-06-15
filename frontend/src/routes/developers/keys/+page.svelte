@@ -40,21 +40,21 @@
 		{ value: 'enterprise', label: 'Enterprise (10000/min)' },
 	];
 
-	let keys: ApiKeyInfo[] = [];
-	let loading = true;
-	let error = '';
-	let creating = false;
-	let createSuccess: { key: string; name: string } | null = null;
-	let showCreateForm = false;
-	let revokingId: string | null = null;
+	let keys: ApiKeyInfo[]  = $state([]);
+	let loading = $state(true);
+	let error = $state('');
+	let creating = $state(false);
+	let createSuccess: { key: string; name: string } | null  = $state(null);
+	let showCreateForm = $state(false);
+	let revokingId: string | null  = $state(null);
 
-	let form = {
+	let form = $state({
 		name: '',
 		description: '',
 		scopes: [] as string[],
 		rateLimitTier: 'free' as string,
-		expiresInDays: '' as string | number,
-	};
+		expiresInDays: '' as string | number
+	});
 
 	onMount(() => {
 		fetchKeys();
@@ -180,7 +180,7 @@
 		</div>
 		<button
 			type="button"
-			on:click={() => { showCreateForm = !showCreateForm; error = ''; }}
+			onclick={() => { showCreateForm = !showCreateForm; error = ''; }}
 			class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
 		>
 			{showCreateForm ? 'Cancel' : 'Create API key'}
@@ -197,7 +197,7 @@
 		<div class="bg-white rounded-lg border border-gray-200 p-6">
 			<h2 class="text-lg font-semibold text-gray-900 mb-4">New API key</h2>
 			<form
-				on:submit|preventDefault={createKey}
+				onsubmit={(e) => { e.preventDefault(); createKey(e); }}
 				class="space-y-4"
 			>
 				<div>
@@ -228,7 +228,7 @@
 								<input
 									type="checkbox"
 									checked={form.scopes.includes(opt.value)}
-									on:change={() => toggleScope(opt.value)}
+									onchange={() => toggleScope(opt.value)}
 								/>
 								<span class="text-sm text-gray-700">{opt.label}</span>
 							</label>
@@ -279,7 +279,7 @@
 				</code>
 				<button
 					type="button"
-					on:click={copyKeyToClipboard}
+					onclick={copyKeyToClipboard}
 					class="shrink-0 px-3 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm"
 				>
 					Copy
@@ -287,7 +287,7 @@
 			</div>
 			<button
 				type="button"
-				on:click={closeCreateSuccess}
+				onclick={closeCreateSuccess}
 				class="mt-4 text-sm text-amber-800 underline hover:no-underline"
 			>
 				Done
@@ -341,7 +341,7 @@
 										<button
 											type="button"
 											disabled={revokingId === key._id}
-											on:click={() => revokeKey(key._id)}
+											onclick={() => revokeKey(key._id)}
 											class="text-red-600 hover:text-red-800 text-sm disabled:opacity-50"
 										>
 											{revokingId === key._id ? 'Revoking...' : 'Revoke'}

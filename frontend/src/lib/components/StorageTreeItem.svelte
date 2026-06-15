@@ -1,6 +1,11 @@
 <script lang="ts">
-	export let node: any;
-	export let depth = 0;
+	let {
+		node: any,
+		depth = $bindable(0)
+	}: {
+		node: any;
+		depth?: unknown;
+	} = $props();
 
 	function formatSize(bytes: number): string {
 		if (!bytes || bytes === 0) return '0 B';

@@ -3,12 +3,12 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { productName } from '$stores/siteConfig';
 
-	export let data: {
+	let { data }: { data: {
 		articles: Array<Record<string, unknown>>;
 		pagination: { page: number; limit: number; total: number; pages: number };
 		category: string;
 		loadError: string | null;
-	};
+	} } = $props();
 
 	function titleOf(a: Record<string, unknown>): string {
 		return MultiLangUtils.getTextValue(a.title as any, $currentLanguage) || '';
@@ -26,9 +26,9 @@
 		return MultiLangUtils.getTextValue(img.alt as any, $currentLanguage) || titleOf(a);
 	}
 
-	$: listTitle = data.category
+const listTitle = $derived(data.category
 		? `${$productName} — blog (${data.category})`
-		: `${$productName} — blog`;
+		: `${$productName} — blog`);
 </script>
 
 <svelte:head>

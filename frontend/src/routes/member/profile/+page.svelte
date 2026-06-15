@@ -10,7 +10,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface UserProfile {
 		_id: string;
@@ -146,7 +146,7 @@
 					</div>
 				{/if}
 
-				<form on:submit={handleSubmit} class="space-y-6">
+				<form onsubmit={handleSubmit} class="space-y-6">
 					<div>
 						<h3 class="text-lg font-medium text-gray-900 mb-4">Name</h3>
 						<MultiLangInput bind:value={formData.name} />

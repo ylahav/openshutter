@@ -1,39 +1,49 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
 	import { logger } from '$lib/utils/logger';
 	import { hasActiveSearchFilters, type SearchModuleFilters } from './search-modules-store';
 
-	export let filters: SearchModuleFilters;
-	export let showFiltersButton = true;
-	export let buttonClass = '';
-	export let chipsWrapClass = '';
+	let {
+		filters,
+		showFiltersButton = true,
+		buttonClass = '',
+		chipsWrapClass = '',
+		onchange = undefined
+	}: {
+		filters: SearchModuleFilters;
+		showFiltersButton?: boolean;
+		buttonClass?: string;
+		chipsWrapClass?: string;
+		onchange?: (detail: SearchModuleFilters) => void;
+	} = $props();
 
-	const dispatch = createEventDispatcher<{
-		change: SearchModuleFilters;
-	}>();
-
-	let showFilterPanel = false;
-	let loadingFilterOptions = false;
-	let filterOptions: { albums: any[]; tags: any[]; people: any[]; locations: any[] } = {
+	let showFilterPanel = $state(false);
+	let loadingFilterOptions = $state(false);
+	let filterOptions = $state<{ albums: any[]; tags: any[]; people: any[]; locations: any[] }>({
 		albums: [],
 		tags: [],
 		people: [],
 		locations: []
-	};
-	let draftFilters: SearchModuleFilters = { ...filters };
+	});
+	let draftFilters = $state<SearchModuleFilters>({ ...filters });
 
-	$: activeFilters = filters || {
-		albumId: null,
-		tags: [],
-		people: [],
-		locationIds: [],
-		dateFrom: '',
-		dateTo: '',
-		sortOrder: 'desc'
-	};
+	const activeFilters = $derived(
+		filters || {
+			albumId: null,
+			tags: [],
+			people: [],
+			locationIds: [],
+			dateFrom: '',
+			dateTo: '',
+			sortOrder: 'desc'
+		}
+	);
+
+	function emitChange(next: SearchModuleFilters) {
+		onchange?.(next);
+	}
 
 	function toIdString(id: any): string {
 		if (id == null) return '';
@@ -123,14 +133,16 @@
 		}
 	}
 
-	$: if (
-		hasActiveSearchFilters(activeFilters) &&
-		filterOptions.tags.length === 0 &&
-		filterOptions.people.length === 0 &&
-		filterOptions.locations.length === 0
-	) {
-		loadFilterOptions();
-	}
+	$effect(() => {
+		if (
+			hasActiveSearchFilters(activeFilters) &&
+			filterOptions.tags.length === 0 &&
+			filterOptions.people.length === 0 &&
+			filterOptions.locations.length === 0
+		) {
+			void loadFilterOptions();
+		}
+	});
 
 	async function openFilterPanel() {
 		showFilterPanel = true;
@@ -140,12 +152,12 @@
 	}
 
 	function applyFilterPanel() {
-		dispatch('change', { ...draftFilters });
+		emitChange({ ...draftFilters });
 		showFilterPanel = false;
 	}
 
 	function removeFilterItem(filterType: 'tags' | 'people' | 'locationIds', id: string) {
-		dispatch('change', {
+		emitChange({
 			...activeFilters,
 			[filterType]: activeFilters[filterType].filter((itemId) => toIdString(itemId) !== toIdString(id))
 		} as SearchModuleFilters);
@@ -155,7 +167,7 @@
 {#if showFiltersButton}
 	<button
 		type="button"
-		on:click={openFilterPanel}
+		onclick={openFilterPanel}
 		class={`os-search-form__filters-btn ${buttonClass}`.trim()}
 	>
 		{$t('search.filters') || 'Filters'}
@@ -168,28 +180,28 @@
 			{@const albumName = filterOptions.albums.find((a) => toIdString(a._id) === toIdString(activeFilters.albumId))?.name ?? activeFilters.albumId}
 			<span class="os-search-filters__chip">
 				{$t('search.album')}: {albumName}
-				<button type="button" on:click={() => dispatch('change', { ...activeFilters, albumId: null })} class="os-search-filters__chip-remove">×</button>
+				<button type="button" onclick={() => emitChange({ ...activeFilters, albumId: null })} class="os-search-filters__chip-remove">×</button>
 			</span>
 		{/if}
 		{#each activeFilters.tags as tagId}
 			{@const tagName = getItemName(filterOptions.tags.find((t) => toIdString(t._id) === toIdString(tagId))) || tagId}
 			<span class="os-search-filters__chip">
 				{$t('search.tags')}: {tagName}
-				<button type="button" on:click={() => removeFilterItem('tags', tagId)} class="os-search-filters__chip-remove">×</button>
+				<button type="button" onclick={() => removeFilterItem('tags', tagId)} class="os-search-filters__chip-remove">×</button>
 			</span>
 		{/each}
 		{#each activeFilters.people as personId}
 			{@const personName = getItemName(filterOptions.people.find((p) => toIdString(p._id) === toIdString(personId))) || personId}
 			<span class="os-search-filters__chip">
 				<span>{$t('search.people')}: {personName}</span>
-				<button type="button" on:click={() => removeFilterItem('people', personId)} class="os-search-filters__chip-remove">×</button>
+				<button type="button" onclick={() => removeFilterItem('people', personId)} class="os-search-filters__chip-remove">×</button>
 			</span>
 		{/each}
 		{#each activeFilters.locationIds as locationId}
 			{@const locName = getItemName(filterOptions.locations.find((l) => toIdString(l._id) === toIdString(locationId))) || locationId}
 			<span class="os-search-filters__chip">
 				{$t('search.locations')}: {locName}
-				<button type="button" on:click={() => removeFilterItem('locationIds', locationId)} class="os-search-filters__chip-remove">×</button>
+				<button type="button" onclick={() => removeFilterItem('locationIds', locationId)} class="os-search-filters__chip-remove">×</button>
 			</span>
 		{/each}
 	</div>
@@ -198,7 +210,7 @@
 {#if showFilterPanel}
 	<div class="os-search-filter-panel fixed inset-0 z-40 overflow-y-auto" aria-labelledby="filter-panel-title" role="dialog" aria-modal="true">
 		<div class="os-search-filter-panel__container">
-			<div class="os-search-filter-panel__backdrop" on:click={() => (showFilterPanel = false)} on:keydown={(e) => e.key === 'Escape' && (showFilterPanel = false)} role="button" tabindex="-1" aria-label="Close"></div>
+			<div class="os-search-filter-panel__backdrop" onclick={() => (showFilterPanel = false)} onkeydown={(e) => e.key === 'Escape' && (showFilterPanel = false)} role="button" tabindex="-1" aria-label="Close"></div>
 			<div class="os-search-filter-panel__dialog">
 				<h2 id="filter-panel-title" class="os-search-filter-panel__title">{$t('search.filters') || 'Filters'}</h2>
 				<div class="os-search-filter-panel__body">
@@ -224,7 +236,7 @@
 									<input
 										type="checkbox"
 										checked={checked}
-										on:change={(e) => {
+										onchange={(e) => {
 											if (e.currentTarget.checked) draftFilters = { ...draftFilters, tags: [...draftFilters.tags, tagId] };
 											else draftFilters = { ...draftFilters, tags: draftFilters.tags.filter((id) => toIdString(id) !== tagId) };
 										}}
@@ -247,7 +259,7 @@
 									<input
 										type="checkbox"
 										checked={checked}
-										on:change={(e) => {
+										onchange={(e) => {
 											if (e.currentTarget.checked) draftFilters = { ...draftFilters, people: [...draftFilters.people, personId] };
 											else draftFilters = { ...draftFilters, people: draftFilters.people.filter((id) => toIdString(id) !== personId) };
 										}}
@@ -270,7 +282,7 @@
 									<input
 										type="checkbox"
 										checked={checked}
-										on:change={(e) => {
+										onchange={(e) => {
 											if (e.currentTarget.checked) draftFilters = { ...draftFilters, locationIds: [...draftFilters.locationIds, locId] };
 											else draftFilters = { ...draftFilters, locationIds: draftFilters.locationIds.filter((id) => toIdString(id) !== locId) };
 										}}
@@ -299,10 +311,10 @@
 					</div>
 				</div>
 				<div class="os-search-filter-panel__actions">
-					<button type="button" on:click={() => (showFilterPanel = false)} class="os-search-filter-panel__cancel">
+					<button type="button" onclick={() => (showFilterPanel = false)} class="os-search-filter-panel__cancel">
 						{$t('search.cancel') || 'Cancel'}
 					</button>
-					<button type="button" on:click={applyFilterPanel} class="os-search-filter-panel__apply">
+					<button type="button" onclick={applyFilterPanel} class="os-search-filter-panel__apply">
 						{$t('search.apply') || 'Apply'}
 					</button>
 				</div>
@@ -320,7 +332,9 @@
 		background: #fff;
 		border: 1px solid #d1d5db;
 		border-radius: 0.375rem;
-		transition: background-color 0.2s ease;
+		transition-property: background-color;
+		transition-duration: 0.2s;
+		transition-timing-function: ease;
 	}
 
 	.os-search-form__filters-btn:hover {

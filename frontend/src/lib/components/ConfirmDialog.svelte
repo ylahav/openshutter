@@ -1,21 +1,33 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { createEventDispatcher } from 'svelte';
 
-	export let isOpen = false;
-	export let title = '';
-	export let message = '';
-	export let confirmText = 'Confirm';
-	export let cancelText = 'Cancel';
-	export let variant: 'default' | 'danger' = 'default';
-	export let showDeleteFromStorage = false;
-	export let disabled = false;
+	let {
+		isOpen = $bindable(false),
+		title = $bindable(''),
+		message = $bindable(''),
+		confirmText = $bindable('Confirm'),
+		cancelText = $bindable('Cancel'),
+		variant = 'default',
+		showDeleteFromStorage = $bindable(false),
+		disabled = $bindable(false),
+		onconfirm = undefined,
+		oncancel = undefined
+	}: {
+		isOpen?: boolean;
+		title?: string;
+		message?: string;
+		confirmText?: string;
+		cancelText?: string;
+		variant?: 'default' | 'danger';
+		showDeleteFromStorage?: boolean;
+		disabled?: boolean;
+		onconfirm?: (detail: { deleteFromStorage: boolean }) => void;
+		oncancel?: () => void;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
-
-	let mounted = false;
-	let deleteFromStorage = false;
-	let confirmButton: HTMLButtonElement;
+	let mounted = $state(false);
+	let deleteFromStorage = $state(false);
+	let confirmButton = $state<HTMLButtonElement | undefined>(undefined);
 	let previousOverflow = '';
 	let escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
@@ -25,14 +37,12 @@
 
 	function handleConfirm() {
 		if (disabled) return;
-		dispatch('confirm', { deleteFromStorage });
-		// Don't set isOpen here - let the parent handle it via the event
+		onconfirm?.({ deleteFromStorage });
 	}
 
 	function handleCancel() {
 		if (disabled) return;
-		dispatch('cancel');
-		// Don't set isOpen here - let the parent handle it via the event
+		oncancel?.();
 	}
 
 	function handleEscape(e: KeyboardEvent) {
@@ -47,27 +57,26 @@
 		}
 	}
 
-	$: if (isOpen && mounted) {
-		// Lock body scroll
-		previousOverflow = document.body.style.overflow;
-		document.body.style.overflow = 'hidden';
-		escapeHandler = handleEscape;
-		document.addEventListener('keydown', escapeHandler);
-		// Focus confirm button
-		setTimeout(() => {
-			confirmButton?.focus();
-		}, 0);
-	} else if (!isOpen && mounted) {
-		// Restore body scroll when dialog closes
-		if (previousOverflow !== '') {
-			document.body.style.overflow = previousOverflow;
-			previousOverflow = '';
+	$effect(() => {
+		if (isOpen && mounted) {
+			previousOverflow = document.body.style.overflow;
+			document.body.style.overflow = 'hidden';
+			escapeHandler = handleEscape;
+			document.addEventListener('keydown', escapeHandler);
+			setTimeout(() => {
+				confirmButton?.focus();
+			}, 0);
+		} else if (!isOpen && mounted) {
+			if (previousOverflow !== '') {
+				document.body.style.overflow = previousOverflow;
+				previousOverflow = '';
+			}
+			if (escapeHandler) {
+				document.removeEventListener('keydown', escapeHandler);
+				escapeHandler = null;
+			}
 		}
-		if (escapeHandler) {
-			document.removeEventListener('keydown', escapeHandler);
-			escapeHandler = null;
-		}
-	}
+	});
 
 	onDestroy(() => {
 		if (previousOverflow !== '') {
@@ -78,17 +87,18 @@
 		}
 	});
 
-	const confirmBtnClasses =
+	const confirmBtnClasses = $derived(
 		variant === 'danger'
 			? 'bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white'
-			: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white';
+			: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white'
+	);
 </script>
 
 {#if mounted && isOpen}
 	<div
 		class="fixed inset-0 z-[9999] overflow-y-auto"
-		on:click={handleBackdropClick}
-		on:keydown={(e) => {
+		onclick={handleBackdropClick}
+		onkeydown={(e) => {
 			if (e.key === 'Escape') {
 				handleCancel();
 			}
@@ -100,7 +110,7 @@
 		tabindex="-1"
 	>
 		<div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm" />
-		<div class="flex min-h-full items-center justify-center p-4" on:click|stopPropagation role="none">
+		<div class="flex min-h-full items-center justify-center p-4" onclick={(e) => { e.stopPropagation(); }} role="none">
 			<div
 				class="w-full max-w-md rounded-lg bg-white shadow-2xl animate-scale-in relative z-[10000] border border-gray-200"
 				role="document"
@@ -139,7 +149,7 @@
 						<button
 							type="button"
 							class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-							on:click={handleCancel}
+							onclick={handleCancel}
 							disabled={disabled}
 						>
 							{cancelText}
@@ -147,7 +157,7 @@
 						<button
 							type="button"
 							class="px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed {confirmBtnClasses}"
-							on:click={handleConfirm}
+							onclick={handleConfirm}
 							bind:this={confirmButton}
 							disabled={disabled}
 						>

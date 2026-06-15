@@ -9,44 +9,53 @@
 	import { normalizeGridTemplateColumns } from '../normalize-grid-template-columns';
 
 	/** Legacy reference key into `siteConfig.template.layoutPresets`. */
-	export let presetKey = '';
-	/** Shared instance alias (preferred). Falls back to `presetKey` for legacy data. */
-	export let instanceRef = '';
-	export let className = '';
-	/** Optional CSS `grid-template-columns` for each row (non-spanning layouts), e.g. `auto auto 1fr auto auto`. Skips equal-width flex on cells. */
-	export let gridTemplateColumns = '';
-	export let data: Record<string, unknown> = {};
-	// svelte-ignore export_let_unused - passed by PageBuilderGrid; inner shell grid always uses compact width
-	export let compact = false;
+	let {
+		presetKey = '',
+		/** Shared instance alias (preferred). Falls back to `presetKey` for legacy data. */
+		instanceRef = '',
+		className = '',
+		/** Optional CSS `grid-template-columns` for each row (non-spanning layouts), e.g. `auto auto 1fr auto auto`. Skips equal-width flex on cells. */
+		gridTemplateColumns = '',
+		data = {},
+		compact = false
+	}: {
+		presetKey?: string;
+		instanceRef?: string;
+		className?: string;
+		gridTemplateColumns?: string;
+		data?: Record<string, unknown>;
+		compact?: boolean;
+	} = $props();
 
 	const parentDepth = getContext<number>('pbNestDepth') ?? 0;
 	setContext('pbNestDepth', parentDepth + 1);
 
 	const layoutPresetsPreviewStore = getContext<Writable<Record<string, unknown> | null> | undefined>('pbLayoutPresetsPreview');
 
-	$: resolvedRef = String(instanceRef || presetKey || '').trim();
-	$: templateBag = ($siteConfigData?.template ?? {}) as Record<string, unknown>;
-	$: presetRegistry = ({
-		...((templateBag.layoutPresets as Record<string, unknown>) ?? {}),
-		...((templateBag.layoutShellInstances as Record<string, unknown>) ?? {})
-	}) as
-		| Record<
-				string,
-				{
-					gridRows?: number;
-					gridColumns?: number;
-					modules?: PageModuleData[];
-					rowTemplateColumnsByRow?: Record<string, string>;
-					cellPlacementByCell?: Record<string, ModulePlacement>;
-				}
-		  >
-		| null;
-	$: presetFromSite =
-		resolvedRef && presetRegistry
-			? presetRegistry[resolvedRef]
-			: null;
-	$: previewMap = layoutPresetsPreviewStore ? $layoutPresetsPreviewStore : null;
-	$: presetFromPreview =
+	const resolvedRef = $derived(String(instanceRef || presetKey || '').trim());
+	const templateBag = $derived(($siteConfigData?.template ?? {}) as Record<string, unknown>);
+	const presetRegistry = $derived(
+		({
+			...((templateBag.layoutPresets as Record<string, unknown>) ?? {}),
+			...((templateBag.layoutShellInstances as Record<string, unknown>) ?? {})
+		}) as
+			| Record<
+					string,
+					{
+						gridRows?: number;
+						gridColumns?: number;
+						modules?: PageModuleData[];
+						rowTemplateColumnsByRow?: Record<string, string>;
+						cellPlacementByCell?: Record<string, ModulePlacement>;
+					}
+			  >
+			| null
+	);
+	const presetFromSite = $derived(
+		resolvedRef && presetRegistry ? presetRegistry[resolvedRef] : null
+	);
+	const previewMap = $derived(layoutPresetsPreviewStore ? $layoutPresetsPreviewStore : null);
+	const presetFromPreview = $derived(
 		resolvedRef && previewMap && previewMap[resolvedRef]
 			? (previewMap[resolvedRef] as {
 					gridRows?: number;
@@ -55,22 +64,23 @@
 					rowTemplateColumnsByRow?: Record<string, string>;
 					cellPlacementByCell?: Record<string, ModulePlacement>;
 			  })
-			: null;
-	$: preset = presetFromPreview ?? presetFromSite;
-	$: shellClass = ['layout-shell', 'pb-layoutShell', String(className || '').trim()].filter(Boolean).join(' ');
+			: null
+	);
+	const preset = $derived(presetFromPreview ?? presetFromSite);
+	const shellClass = $derived(['layout-shell', 'pb-layoutShell', String(className || '').trim()].filter(Boolean).join(' '));
 
-	$: layout = {
+	const layout = $derived({
 		gridRows: Math.max(1, preset?.gridRows ?? 1),
 		gridColumns: Math.max(1, preset?.gridColumns ?? 1)
-	};
+	});
 
-	$: childModules = (preset?.modules ?? []) as PageModuleData[];
-	$: rowTemplateColumnsByRow = normalizeRowTemplates(preset?.rowTemplateColumnsByRow);
-	$: cellPlacementByCell = normalizeCellPlacements(preset?.cellPlacementByCell);
+	const childModules = $derived((preset?.modules ?? []) as PageModuleData[]);
+	const rowTemplateColumnsByRow = $derived(normalizeRowTemplates(preset?.rowTemplateColumnsByRow));
+	const cellPlacementByCell = $derived(normalizeCellPlacements(preset?.cellPlacementByCell));
 
 	const normalizeType = (t: unknown): string => (t === 'albumGallery' ? 'albumView' : String(t ?? ''));
-	$: normalizedChildren = childModules.map((m) => ({ ...m, type: normalizeType((m as any).type) }));
-	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
+	const normalizedChildren = $derived(childModules.map((m) => ({ ...m, type: normalizeType((m as any).type) })));
+	const isAdminRoute = $derived($page.url.pathname.startsWith('/admin'));
 
 	function normalizeRowTemplates(input: unknown): Record<string, string> | undefined {
 		if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;

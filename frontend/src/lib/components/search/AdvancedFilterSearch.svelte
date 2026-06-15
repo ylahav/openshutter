@@ -9,9 +9,14 @@
 	import SearchResults from './SearchResults.svelte';
 	import { logger } from '$lib/utils/logger';
 
-	export let initialQuery = '';
-	/** When `noir`, shell uses template tokens instead of default gray surfaces. */
-	export let variant: 'default' | 'noir' = 'default';
+	let {
+		initialQuery = '',
+		/** When `noir`, shell uses template tokens instead of default gray surfaces. */
+		variant = 'default'
+	}: {
+		initialQuery?: string;
+		variant?: 'default' | 'noir';
+	} = $props();
 
 	interface AdvancedFilters {
 		albumId: string | null;
@@ -37,8 +42,8 @@
 		hasMore: boolean;
 	}
 
-	let query = initialQuery || $page.url.searchParams.get('q') || '';
-	let filters: AdvancedFilters = {
+	let query = $state(initialQuery || $page.url.searchParams.get('q') || '');
+	let filters = $state<AdvancedFilters>({
 		albumId: $page.url.searchParams.get('albumId') || null,
 		tags: $page.url.searchParams.get('tags')?.split(',').filter(Boolean) || [],
 		people: $page.url.searchParams.get('people')?.split(',').filter(Boolean) || [],
@@ -46,18 +51,18 @@
 		dateFrom: $page.url.searchParams.get('dateFrom') || '',
 		dateTo: $page.url.searchParams.get('dateTo') || '',
 		sortOrder: ($page.url.searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc'
-	};
+	});
 
-	let showFilterPanel = false;
-	let filterOptions: { albums: any[]; tags: any[]; people: any[]; locations: any[] } = {
+	let showFilterPanel = $state(false);
+	let filterOptions = $state<{ albums: any[]; tags: any[]; people: any[]; locations: any[] }>({
 		albums: [],
 		tags: [],
 		people: [],
 		locations: []
-	};
-	let draftFilters: AdvancedFilters = { ...filters };
+	});
+	let draftFilters = $state<AdvancedFilters>({ ...filters });
 
-	let results: SearchResult = {
+	let results = $state<SearchResult>({
 		photos: [],
 		albums: [],
 		people: [],
@@ -69,15 +74,14 @@
 		page: 1,
 		limit: 20,
 		hasMore: false
-	};
+	});
 
-	let loading = false;
-	let error: string | null = null;
-	let currentPage = 1;
+	let loading = $state(false);
+	let error = $state<string | null>(null);
+	let currentPage = $state(1);
 	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	// Update filters when URL changes
-	$: {
+	$effect(() => {
 		const urlParams = $page.url.searchParams;
 		filters = {
 			albumId: urlParams.get('albumId') || null,
@@ -88,17 +92,22 @@
 			dateTo: urlParams.get('dateTo') || '',
 			sortOrder: (urlParams.get('sortOrder') as 'asc' | 'desc') || 'desc'
 		};
-		query = urlParams.get('q') || query;
-	}
+		const urlQuery = urlParams.get('q');
+		if (urlQuery !== null) query = urlQuery;
+	});
 
-	// Auto-search when query or filters change (must depend on filters/query so Apply triggers search)
-	$: filters, query, (function runDebouncedSearch() {
+	$effect(() => {
+		const _filters = filters;
+		const _query = query;
 		if (searchTimeout) clearTimeout(searchTimeout);
 		searchTimeout = setTimeout(() => {
 			currentPage = 1;
-			performSearch(1, false);
+			void performSearch(1, false);
 		}, 300);
-	})();
+		return () => {
+			if (searchTimeout) clearTimeout(searchTimeout);
+		};
+	});
 
 	onMount(() => {
 		if (query || Object.values(filters).some((v) => (Array.isArray(v) ? v.length > 0 : v))) {
@@ -309,8 +318,7 @@
 		return String(id);
 	}
 
-	/** Build a short summary of the current search (query + active filters) for display in results header. */
-	$: searchSummary = (function () {
+	const searchSummary = $derived.by(() => {
 		const parts: string[] = [];
 		if (query?.trim()) parts.push(`"${query.trim()}"`);
 		if (filters.albumId) {
@@ -336,12 +344,12 @@
 			parts.push(`${$t('search.locations')}: ${names}`);
 		}
 		return parts.join(' · ');
-	})();
+	});
 </script>
 
 <div class="w-full" class:text-(--tp-fg)={variant === 'noir'}>
 	<!-- Search form module -->
-	<SearchForm {query} {loading} on:search={(e) => handleSearch(e.detail)} on:filters={openFilterPanel} />
+	<SearchForm {query} {loading} onsearch={handleSearch} onfilters={openFilterPanel} />
 
 	<!-- Active Filters Display -->
 	{#if hasActiveFilters()}
@@ -352,7 +360,7 @@
 					{$t('search.album')}: {albumName}
 					<button
 						type="button"
-						on:click={() => updateUrlFromFilters({ ...filters, albumId: null })}
+						onclick={() => updateUrlFromFilters({ ...filters, albumId: null })}
 						class="ml-2 hover:text-blue-900"
 					>
 						×
@@ -365,7 +373,7 @@
 					{$t('search.tags')}: {tagName}
 					<button
 						type="button"
-						on:click={() => updateUrlFromFilters({ ...filters, tags: filters.tags.filter((id) => toIdString(id) !== toIdString(tagId)) })}
+						onclick={() => updateUrlFromFilters({ ...filters, tags: filters.tags.filter((id) => toIdString(id) !== toIdString(tagId)) })}
 						class="ml-2 hover:text-blue-900"
 					>
 						×
@@ -378,7 +386,7 @@
 					<span class="text-blue-800">{$t('search.people')}: {personName}</span>
 					<button
 						type="button"
-						on:click={() => updateUrlFromFilters({ ...filters, people: filters.people.filter((id) => toIdString(id) !== toIdString(personId)) })}
+						onclick={() => updateUrlFromFilters({ ...filters, people: filters.people.filter((id) => toIdString(id) !== toIdString(personId)) })}
 						class="ml-2 hover:text-blue-900"
 					>
 						×
@@ -391,7 +399,7 @@
 					{$t('search.locations')}: {locName}
 					<button
 						type="button"
-						on:click={() => updateUrlFromFilters({ ...filters, locationIds: filters.locationIds.filter((id) => toIdString(id) !== toIdString(locationId)) })}
+						onclick={() => updateUrlFromFilters({ ...filters, locationIds: filters.locationIds.filter((id) => toIdString(id) !== toIdString(locationId)) })}
 						class="ml-2 hover:text-blue-900"
 					>
 						×
@@ -412,8 +420,8 @@
 				<div class="flex min-h-screen items-center justify-center p-4">
 					<div
 						class="fixed inset-0 bg-black/50 transition-opacity"
-						on:click={() => (showFilterPanel = false)}
-						on:keydown={(e) => e.key === 'Escape' && (showFilterPanel = false)}
+						onclick={() => (showFilterPanel = false)}
+						onkeydown={(e) => e.key === 'Escape' && (showFilterPanel = false)}
 						role="button"
 						tabindex="-1"
 						aria-label="Close"
@@ -444,7 +452,7 @@
 											<input
 												type="checkbox"
 												checked={checked}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (e.currentTarget.checked) draftFilters = { ...draftFilters, tags: [...draftFilters.tags, tagId] };
 													else draftFilters = { ...draftFilters, tags: draftFilters.tags.filter((id) => toIdString(id) !== tagId) };
 												}}
@@ -464,7 +472,7 @@
 											<input
 												type="checkbox"
 												checked={checked}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (e.currentTarget.checked) draftFilters = { ...draftFilters, people: [...draftFilters.people, personId] };
 													else draftFilters = { ...draftFilters, people: draftFilters.people.filter((id) => toIdString(id) !== personId) };
 												}}
@@ -484,7 +492,7 @@
 											<input
 												type="checkbox"
 												checked={checked}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (e.currentTarget.checked) draftFilters = { ...draftFilters, locationIds: [...draftFilters.locationIds, locId] };
 													else draftFilters = { ...draftFilters, locationIds: draftFilters.locationIds.filter((id) => toIdString(id) !== locId) };
 												}}
@@ -515,14 +523,14 @@
 						<div class="mt-6 flex justify-end gap-2">
 							<button
 								type="button"
-								on:click={() => (showFilterPanel = false)}
+								onclick={() => (showFilterPanel = false)}
 								class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
 							>
 								{$t('search.cancel') || 'Cancel'}
 							</button>
 							<button
 								type="button"
-								on:click={applyFilterPanel}
+								onclick={applyFilterPanel}
 								class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
 							>
 								{$t('search.apply') || 'Apply'}
@@ -534,5 +542,5 @@
 	{/if}
 
 	<!-- Search results module -->
-	<SearchResults {results} {loading} {error} {query} searchSummary={searchSummary} on:loadMore={handleLoadMore} />
+	<SearchResults {results} {loading} {error} {query} searchSummary={searchSummary} onloadMore={handleLoadMore} />
 </div>

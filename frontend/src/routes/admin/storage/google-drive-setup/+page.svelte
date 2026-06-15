@@ -10,9 +10,9 @@
 		adminRingPrimary
 	} from '$lib/admin/admin-cerberus';
 
-	let loading = true;
-	let setupError = '';
-	let success = false;
+	let loading = $state(true);
+	let setupError = $state('');
+	let success = $state(false);
 
 	onMount(async () => {
 		const code = $page.url.searchParams.get('code');
@@ -60,9 +60,7 @@
 			// Update storage config with new refresh token
 			const updateResponse = await fetch('/api/admin/storage/google-drive', {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					refreshToken: tokenData.refreshToken
 				})
@@ -78,8 +76,7 @@
 
 			// Notify parent window if opened in popup
 			if (typeof window !== 'undefined' && window.opener) {
-				window.opener.postMessage(
-					{
+				window.opener.postMessage({
 						type: 'GOOGLE_OAUTH_SUCCESS',
 						refreshToken: tokenData.refreshToken
 					},
@@ -163,7 +160,7 @@
 					{#if typeof window !== 'undefined' && window.opener}
 						<button
 							type="button"
-							on:click={() => {
+							onclick={() => {
 								if (typeof window !== 'undefined') {
 									window.close();
 								}

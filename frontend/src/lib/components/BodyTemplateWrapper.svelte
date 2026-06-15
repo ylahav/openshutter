@@ -3,6 +3,9 @@
 	import { loadPackPageBuilderPartials } from '$lib/template/load-pack-page-builder-partials';
 	import '$lib/styles/globals.css';
 	import '$templates/styles/main.scss';
+
+	let { children }: { children?: import('svelte').Snippet } = $props();
+
 	const loadedPackStyles = new Set<string>();
 
 	async function ensurePackStyles(templateName: string) {
@@ -21,15 +24,14 @@
 		loadedPackStyles.add(templateName);
 	}
 
-	$: void ensurePackStyles($activeTemplate || 'noir');
-</script>
+$effect(() => { void ensurePackStyles($activeTemplate || 'noir'); });</script>
 
 {#if $activeTemplate === 'noir'}
 	<main
 		class="tpl-pack-noir min-h-screen w-full relative overflow-x-hidden transition-colors duration-300 bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]"
 	>
 		<div class="@container w-full">
-			<slot />
+			{@render children?.()}
 		</div>
 	</main>
 {:else if $activeTemplate === 'studio'}
@@ -37,7 +39,7 @@
 		class="tpl-pack-studio min-h-screen w-full relative overflow-x-hidden transition-colors duration-300 bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]"
 	>
 		<div class="@container w-full">
-			<slot />
+			{@render children?.()}
 		</div>
 	</main>
 {:else if $activeTemplate === 'atelier'}
@@ -45,14 +47,14 @@
 		class="tpl-pack-atelier min-h-screen w-full relative overflow-x-hidden transition-colors duration-300 bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]"
 	>
 		<div class="@container w-full">
-			<slot />
+			{@render children?.()}
 		</div>
 	</main>
 {:else}
 	<!-- Fallback (normalized packs should always be noir / studio / atelier). -->
 	<main class="min-h-screen w-full bg-background text-foreground">
 		<div class="@container os-shell-container">
-			<slot />
+			{@render children?.()}
 		</div>
 	</main>
 {/if}

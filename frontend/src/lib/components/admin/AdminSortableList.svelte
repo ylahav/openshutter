@@ -1,36 +1,43 @@
 <script lang="ts">
 	import { flip } from 'svelte/animate';
-	import { createEventDispatcher } from 'svelte';
 	import { dndzone } from 'svelte-dnd-action';
 	import { adminBorderDefault, adminTextMuted } from '$lib/admin/admin-cerberus';
 
-	/** Each row must include a stable string `id` (required by `svelte-dnd-action`). */
-	export let items: Array<{ id: string } & Record<string, unknown>>;
-	/** When true, skip drag behavior (list still renders). */
-	export let disabled = false;
-	export let flipDurationMs = 200;
-	/** Passed through to `dndzone` (see library README). */
-	export let type: string | undefined = undefined;
+	type SortableItem = { id: string } & Record<string, unknown>;
 
-	const dispatch = createEventDispatcher<{ reorder: { items: typeof items } }>();
+	let {
+		items = $bindable([] as SortableItem[]),
+		disabled = $bindable(false),
+		flipDurationMs = $bindable(200),
+		type = undefined,
+		onreorder = undefined,
+		children
+	}: {
+		items?: SortableItem[];
+		disabled?: boolean;
+		flipDurationMs?: number;
+		type?: string;
+		onreorder?: (event: { detail: { items: SortableItem[] } }) => void;
+		children: import('svelte').Snippet<[{ item: SortableItem }]>;
+	} = $props();
 
-	function handleConsider(e: CustomEvent<{ items: typeof items }>) {
+	function handleConsider(e: CustomEvent<{ items: SortableItem[] }>) {
 		if (disabled) return;
 		items = e.detail.items;
 	}
 
-	function handleFinalize(e: CustomEvent<{ items: typeof items }>) {
+	function handleFinalize(e: CustomEvent<{ items: SortableItem[] }>) {
 		if (disabled) return;
 		items = e.detail.items;
-		dispatch('reorder', { items });
+		onreorder?.({ detail: { items } });
 	}
 
-	$: zoneOptions = {
+	const zoneOptions = $derived({
 		items,
 		flipDurationMs,
 		dragDisabled: disabled,
 		...(type !== undefined ? { type } : {}),
-	};
+	});
 </script>
 
 <ul
@@ -38,8 +45,8 @@
 	data-testid="admin-sortable-list"
 	aria-label="Reorderable list"
 	use:dndzone={zoneOptions}
-	on:consider={handleConsider}
-	on:finalize={handleFinalize}
+	onconsider={handleConsider}
+	onfinalize={handleFinalize}
 >
 	{#each items as item (item.id)}
 		<li
@@ -48,7 +55,7 @@
 				: ''}"
 			animate:flip={{ duration: flipDurationMs }}
 		>
-			<slot {item} />
+			{@render children({ item })}
 		</li>
 	{/each}
 </ul>

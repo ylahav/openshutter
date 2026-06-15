@@ -6,14 +6,12 @@
 	import type { MultiLangText } from '$lib/types/multi-lang';
 	import { useCrudLoader } from '$lib/composables/useCrudLoader';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
-	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import type { PageData } from './$types';
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
-	// svelte-ignore export_let_unused - Required by SvelteKit page component
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface BlogCategory {
 		_id: string;
@@ -52,7 +50,7 @@
 		},
 		onCreateSuccess: (newCategory) => {
 			crudLoader.items.update(items => [...items, newCategory]);
-			dialogs.closeAll();
+			closeAllDialogs();
 			resetForm();
 		},
 		onUpdateSuccess: (updatedCategory) => {
@@ -62,7 +60,7 @@
 					items.map(c => c._id === currentEditingCategory._id ? updatedCategory : c)
 				);
 			}
-			dialogs.closeAll();
+			closeAllDialogs();
 			editingCategory = null;
 			resetForm();
 		},
@@ -73,45 +71,35 @@
 					items.filter(c => c._id !== currentCategoryToDelete._id)
 				);
 			}
-			dialogs.closeAll();
+			closeAllDialogs();
 			categoryToDelete = null;
 		}
 	});
-	const dialogs = useDialogManager();
+	const crudSaving = crudOps.saving;
+	const crudError = crudOps.error;
+	const crudMessage = crudOps.message;
+	const loaderItems = crudLoader.items;
+	const loaderLoading = crudLoader.loading;
+	let error = $state('');
+	let searchTerm = $state('');
+	let activeFilter = $state('all');
+	let editingCategory: BlogCategory | null = $state(null);
+	let categoryToDelete: BlogCategory | null = $state(null);
+	let showCreateDialog = $state(false);
+	let showEditDialog = $state(false);
+	let showDeleteDialog = $state(false);
 
-	// Reactive stores from composables
-	let categories: BlogCategory[] = [];
-	let loading = false;
-	let saving = false;
-	let error = '';
-	let searchTerm = '';
-	let activeFilter = 'all';
-	let showCreateDialog = false;
-	let showEditDialog = false;
-	let showDeleteDialog = false;
-	let editingCategory: BlogCategory | null = null;
-	let categoryToDelete: BlogCategory | null = null;
+	function closeAllDialogs() {
+		showCreateDialog = false;
+		showEditDialog = false;
+		showDeleteDialog = false;
+	}
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => categories = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.saving.subscribe(value => saving = value);
-	crudOps.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.message.subscribe((value) => {
-		if (!value) return;
-		adminToast.success({ title: value });
-	});
-	dialogs.showCreate.subscribe(value => showCreateDialog = value);
-	dialogs.showEdit.subscribe(value => showEditDialog = value);
-	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
+$effect(() => { if ($crudError) error = $crudError; });
+$effect(() => { if ($crudMessage) adminToast.success({ title: $crudMessage }); });
 
 	// Form state
-	let formData = {
+	let formData = $state({
 		alias: '',
 		title: { en: '', he: '' } as MultiLangText,
 		description: { en: '', he: '' } as MultiLangText,
@@ -123,7 +111,7 @@
 		},
 		isActive: true,
 		sortOrder: 0
-	};
+	});
 
 	onMount(async () => {
 		await crudLoader.loadItems();
@@ -142,13 +130,15 @@
 			},
 			isActive: true,
 			sortOrder: 0
-		};
+	};
 	}
 
 	function openCreateDialog() {
 		resetForm();
-		dialogs.openCreate();
-		crudOps.error.set('');
+		showCreateDialog = true;
+		showEditDialog = false;
+		showDeleteDialog = false;
+		crudError.set('');
 	}
 
 	function openEditDialog(category: BlogCategory) {
@@ -165,15 +155,19 @@
 			},
 			isActive: category.isActive !== undefined ? category.isActive : true,
 			sortOrder: category.sortOrder || 0
-		};
-		dialogs.openEdit();
-		crudOps.error.set('');
+	};
+		showEditDialog = true;
+		showCreateDialog = false;
+		showDeleteDialog = false;
+		crudError.set('');
 	}
 
 	function openDeleteDialog(category: BlogCategory) {
 		categoryToDelete = category;
-		dialogs.openDelete();
-		crudOps.error.set('');
+		showDeleteDialog = true;
+		showCreateDialog = false;
+		showEditDialog = false;
+		crudError.set('');
 	}
 
 	function getCategoryTitle(category: BlogCategory): string {
@@ -188,7 +182,7 @@
 			description: formData.description,
 			isActive: formData.isActive,
 			sortOrder: formData.sortOrder
-		};
+	};
 		if (formData.alias.trim()) payload.alias = formData.alias.trim();
 		if (formData.leadingImage.url.trim()) {
 			payload.leadingImage = formData.leadingImage;
@@ -207,7 +201,7 @@
 			description: formData.description,
 			isActive: formData.isActive,
 			sortOrder: formData.sortOrder
-		};
+	};
 		if (formData.alias.trim() && formData.alias !== currentEditingCategory.alias) {
 			payload.alias = formData.alias.trim();
 		}
@@ -256,7 +250,7 @@
 							type="text"
 							placeholder={$t('admin.searchCategories')}
 							bind:value={searchTerm}
-							on:input={() => crudLoader.loadItems()}
+							oninput={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 						/>
 						<svg
@@ -276,7 +270,7 @@
 
 					<select
 						bind:value={activeFilter}
-						on:change={() => crudLoader.loadItems()}
+						onchange={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						>
 						<option value="all">{$t('admin.allStatuses')}</option>
@@ -287,7 +281,7 @@
 
 				<button
 					type="button"
-					on:click={openCreateDialog}
+					onclick={openCreateDialog}
 					class="{adminBtnPrimarySm} {adminRingPrimary} flex items-center gap-2"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -303,12 +297,12 @@
 			</div>
 
 			<!-- Categories List -->
-			{#if loading}
+			{#if $loaderLoading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingCategories')}</p>
 				</div>
-			{:else if categories.length === 0}
+			{:else if $loaderItems.length === 0}
 				<div class="text-center py-8">
 					<svg
 						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
@@ -328,7 +322,7 @@
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{#each categories as category}
+					{#each $loaderItems as category}
 						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 							<div class="flex items-start justify-between mb-3">
 								<div class="flex-1">
@@ -342,7 +336,7 @@
 								<div class="flex space-x-1">
 									<button
 										type="button"
-										on:click={() => openEditDialog(category)}
+										onclick={() => openEditDialog(category)}
 										class="p-1 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 										aria-label="Edit category"
 									>
@@ -357,7 +351,7 @@
 									</button>
 									<button
 										type="button"
-										on:click={() => openDeleteDialog(category)}
+										onclick={() => openDeleteDialog(category)}
 										class="p-1 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 rounded"
 										aria-label="Delete category"
 									>
@@ -479,8 +473,8 @@
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							resetForm();
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
@@ -489,11 +483,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleCreate}
-						disabled={saving || !formData.title}
+						onclick={handleCreate}
+						disabled={$crudSaving || !formData.title}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							Creating...
 						{:else}
 							Create Category
@@ -589,8 +583,8 @@
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							editingCategory = null;
 							resetForm();
 						}}
@@ -600,11 +594,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleEdit}
-						disabled={saving || !formData.title}
+						onclick={handleEdit}
+						disabled={$crudSaving || !formData.title}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							Updating...
 						{:else}
 							Update Category
@@ -639,8 +633,8 @@
 				<div class="flex justify-end space-x-2">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							categoryToDelete = null;
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
@@ -649,11 +643,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleDelete}
-						disabled={saving}
+						onclick={handleDelete}
+						disabled={$crudSaving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							Deleting...
 						{:else}
 							Delete Category

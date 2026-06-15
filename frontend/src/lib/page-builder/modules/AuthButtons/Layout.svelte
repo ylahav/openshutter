@@ -4,16 +4,20 @@
 	import VisitorSignInLink from '$lib/components/auth/VisitorSignInLink.svelte';
 	import VisitorLogoutButton from '$lib/components/auth/VisitorLogoutButton.svelte';
 
-	export let config: any = {};
+	let { config = {} }: { config?: Record<string, unknown> } = $props();
 
-	$: loginLabel = config?.loginLabel || 'Login';
-	$: logoutLabel = config?.logoutLabel || 'Logout';
-	$: loginUrl = config?.loginUrl || '/login';
-	$: buttonClass = config?.buttonClass || 'auth-btn';
-	$: loginButtonClass = config?.loginButtonClass || `${buttonClass} auth-btn--login`;
-	$: logoutButtonClass = config?.logoutButtonClass || `${buttonClass} auth-btn--logout`;
-	$: containerClass = config?.containerClass || 'auth-btns';
-	$: authenticated = $auth.authenticated;
+	const loginLabel = $derived((config?.loginLabel as string) || 'Login');
+	const logoutLabel = $derived((config?.logoutLabel as string) || 'Logout');
+	const loginUrl = $derived((config?.loginUrl as string) || '/login');
+	const buttonClass = $derived((config?.buttonClass as string) || 'auth-btn');
+	const loginButtonClass = $derived(
+		(config?.loginButtonClass as string) || `${buttonClass} auth-btn--login`
+	);
+	const logoutButtonClass = $derived(
+		(config?.logoutButtonClass as string) || `${buttonClass} auth-btn--logout`
+	);
+	const containerClass = $derived((config?.containerClass as string) || 'auth-btns');
+	const authenticated = $derived($auth.authenticated);
 </script>
 
 <div class="pb-authButtons">

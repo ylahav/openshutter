@@ -10,7 +10,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface Album {
 		_id: string;
@@ -47,10 +47,10 @@
 	let users: User[] = [];
 	let loadingGroups = false;
 	let loadingUsers = false;
-	let showGroupsDropdown = false;
-	let showUsersDropdown = false;
-	let groupSearch = '';
-	let userSearch = '';
+	let showGroupsDropdown = $state(false);
+	let showUsersDropdown = $state(false);
+	let groupSearch = $state('');
+	let userSearch = $state('');
 
 	let formData = {
 		name: {} as { en?: string; he?: string },
@@ -63,18 +63,18 @@
 		allowedGroups: [] as string[]
 	};
 
-	$: filteredGroups = groups.filter(
+const filteredGroups = $derived(groups.filter(
 		(g) =>
 			!groupSearch.trim() ||
 			(g.alias || '').toLowerCase().includes(groupSearch.toLowerCase()) ||
 			(typeof g.name === 'object' && Object.values(g.name || {}).some((v) => (v || '').toLowerCase().includes(groupSearch.toLowerCase())))
-	);
-	$: filteredUsers = users.filter(
+	));
+const filteredUsers = $derived(users.filter(
 		(u) =>
 			!userSearch.trim() ||
 			(u.username || '').toLowerCase().includes(userSearch.toLowerCase()) ||
 			(typeof u.name === 'object' && Object.values(u.name || {}).some((v) => (v || '').toLowerCase().includes(userSearch.toLowerCase())))
-	);
+	));
 
 	function getGroupLabel(g: Group): string {
 		const n = g.name;
@@ -226,7 +226,7 @@
 			<div class="text-red-600 text-xl mb-4">⚠️</div>
 			<p class="text-gray-600">{error || 'Album not found'}</p>
 			<button
-				on:click={() => goto('/owner/albums')}
+				onclick={() => goto('/owner/albums')}
 				class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 			>
 				Back
@@ -238,7 +238,7 @@
 		<div class="max-w-3xl mx-auto px-4">
 			<div class="mb-6">
 				<button
-					on:click={() => goto('/owner/albums')}
+					onclick={() => goto('/owner/albums')}
 					class="text-blue-600 hover:text-blue-800 mb-4"
 				>
 					← Back to Albums
@@ -252,7 +252,7 @@
 				</div>
 			{/if}
 
-			<form on:submit={handleSubmit} class="space-y-6 bg-white border rounded p-6">
+			<form onsubmit={handleSubmit} class="space-y-6 bg-white border rounded p-6">
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-2">Album Name</label>
 					<MultiLangInput
@@ -275,7 +275,7 @@
 							type="checkbox"
 							name="isPublic"
 							checked={formData.isPublic}
-							on:change={handleInputChange}
+							onchange={handleInputChange}
 							class="h-4 w-4 text-blue-600"
 						/>
 						Public
@@ -285,7 +285,7 @@
 							type="checkbox"
 							name="isFeatured"
 							checked={formData.isFeatured}
-							on:change={handleInputChange}
+							onchange={handleInputChange}
 							class="h-4 w-4 text-blue-600"
 						/>
 						Featured
@@ -295,7 +295,7 @@
 							type="checkbox"
 							name="showExifData"
 							checked={formData.showExifData}
-							on:change={handleInputChange}
+							onchange={handleInputChange}
 							class="h-4 w-4 text-blue-600"
 						/>
 						Show EXIF
@@ -317,7 +317,7 @@
 										{g ? getGroupLabel(g) : alias}
 										<button
 											type="button"
-											on:click={() => {
+											onclick={() => {
 												formData.allowedGroups = formData.allowedGroups.filter((a) => a !== alias);
 												formData = formData;
 											}}
@@ -335,7 +335,7 @@
 								<div class="relative">
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											showGroupsDropdown = !showGroupsDropdown;
 											if (showGroupsDropdown) showUsersDropdown = false;
 											groupSearch = '';
@@ -360,7 +360,7 @@
 														type="button"
 														role="option"
 														aria-selected={formData.allowedGroups.includes(group.alias)}
-														on:click={() => toggleGroup(group.alias)}
+														onclick={() => toggleGroup(group.alias)}
 														class="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 {formData.allowedGroups.includes(group.alias) ? 'bg-blue-50 text-blue-800' : 'text-gray-700'}"
 													>
 														{getGroupLabel(group)}
@@ -387,7 +387,7 @@
 										{u ? getUserLabel(u) : uid}
 										<button
 											type="button"
-											on:click={() => {
+											onclick={() => {
 												formData.allowedUsers = formData.allowedUsers.filter((id) => id !== uid);
 												formData = formData;
 											}}
@@ -405,7 +405,7 @@
 								<div class="relative">
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											showUsersDropdown = !showUsersDropdown;
 											if (showUsersDropdown) showGroupsDropdown = false;
 											userSearch = '';
@@ -430,7 +430,7 @@
 														type="button"
 														role="option"
 														aria-selected={formData.allowedUsers.includes(user._id)}
-														on:click={() => toggleUser(user._id)}
+														onclick={() => toggleUser(user._id)}
 														class="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 {formData.allowedUsers.includes(user._id) ? 'bg-green-50 text-green-800' : 'text-gray-700'}"
 													>
 														{getUserLabel(user)}
@@ -456,14 +456,14 @@
 						type="number"
 						name="order"
 						bind:value={formData.order}
-						on:change={handleInputChange}
+						onchange={handleInputChange}
 						class="w-full border rounded px-3 py-2"
 					/>
 				</div>
 				<div class="flex justify-between gap-2">
 					<button
 						type="button"
-						on:click={() => goto(`/admin/photos/upload?albumId=${albumId}&returnTo=/owner/albums`)}
+						onclick={() => goto(`/admin/photos/upload?albumId=${albumId}&returnTo=/owner/albums`)}
 						class="px-4 py-2 border rounded hover:bg-gray-50"
 					>
 						Add Photos
@@ -471,7 +471,7 @@
 					<div class="flex gap-2">
 						<button
 							type="button"
-							on:click={() => goto('/owner/albums')}
+							onclick={() => goto('/owner/albums')}
 							class="px-4 py-2 border rounded hover:bg-gray-50"
 						>
 							Cancel

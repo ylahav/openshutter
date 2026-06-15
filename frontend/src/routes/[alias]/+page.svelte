@@ -9,20 +9,20 @@
 	import LoginCmsPageBody from '$lib/components/LoginCmsPageBody.svelte';
 	import type { PageData, PageModuleData } from '$lib/types/page-builder';
 
-	export let data: {
+	let { data }: { data: {
 		page: PageData | null;
 		modules: PageModuleData[];
 		urlAlias: string;
 		useLoginShell: boolean;
 		cmsSlugPrefix: string;
 		packId: string;
-	};
+	} } = $props();
 
-	$: pageData = data.page;
-	$: modules = data.modules || [];
-	$: hasModules = modules.length > 0;
-	$: urlAliasLower = (data.urlAlias || '').toLowerCase();
-	$: pageForCms = (pageData ?? undefined) as PageData | undefined;
+const pageData = $derived(data.page);
+	const modules = $derived(data.modules || []);
+const hasModules = $derived(modules.length > 0);
+	const urlAliasLower = $derived((data.urlAlias || '').toLowerCase());
+	const pageForCms = $derived((pageData ?? undefined) as PageData | undefined);
 
 	function getTextValue(value: string | { en?: string; he?: string } | undefined): string {
 		if (!value) return '';

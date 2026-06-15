@@ -1,19 +1,22 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-
-	export let loading = false;
-	export let disabled = false;
-
-	const dispatch = createEventDispatcher();
+	let {
+		loading = $bindable(false),
+		disabled = $bindable(false),
+		onclick = undefined
+	}: {
+		loading?: boolean;
+		disabled?: boolean;
+		onclick?: () => void;
+	} = $props();
 
 	function handleClick() {
-		dispatch('click');
+		onclick?.();
 	}
 </script>
 
 <button
 	type="button"
-	on:click={handleClick}
+	onclick={handleClick}
 	disabled={disabled || loading}
 	class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
 >

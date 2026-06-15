@@ -20,8 +20,8 @@
   let loading = true;
   let currentPhotoIndex = 0;
 
-  $: config = $siteConfigData;
-  $: lang = $currentLanguage;
+const config = $derived($siteConfigData);
+	const lang = $derived($currentLanguage);
 
   const ROTATION_INTERVAL = 8000;
 
@@ -42,22 +42,21 @@
     }
   });
 
-  $: if (photos.length > 1) {
+$effect(() => { if (photos.length > 1) {
     const interval = setInterval(() => {
       currentPhotoIndex = (currentPhotoIndex + 1) % photos.length;
     }, ROTATION_INTERVAL);
-  }
+  } });
 
-  $: currentPhoto = photos[currentPhotoIndex];
-  $: backgroundImageUrl =
-    currentPhoto?.storage?.url || currentPhoto?.storage?.thumbnailPath || currentPhoto?.url || null;
+const currentPhoto = $derived(photos[currentPhotoIndex]);
+	const backgroundImageUrl = $derived(currentPhoto?.storage?.url || currentPhoto?.storage?.thumbnailPath || currentPhoto?.url || null);
 
-  $: title = config?.title
+const title = $derived(config?.title
     ? MultiLangUtils.getTextValue(config.title, lang)
-    : 'OpenShutter Gallery';
-  $: description = config?.description
+    : 'OpenShutter Gallery');
+const description = $derived(config?.description
     ? MultiLangUtils.getHTMLValue(config.description, lang)
-    : 'A modern photo gallery platform for showcasing your memories with style.';
+    : 'A modern photo gallery platform for showcasing your memories with style.');
 </script>
 
 {#if loading && photos.length === 0}

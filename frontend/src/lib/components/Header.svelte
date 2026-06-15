@@ -17,24 +17,23 @@
 	const headerConfig = derived(siteConfigData, ($config) => $config?.template?.headerConfig ?? {});
 	
 	// Check headerConfig values - explicitly check for false to respect overrides
-	$: showLogo = $headerConfig?.showLogo !== undefined ? $headerConfig.showLogo : true;
-	$: showSiteTitle = $headerConfig?.showSiteTitle !== undefined ? $headerConfig.showSiteTitle : true;
-	$: showMenu = $headerConfig?.showMenu !== undefined ? $headerConfig.showMenu : true;
-	$: showTemplateSelector = $headerConfig?.showTemplateSelector !== undefined ? $headerConfig.showTemplateSelector : true;
-	$: showLanguageSelector = ($headerConfig?.showLanguageSelector ?? $headerConfig?.enableLanguageSelector) !== undefined 
+const showLogo = $derived($headerConfig?.showLogo !== undefined ? $headerConfig.showLogo : true);
+	const showSiteTitle = $derived($headerConfig?.showSiteTitle !== undefined ? $headerConfig.showSiteTitle : true);
+const showMenu = $derived($headerConfig?.showMenu !== undefined ? $headerConfig.showMenu : true);
+	const showTemplateSelector = $derived($headerConfig?.showTemplateSelector !== undefined ? $headerConfig.showTemplateSelector : true);
+const showLanguageSelector = $derived(($headerConfig?.showLanguageSelector ?? $headerConfig?.enableLanguageSelector) !== undefined 
 		? ($headerConfig.showLanguageSelector ?? $headerConfig.enableLanguageSelector) 
-		: true;
-	$: showThemeToggle = $headerConfig?.enableThemeToggle !== undefined ? $headerConfig.enableThemeToggle : true;
-	$: languageSelectorVariant =
-		$headerConfig?.languageSelectorVariant === 'flags' ? 'flags' : 'dropdown';
+		: true);
+const showThemeToggle = $derived($headerConfig?.enableThemeToggle !== undefined ? $headerConfig.enableThemeToggle : true);
+	const languageSelectorVariant = $derived($headerConfig?.languageSelectorVariant === 'flags' ? 'flags' : 'dropdown');
 
-	let themeToggleVariant: 'icons' | 'text' | 'both' = 'icons';
-	$: {
+	let themeToggleVariant: 'icons' | 'text' | 'both'  = $state('icons');
+$effect(() => {
 		const v = $headerConfig?.themeToggleVariant;
 		themeToggleVariant = v === 'text' || v === 'both' || v === 'icons' ? v : 'icons';
-	}
-	$: showAuthButtons = $headerConfig?.showAuthButtons !== undefined ? $headerConfig.showAuthButtons : true;
-	$: showGreeting = $headerConfig?.showGreeting !== undefined ? $headerConfig.showGreeting : true;
+	});
+const showAuthButtons = $derived($headerConfig?.showAuthButtons !== undefined ? $headerConfig.showAuthButtons : true);
+	const showGreeting = $derived($headerConfig?.showGreeting !== undefined ? $headerConfig.showGreeting : true);
 
 	const title = derived(
 		[siteConfigData, currentLanguage],
@@ -54,12 +53,12 @@
 	});
 
 	// Debug logging - always log to help diagnose
-	$: if (typeof window !== 'undefined') {
+$effect(() => { if (typeof window !== 'undefined') {
 		logger.debug('[Header] Header config:', $headerConfig);
 		logger.debug('[Header] Config menu:', $headerConfig?.menu);
 		logger.debug('[Header] Menu array length:', $headerConfig?.menu?.length);
 		logger.debug('[Header] Site config template:', $siteConfigData?.template);
-	}
+	} });
 </script>
 
 <header

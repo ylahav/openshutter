@@ -22,8 +22,6 @@ const config = {
 	},
 
 	compilerOptions: {
-		// Suppress accessibility warnings during build (they're still checked in dev)
-		// You can fix these gradually, but they don't break functionality
 		enableSourcemap: true,
 	},
 };

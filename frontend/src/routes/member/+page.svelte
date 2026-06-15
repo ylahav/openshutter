@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { productName } from '$stores/siteConfig';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	const isMember = data.user?.role === 'guest';
 	const isAdmin = data.user?.role === 'admin';
@@ -44,7 +44,7 @@
 					Home
 				</a>
 				<button
-					on:click={handleLogout}
+					onclick={handleLogout}
 					class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
 				>
 					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

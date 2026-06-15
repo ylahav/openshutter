@@ -3,21 +3,38 @@
 	import Layout from './BlogArticle/Layout.svelte';
 	import type { BlogArticleLayoutConfig } from './BlogArticle/types';
 
-	export let title: string | Record<string, string> | undefined = undefined;
-	export let mode: 'list' | 'single' = 'list';
-	export let categoryAlias: string | undefined = undefined;
-	export let syncCategoryFromPageUrl = true;
-	export let slug: string | undefined = undefined;
-	export let limit = 10;
-	export let showImage = true;
-	export let showExcerpt = true;
-	export let showMeta = true;
-	export let articlePathPrefix = '/blog';
+	let {
+		title = undefined,
+		mode = 'list',
+		categoryAlias = undefined,
+		syncCategoryFromPageUrl = true,
+		slug = undefined,
+		limit = 10,
+		showImage = true,
+		showExcerpt = true,
+		showMeta = true,
+		articlePathPrefix = '/blog',
+		data = null,
+		compact,
+		...rest
+	}: {
+		title?: string | Record<string, string>;
+		mode?: 'list' | 'single';
+		categoryAlias?: string;
+		syncCategoryFromPageUrl?: boolean;
+		slug?: string;
+		limit?: number;
+		showImage?: boolean;
+		showExcerpt?: boolean;
+		showMeta?: boolean;
+		articlePathPrefix?: string;
+		data?: unknown;
+		compact?: boolean;
+		[key: string]: unknown;
+	} = $props();
 
-	// svelte-ignore export_let_unused - passed by PageRenderer for all modules
-	export let data: unknown = null;
-
-	$: moduleConfig = {
+	const moduleConfig = $derived({
+		...(rest as BlogArticleLayoutConfig),
 		title,
 		mode,
 		categoryAlias,
@@ -28,7 +45,7 @@
 		showExcerpt,
 		showMeta,
 		articlePathPrefix
-	} satisfies BlogArticleLayoutConfig;
+	}) satisfies BlogArticleLayoutConfig;
 </script>
 
 <Layout config={moduleConfig} />

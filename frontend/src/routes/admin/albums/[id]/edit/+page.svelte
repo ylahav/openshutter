@@ -14,6 +14,9 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	interface Album {
 		_id: string;
@@ -65,12 +68,12 @@
 	}
 
 	const albumId: string = $page.params.id || '';
-	let album: Album | null = null;
-	let loading = true;
-	let saving = false;
-	let error = '';
+	let album: Album | null = $state((data.album as Album | null) ?? null);
+	let loading = $state(!data.album && !data.loadError);
+	let saving = $state(false);
+	let error = $state(data.loadError ?? '');
 
-		let formData = {
+		let formData = $state({
 		name: {} as Record<string, string>,
 		description: {} as Record<string, string>,
 		isPublic: false,
@@ -83,16 +86,16 @@
 		location: null as string | null,
 		allowedUsers: [] as string[],
 		allowedGroups: [] as string[],
-	};
+	});
 
-	let groups: Group[] = [];
-	let users: User[] = [];
-	let loadingGroups = false;
-	let loadingUsers = false;
-	let showGroupsDropdown = false;
-	let showUsersDropdown = false;
-	let groupSearch = '';
-	let userSearch = '';
+	let groups: Group[] = $state([]);
+	let users: User[] = $state([]);
+	let loadingGroups = $state(false);
+	let loadingUsers = $state(false);
+	let showGroupsDropdown = $state(false);
+	let showUsersDropdown = $state(false);
+	let groupSearch = $state('');
+	let userSearch = $state('');
 	let groupsAccessRef: HTMLDivElement | null = null;
 	let usersAccessRef: HTMLDivElement | null = null;
 
@@ -106,7 +109,7 @@
 		photosPerPage: number;
 		totalPhotos: number;
 		fromSubAlbums: boolean;
-	} = {
+	} = $state({
 		isOpen: false,
 		photos: [],
 		loading: false,
@@ -115,22 +118,62 @@
 		photosPerPage: 24,
 		totalPhotos: 0,
 		fromSubAlbums: false,
-	};
+	});
 
-	$: filteredGroups = groupSearch.trim()
-		? groups.filter(
-				(g) =>
-					g.alias.toLowerCase().includes(groupSearch.toLowerCase()) ||
-					getGroupLabel(g).toLowerCase().includes(groupSearch.toLowerCase())
-			)
-		: groups;
-	$: filteredUsers = userSearch.trim()
-		? users.filter(
-				(u) =>
-					u.username.toLowerCase().includes(userSearch.toLowerCase()) ||
-					getUserLabel(u).toLowerCase().includes(userSearch.toLowerCase())
-			)
-		: users;
+	const filteredGroups = $derived(
+		groupSearch.trim()
+			? groups.filter(
+					(g) =>
+						g.alias.toLowerCase().includes(groupSearch.toLowerCase()) ||
+						getGroupLabel(g).toLowerCase().includes(groupSearch.toLowerCase())
+				)
+			: groups
+	);
+	const filteredUsers = $derived(
+		userSearch.trim()
+			? users.filter(
+					(u) =>
+						u.username.toLowerCase().includes(userSearch.toLowerCase()) ||
+						getUserLabel(u).toLowerCase().includes(userSearch.toLowerCase())
+				)
+			: users
+	);
+
+	function applyAlbumToForm(albumData: Album) {
+		formData.name =
+			typeof albumData.name === 'string' ? { en: albumData.name } : albumData.name || {};
+		formData.description =
+			typeof albumData.description === 'string'
+				? { en: albumData.description }
+				: albumData.description || {};
+		formData.isPublic = albumData.isPublic || false;
+		formData.isPublished = albumData.isPublished !== undefined ? albumData.isPublished : true;
+		formData.isFeatured = albumData.isFeatured || false;
+		formData.showExifData = albumData.showExifData !== undefined ? albumData.showExifData : true;
+		formData.order = albumData.order || 0;
+		formData.tags =
+			albumData.tags?.map((tag: string | { _id?: { toString(): string }; toString(): string }) =>
+				typeof tag === 'string' ? tag : tag._id?.toString() || tag.toString()
+			) || [];
+		formData.people =
+			albumData.people?.map((person: string | { _id?: { toString(): string }; toString(): string }) =>
+				typeof person === 'string' ? person : person._id?.toString() || person.toString()
+			) || [];
+		formData.location =
+			albumData.location
+				? typeof albumData.location === 'string'
+					? albumData.location
+					: (albumData.location && typeof albumData.location === 'object' && '_id' in albumData.location)
+						? (albumData.location as { _id: { toString(): string } })._id.toString()
+						: String(albumData.location)
+				: null;
+		formData.allowedUsers = albumData.allowedUsers?.map((id: string) => String(id)) || [];
+		formData.allowedGroups = albumData.allowedGroups?.map((a: string) => String(a)) || [];
+	}
+
+	if (album) {
+		applyAlbumToForm(album);
+	}
 
 	async function loadAlbum() {
 		try {
@@ -146,38 +189,8 @@
 			album = result.data || result;
 			logger.debug('Album loaded:', album);
 
-			// Initialize form data
 			if (album) {
-				formData.name =
-					typeof album.name === 'string' ? { en: album.name } : album.name || {};
-				formData.description =
-					typeof album.description === 'string'
-						? { en: album.description }
-						: album.description || {};
-				formData.isPublic = album.isPublic || false;
-				formData.isPublished = album.isPublished !== undefined ? album.isPublished : true;
-				formData.isFeatured = album.isFeatured || false;
-				formData.showExifData = album.showExifData !== undefined ? album.showExifData : true;
-				formData.order = album.order || 0;
-				// Convert ObjectIds to strings if needed
-				formData.tags =
-					album.tags?.map((tag: string | { _id?: { toString(): string }; toString(): string }) =>
-						typeof tag === 'string' ? tag : tag._id?.toString() || tag.toString()
-					) || [];
-				formData.people =
-					album.people?.map((person: string | { _id?: { toString(): string }; toString(): string }) =>
-						typeof person === 'string' ? person : person._id?.toString() || person.toString()
-					) || [];
-				formData.location =
-					album.location
-						? typeof album.location === 'string'
-							? album.location
-							: (album.location && typeof album.location === 'object' && '_id' in album.location)
-								? (album.location as { _id: { toString(): string } })._id.toString()
-								: String(album.location)
-						: null;
-				formData.allowedUsers = album.allowedUsers?.map((id: string) => String(id)) || [];
-				formData.allowedGroups = album.allowedGroups?.map((a: string) => String(a)) || [];
+				applyAlbumToForm(album);
 			}
 		} catch (err) {
 			logger.error('Failed to fetch album:', err);
@@ -208,8 +221,7 @@
 				location: formData.location,
 				allowedUsers: formData.allowedUsers,
 				allowedGroups: formData.allowedGroups,
-			};
-
+	};
 			const response = await fetch(`/api/admin/albums/${albumId}`, {
 				method: 'PUT',
 				headers: {
@@ -337,7 +349,7 @@
 				totalPhotos: data.length,
 				fromSubAlbums,
 				loading: false,
-			};
+	};
 		} catch (err) {
 			logger.error('Failed to load album photos:', err);
 			coverPhotoModal = { ...coverPhotoModal, loading: false };
@@ -354,7 +366,7 @@
 			photosPerPage: 24,
 			totalPhotos: 0,
 			fromSubAlbums: false,
-		};
+	};
 	}
 
 	async function setCoverPhoto(photoId: string) {
@@ -382,11 +394,12 @@
 	}
 
 	// Reactive so prev/next actually update the displayed photo list
-	$: coverPhotoModalPaginatedPhotos =
+	const coverPhotoModalPaginatedPhotos = $derived(
 		coverPhotoModal.photos.slice(
 			(coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage,
-			(coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage + coverPhotoModal.photosPerPage,
-		);
+			(coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage + coverPhotoModal.photosPerPage
+		)
+	);
 
 	function getTotalPages(): number {
 		return Math.ceil(coverPhotoModal.totalPhotos / coverPhotoModal.photosPerPage) || 1;
@@ -400,7 +413,9 @@
 		window.addEventListener('keydown', handleKeydown);
 		window.addEventListener('click', handleClickOutside);
 		(async () => {
-			await loadAlbum();
+			if (!album && !error) {
+				await loadAlbum();
+			}
 			// Load groups and users for access control
 			loadingGroups = true;
 			loadingUsers = true;
@@ -480,7 +495,7 @@
 
 			<!-- Form -->
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950">
-				<form on:submit={handleSubmit} class="p-6 space-y-6">
+				<form onsubmit={handleSubmit} class="p-6 space-y-6">
 					<!-- Album Info -->
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div>
@@ -538,7 +553,7 @@
 								id="order"
 								name="order"
 								value={formData.order}
-								on:input={handleInputChange}
+								oninput={handleInputChange}
 								min="0"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 							/>
@@ -579,7 +594,7 @@
 						</p>
 						<button
 							type="button"
-							on:click={openCoverPhotoModal}
+							onclick={openCoverPhotoModal}
 							class="{adminBtnSecondary} {adminRingPrimary}"
 						>
 							{album.coverPhotoId ? 'Change leading photo' : 'Select leading photo'}
@@ -594,7 +609,7 @@
 								id="isPublished"
 								name="isPublished"
 								checked={formData.isPublished}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 							/>
 							<label for="isPublished" class="ml-2 block text-sm text-(--color-surface-800-200)">
@@ -608,7 +623,7 @@
 								id="isPublic"
 								name="isPublic"
 								checked={formData.isPublic}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 							/>
 							<label for="isPublic" class="ml-2 block text-sm text-(--color-surface-800-200)">
@@ -621,7 +636,7 @@
 								id="isFeatured"
 								name="isFeatured"
 								checked={formData.isFeatured}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 							/>
 							<label for="isFeatured" class="ml-2 block text-sm text-(--color-surface-800-200)">
@@ -634,7 +649,7 @@
 								id="showExifData"
 								name="showExifData"
 								checked={formData.showExifData}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 							/>
 							<label for="showExifData" class="ml-2 block text-sm text-(--color-surface-800-200)">
@@ -662,7 +677,7 @@
 											{g ? getGroupLabel(g) : alias}
 											<button
 												type="button"
-												on:click={() => {
+												onclick={() => {
 													formData.allowedGroups = formData.allowedGroups.filter((a) => a !== alias);
 													formData = formData;
 												}}
@@ -682,7 +697,7 @@
 									<div class="relative">
 										<button
 											type="button"
-											on:click={() => {
+											onclick={() => {
 												showGroupsDropdown = !showGroupsDropdown;
 												if (showGroupsDropdown) showUsersDropdown = false;
 												groupSearch = '';
@@ -710,7 +725,7 @@
 															type="button"
 															role="option"
 															aria-selected={formData.allowedGroups.includes(group.alias)}
-															on:click={() => toggleGroup(group.alias)}
+															onclick={() => toggleGroup(group.alias)}
 															class="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-(--color-surface-100-900) {formData.allowedGroups.includes(group.alias)
 																? 'bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] text-(--color-primary-800)'
 																: 'text-(--color-surface-800-200)'}"
@@ -742,7 +757,7 @@
 											{u ? getUserLabel(u) : uid}
 											<button
 												type="button"
-												on:click={() => {
+												onclick={() => {
 													formData.allowedUsers = formData.allowedUsers.filter((id) => id !== uid);
 													formData = formData;
 												}}
@@ -762,7 +777,7 @@
 									<div class="relative">
 										<button
 											type="button"
-											on:click={() => {
+											onclick={() => {
 												showUsersDropdown = !showUsersDropdown;
 												if (showUsersDropdown) showGroupsDropdown = false;
 												userSearch = '';
@@ -790,7 +805,7 @@
 															type="button"
 															role="option"
 															aria-selected={formData.allowedUsers.includes(user._id)}
-															on:click={() => toggleUser(user._id)}
+															onclick={() => toggleUser(user._id)}
 															class="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-(--color-surface-100-900) {formData.allowedUsers.includes(user._id)
 																? 'bg-green-50 text-green-800'
 																: 'text-(--color-surface-800-200)'}"
@@ -881,7 +896,7 @@
 				</h3>
 				<button
 					type="button"
-					on:click={closeCoverPhotoModal}
+					onclick={closeCoverPhotoModal}
 					class="text-(--color-surface-400-600) hover:text-(--color-surface-600-400)"
 					aria-label="Close modal"
 				>
@@ -928,7 +943,7 @@
 							<button
 								type="button"
 								class="relative cursor-pointer group text-left {isCurrentCover ? 'ring-4 ring-purple-500 ring-opacity-75' : ''}"
-								on:click={() => setCoverPhoto(photo._id)}
+								onclick={() => setCoverPhoto(photo._id)}
 								disabled={coverPhotoModal.saving}
 								aria-label="Set as leading photo"
 							>
@@ -954,7 +969,7 @@
 						<div class="flex items-center justify-center space-x-2 mt-4">
 							<button
 								type="button"
-								on:click={() => goToPage(coverPhotoModal.currentPage - 1)}
+								onclick={() => goToPage(coverPhotoModal.currentPage - 1)}
 								disabled={coverPhotoModal.currentPage === 1 || coverPhotoModal.saving}
 								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 							>
@@ -965,7 +980,7 @@
 							</span>
 							<button
 								type="button"
-								on:click={() => goToPage(coverPhotoModal.currentPage + 1)}
+								onclick={() => goToPage(coverPhotoModal.currentPage + 1)}
 								disabled={coverPhotoModal.currentPage === getTotalPages() || coverPhotoModal.saving}
 								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 							>
@@ -979,7 +994,7 @@
 			<div class="mt-6 flex justify-end">
 				<button
 					type="button"
-					on:click={closeCoverPhotoModal}
+					onclick={closeCoverPhotoModal}
 					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					Cancel

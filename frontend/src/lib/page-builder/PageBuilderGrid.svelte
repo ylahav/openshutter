@@ -12,25 +12,27 @@
 	import { siteConfigData } from '$stores/siteConfig';
 	import { applyPackClassPrefix, packClassPrefixFor } from '$lib/template/packs/class-prefix';
 
-	/** Modules already normalized (e.g. albumGallery → albumView). */
-	export let modules: PageModuleData[] = [];
-	export let layout: { gridRows: number; gridColumns: number };
-	/** When set (e.g. `auto auto 1fr auto auto`), non-spanning rows use CSS grid instead of equal flex columns — no inline `flex` on cells. */
-	export let gridTemplateColumns: string | undefined = undefined;
-	/** Optional per-row grid templates, e.g. `{ "0": "1fr 3fr 1fr", "1": "auto 1fr auto" }`. */
-	export let rowTemplateColumnsByRow: Record<string, string> | undefined = undefined;
-	/**
-	 * Optional per-cell placement overrides by `row:col` key.
-	 * Example: `{ "0:0": { horizontal: "start", vertical: "center" } }`.
-	 */
-	export let cellPlacementByCell: Record<string, ModulePlacement> | undefined = undefined;
-	export let compact = false;
-	/** Route / page context passed to every block (alias, params). */
-	export let pageContext: Record<string, unknown> = {};
+	let {
+		modules = [],
+		layout,
+		gridTemplateColumns = undefined,
+		rowTemplateColumnsByRow = undefined,
+		cellPlacementByCell = undefined,
+		compact = false,
+		pageContext = {}
+	}: {
+		modules?: PageModuleData[];
+		layout: { gridRows: number; gridColumns: number };
+		gridTemplateColumns?: string;
+		rowTemplateColumnsByRow?: Record<string, string>;
+		cellPlacementByCell?: Record<string, ModulePlacement>;
+		compact?: boolean;
+		pageContext?: Record<string, unknown>;
+	} = $props();
 
-	const moduleMapStore = getContext<Writable<Record<string, any>> | undefined>('pbModuleMap');
-	$: moduleMap = $moduleMapStore;
-	$: pageAliasPrefixes = $siteConfigData?.template?.pageAliasPrefixes;
+	const moduleMapStore = getContext<Writable<Record<string, unknown>> | undefined>('pbModuleMap');
+	const moduleMap = $derived($moduleMapStore);
+	const pageAliasPrefixes = $derived($siteConfigData?.template?.pageAliasPrefixes);
 
 	if (!moduleMapStore) {
 		console.error('[PageBuilderGrid] Missing pbModuleMap context');
@@ -45,11 +47,11 @@
 		}>;
 	}
 
-function isSingleLayoutShellRow(row: RowData): boolean {
-	if (row.columns.length !== 1) return false;
-	const module = row.columns[0]?.module;
-	return module?.type === 'layoutShell';
-}
+	function isSingleLayoutShellRow(row: RowData): boolean {
+		if (row.columns.length !== 1) return false;
+		const module = row.columns[0]?.module;
+		return module?.type === 'layoutShell';
+	}
 
 	function buildRows(moduleList: PageModuleData[]): RowData[] {
 		const rowMap = new Map<number, RowData>();
@@ -85,23 +87,29 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 		return Array.from(rowMap.values()).sort((a, b) => a.rowOrder - b.rowOrder);
 	}
 
-	$: rows = buildRows(modules);
-	$: gridCols = layout?.gridColumns ?? Math.max(1, ...modules.map((m) => (m.columnIndex ?? 0) + (m.colSpan ?? 1)));
-	$: gridRows = layout?.gridRows ?? Math.max(1, ...modules.map((m) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1)));
-	$: hasSpanning = modules.some(
-		(m) => Number(m.rowSpan ?? 1) > 1 || Number(m.colSpan ?? 1) > 1
+	const rows = $derived(buildRows(modules));
+	const gridCols = $derived(
+		layout?.gridColumns ?? Math.max(1, ...modules.map((m) => (m.columnIndex ?? 0) + (m.colSpan ?? 1)))
 	);
-	$: spanningRenderModules = modules.map((m) => ({
-		module: m,
-		rowOrder: m.rowOrder ?? m.order ?? 0,
-		columnIndex: m.columnIndex ?? 0,
-		rowSpan: m.rowSpan ?? 1,
-		colSpan: m.colSpan ?? 1
-	}));
+	const gridRows = $derived(
+		layout?.gridRows ?? Math.max(1, ...modules.map((m) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1)))
+	);
+	const hasSpanning = $derived(
+		modules.some((m) => Number(m.rowSpan ?? 1) > 1 || Number(m.colSpan ?? 1) > 1)
+	);
+	const spanningRenderModules = $derived(
+		modules.map((m) => ({
+			module: m,
+			rowOrder: m.rowOrder ?? m.order ?? 0,
+			columnIndex: m.columnIndex ?? 0,
+			rowSpan: m.rowSpan ?? 1,
+			colSpan: m.colSpan ?? 1
+		}))
+	);
 
-	$: contentMax = compact
-		? 'w-full'
-		: 'w-full max-w-(--os-max-width) mx-auto px-(--os-padding) box-border';
+	const contentMax = $derived(
+		compact ? 'w-full' : 'w-full max-w-(--os-max-width) mx-auto px-(--os-padding) box-border'
+	);
 	const contentGap = 'gap-(--os-gap)';
 
 	function cellPlacement(m: PageModuleData | undefined): ModulePlacement | undefined {
@@ -122,7 +130,6 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 		};
 	}
 
-	/** When explicit row templates are missing, derive `1fr 9fr 2fr` from `columnProportion` so the shell is CSS grid (not equal flex). */
 	function templateColumnsFromModuleProportions(rowOrder: number): string | undefined {
 		const rowMods = modules
 			.filter((m) => Number(m.rowOrder ?? 0) === rowOrder)
@@ -145,8 +152,7 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 		return derived ? hardenGridFrTracks(derived) : undefined;
 	}
 
-	/** Single-row spanning grid — use minmax(0,1fr) so tracks don’t inherit content-based minimums. */
-	$: spanningGridTemplateColumns =
+	const spanningGridTemplateColumns = $derived(
 		gridRows !== 1
 			? `repeat(${gridCols}, minmax(0, 1fr))`
 			: (() => {
@@ -154,10 +160,10 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 					if (t) return shellGridTemplateColumns(t);
 					const derived = templateColumnsFromModuleProportions(0);
 					return derived ? hardenGridFrTracks(derived) : `repeat(${gridCols}, minmax(0, 1fr))`;
-				})();
+				})()
+	);
 
 	function wrapperClassName(m: PageModuleData | undefined, pack: string): string {
-		// Login applies pack-prefixed root classes on `<main>` inside the module. Do not repeat the same hooks on the grid cell.
 		if (m?.type === 'loginForm') return '';
 
 		const skipPrefix = m?.props?.classNameNoPackPrefix === true;
@@ -219,8 +225,8 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 				style="grid-column: {placed.columnIndex + 1} / span {placed.colSpan}; grid-row: {placed.rowOrder + 1} / span {placed.rowSpan};"
 			>
 				{#if moduleMap[placed.module.type]}
-					<svelte:component
-						this={moduleMap[placed.module.type]}
+					{@const Mod = moduleMap[placed.module.type]}
+					<Mod
 						{...omitPlacement(placed.module.props)}
 						data={pageContext}
 						{compact}
@@ -237,8 +243,8 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 			{@const shellCol = row.columns[0]}
 			{#if shellCol?.module}
 				{#if moduleMap[shellCol.module.type]}
-					<svelte:component
-						this={moduleMap[shellCol.module.type]}
+					{@const Mod = moduleMap[shellCol.module.type]}
+					<Mod
 						{...omitPlacement(shellCol.module.props)}
 						className={wrapperClassName(shellCol.module, $activeTemplate)}
 						data={pageContext}
@@ -270,8 +276,8 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 					>
 						{#if col.module}
 							{#if moduleMap[col.module.type]}
-								<svelte:component
-									this={moduleMap[col.module.type]}
+								{@const Mod = moduleMap[col.module.type]}
+								<Mod
 									{...omitPlacement(col.module.props)}
 									data={pageContext}
 									{compact}

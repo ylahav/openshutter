@@ -3,14 +3,25 @@
 	import { ROLE_LABELS } from '$lib/constants/roles';
 	import { t } from '$stores/i18n';
 
-	export let role: string;
-	export let ownerDomains: OwnerDomain[] = [];
-	export let loadingOwnerDomains = false;
-	export let ownerDomainsError = '';
-	export let newOwnerDomainHostname = '';
-	export let onAddDomain: () => void = () => {};
-	export let onUpdateDomain: (domain: OwnerDomain, changes: Partial<OwnerDomain>) => void = () => {};
-	export let onDeleteDomain: (domain: OwnerDomain) => void = () => {};
+	let {
+		role,
+		ownerDomains = [],
+		loadingOwnerDomains = $bindable(false),
+		ownerDomainsError = $bindable(''),
+		newOwnerDomainHostname = $bindable(''),
+		onAddDomain = () => {},
+		onUpdateDomain = () => {},
+		onDeleteDomain = () => {}
+	}: {
+		role: string;
+		ownerDomains?: OwnerDomain[];
+		loadingOwnerDomains?: boolean;
+		ownerDomainsError?: string;
+		newOwnerDomainHostname?: string;
+		onAddDomain?: () => void;
+		onUpdateDomain?: (domain: OwnerDomain, changes: Partial<OwnerDomain>) => void;
+		onDeleteDomain?: (domain: OwnerDomain) => void;
+	} = $props();
 </script>
 
 {#if role !== 'owner'}
@@ -50,7 +61,7 @@
 				/>
 				<button
 					type="button"
-					on:click={() => onAddDomain()}
+					onclick={() => onAddDomain()}
 					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md text-sm font-medium hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
 					disabled={loadingOwnerDomains || !newOwnerDomainHostname.trim()}
 				>
@@ -74,7 +85,7 @@
 									<input
 										type="checkbox"
 										checked={domain.active}
-										on:change={(e) =>
+										onchange={(e) =>
 											onUpdateDomain(domain, { active: (e.currentTarget as HTMLInputElement).checked })}
 									/>
 									<span>{$t('admin.ownerDomainsActive')}</span>
@@ -83,7 +94,7 @@
 									<input
 										type="checkbox"
 										checked={domain.isPrimary}
-										on:change={(e) =>
+										onchange={(e) =>
 											onUpdateDomain(domain, { isPrimary: (e.currentTarget as HTMLInputElement).checked })}
 									/>
 									<span>{$t('admin.ownerDomainsPrimary')}</span>
@@ -93,7 +104,7 @@
 						<button
 							type="button"
 							class="text-xs text-red-600 hover:text-red-800"
-							on:click={() => onDeleteDomain(domain)}
+							onclick={() => onDeleteDomain(domain)}
 						>
 							{$t('admin.ownerDomainsRemove')}
 						</button>

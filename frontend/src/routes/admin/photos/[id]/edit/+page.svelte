@@ -82,45 +82,45 @@
 		name: string | { en?: string; he?: string };
 	}
 
-	let photoId: string = '';
-	let photo: Photo | null = null;
-	let loading = true;
-	let saving = false;
-	let regeneratingThumbnails = false;
-	let rotatingPhoto = false;
-	let croppingPhoto = false;
-	let showCropModal = false;
-	let restoringOriginal = false;
-	let error = '';
+	let photoId: string = $state('');
+	let photo: Photo | null = $state(null);
+	let loading = $state(true);
+	let saving = $state(false);
+	let regeneratingThumbnails = $state(false);
+	let rotatingPhoto = $state(false);
+	let croppingPhoto = $state(false);
+	let showCropModal = $state(false);
+	let restoringOriginal = $state(false);
+	let error = $state('');
 	
-	let tags: Tag[] = [];
-	let people: Person[] = [];
-	let locations: Location[] = [];
-	let loadingOptions = true;
-	let loadPhotoCalled = false;
+	let tags: Tag[] = $state([]);
+	let people: Person[] = $state([]);
+	let locations: Location[] = $state([]);
+	let loadingOptions = $state(true);
+	let loadPhotoCalled = $state(false);
 	
 	// Popup states
-	let showTagsPopup = false;
-	let showPeoplePopup = false;
-	let showLocationPopup = false;
+	let showTagsPopup = $state(false);
+	let showPeoplePopup = $state(false);
+	let showLocationPopup = $state(false);
 	
 	// AI Tagging states
-	let showAITagSuggestions = false;
-	let aiTagSuggestionsLoading = false;
+	let showAITagSuggestions = $state(false);
+	let aiTagSuggestionsLoading = $state(false);
 	let aiTagSuggestions: Array<{
 		label: string;
 		confidence: number;
 		category?: string;
 		matchedTag?: { id: string; name: string };
 		isNewTag: boolean;
-	}> = [];
-	let aiTagSuggestionsError: string | null = null;
-	let aiTagProvider = 'local';
-	let aiTagProcessingTime = 0;
+	}> = $state([]);
+	let aiTagSuggestionsError: string | null = $state(null);
+	let aiTagProvider = $state('local');
+	let aiTagProcessingTime = $state(0);
 	
 	// Context-based Tag Suggestions states
-	let showContextTagSuggestions = false;
-	let contextTagSuggestionsLoading = false;
+	let showContextTagSuggestions = $state(false);
+	let contextTagSuggestionsLoading = $state(false);
 	let contextTagSuggestions: Array<{
 		label: string;
 		confidence: number;
@@ -129,19 +129,19 @@
 		isNewTag: boolean;
 		source?: string;
 		reason?: string;
-	}> = [];
-	let contextTagSuggestionsError: string | null = null;
+	}> = $state([]);
+	let contextTagSuggestionsError: string | null = $state(null);
 	let contextTagSources: {
 		similar: number;
 		iptc: number;
 		location: number;
 		cooccurrence: number;
-	} = { similar: 0, iptc: 0, location: 0, cooccurrence: 0 };
-	let relatedTagsLoading = false;
-	let relatedTagsError: string | null = null;
-	let relatedTags: RelatedTagSuggestion[] = [];
-	let applyingRelatedTagId: string | null = null;
-	let lastRelatedTagsKey = '';
+	} = $state({ similar: 0, iptc: 0, location: 0, cooccurrence: 0 });
+	let relatedTagsLoading = $state(false);
+	let relatedTagsError: string | null = $state(null);
+	let relatedTags: RelatedTagSuggestion[] = $state([]);
+	let applyingRelatedTagId: string | null = $state(null);
+	let lastRelatedTagsKey = $state('');
 	const DISMISS_FEEDBACK_DEBOUNCE_MS = 500;
 	const dismissFeedbackQueue: Record<'ai' | 'context', Set<string>> = {
 		ai: new Set<string>(),
@@ -151,12 +151,11 @@
 		ai: null,
 		context: null,
 	};
-	
 	// Track the last loaded photoId to prevent reloading the same photo
-	let lastLoadedPhotoId: string | null = null;
+	let lastLoadedPhotoId: string | null = $state(null);
 	
 	// Update photoId from route params reactively
-	$: {
+$effect(() => {
 		const id = $page.params.id || '';
 		if (id && id !== photoId) {
 			photoId = id;
@@ -164,11 +163,11 @@
 			loadPhotoCalled = false;
 			lastLoadedPhotoId = null; // Reset so new photo can be loaded
 		}
-	}
+	});
 	
 	// Load photo when photoId changes (for navigation between photos)
 	// Only trigger once per photoId change
-	$: if (browser && photoId && !loadPhotoCalled && photoId !== lastLoadedPhotoId) {
+$effect(() => { if (browser && photoId && !loadPhotoCalled && photoId !== lastLoadedPhotoId) {
 		loadPhoto().catch((err) => {
 			logger.error('[Reactive] loadPhoto error:', err);
 			error = handleError(err, 'Failed to load photo');
@@ -176,9 +175,9 @@
 			loadPhotoCalled = false; // Reset on error so it can retry
 			lastLoadedPhotoId = null; // Reset on error
 		});
-	}
+	} });
 
-	$: {
+$effect(() => {
 		const selectedTagIds = [...new Set((formData.tags || []).map((tagId) => String(tagId).trim()).filter(Boolean))].sort();
 		const relatedTagsKey = photoId && selectedTagIds.length > 0 ? `${photoId}:${selectedTagIds.join(',')}` : '';
 
@@ -191,9 +190,9 @@
 			lastRelatedTagsKey = relatedTagsKey;
 			loadRelatedTags(selectedTagIds, relatedTagsKey);
 		}
-	}
+	});
 
-	let formData = {
+	let formData = $state({
 		title: {} as Record<string, string>,
 		description: {} as Record<string, string>,
 		isPublished: false,
@@ -205,9 +204,9 @@
 		metadata: {} as Record<string, unknown>,
 		/** Override EXIF-derived fields (merged on save; does not wipe other EXIF) */
 		exifOverrides: { dateTime: '', make: '', model: '' } as { dateTime: string; make: string; model: string },
-	};
-	let descriptionLanguage = 'en';
-	let reExtractingExif = false;
+	});
+	let descriptionLanguage = $state('en');
+	let reExtractingExif = $state(false);
 
 	// Photo URL helper - uses shared utility
 	// Wrapper maintains backward compatibility with preferFullSize parameter
@@ -231,7 +230,7 @@
 		
 		loadPhotoCalled = true;
 		
-		let timeoutId: ReturnType<typeof setTimeout> | null = null;
+		let timeoutId: ReturnType<typeof setTimeout> | null = $state(null);
 		const controller = new AbortController();
 		
 		try {
@@ -262,7 +261,7 @@
 				const responseData = await response.json();
 				loading = false;
 				// Extract photo data from response (API returns { success: true, data: {...} })
-				let loadedPhoto = responseData.data || responseData;
+				let loadedPhoto = $state(responseData.data || responseData);
 				// Normalize faceRecognition so UI always gets a clean faces array (ensures reactivity after detect)
 				if (loadedPhoto?.faceRecognition?.faces && Array.isArray(loadedPhoto.faceRecognition.faces)) {
 					loadedPhoto = {
@@ -333,7 +332,7 @@
 					formData.description = {
 						...formData.description,
 						[$currentLanguage]: formData.description[descriptionLanguage]
-					};
+	};
 				}
 				formData.isPublished = photo.isPublished || false;
 				formData.isLeading = photo.isLeading || false;
@@ -367,7 +366,7 @@
 						: '',
 					make: (ex.make as string) ?? '',
 					model: (ex.model as string) ?? '',
-				};
+	};
 				// Trigger reactivity after mutating formData fields
 				formData = { ...formData };
 			}
@@ -410,7 +409,7 @@
 					);
 					return Object.keys(cleaned).length ? cleaned : undefined;
 				})(),
-			};
+	};
 			// EXIF overrides (merged with existing; only send non-empty)
 			const o = formData.exifOverrides;
 			if (o.dateTime.trim() || o.make.trim() || o.model.trim()) {
@@ -1147,7 +1146,7 @@
 								alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename}
 								class="max-w-full max-h-96 object-contain rounded-lg"
 								style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
-								on:error={(e) => {
+								onerror={(e) => {
 									const target = e.currentTarget as HTMLImageElement;
 									logger.error('[Photo Edit] Image load error:', {
 										src: target.src,
@@ -1156,7 +1155,7 @@
 									});
 									if (target) target.style.display = 'none';
 								}}
-								on:load={() => {
+								onload={() => {
 									logger.debug('[Photo Edit] Image loaded successfully:', photoUrl);
 								}}
 							/>
@@ -1188,7 +1187,7 @@
 						<div class="flex flex-wrap gap-2">
 							<button
 								type="button"
-								on:click={() => handleRotate(-90)}
+								onclick={() => handleRotate(-90)}
 								disabled={rotatingPhoto}
 								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50"
 								title="90° counter-clockwise"
@@ -1197,7 +1196,7 @@
 							</button>
 							<button
 								type="button"
-								on:click={() => handleRotate(90)}
+								onclick={() => handleRotate(90)}
 								disabled={rotatingPhoto}
 								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50"
 								title="90° clockwise"
@@ -1206,7 +1205,7 @@
 							</button>
 							<button
 								type="button"
-								on:click={() => handleRotate(180)}
+								onclick={() => handleRotate(180)}
 								disabled={rotatingPhoto}
 								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50"
 								title="180°"
@@ -1223,7 +1222,7 @@
 						<p class="text-xs font-medium text-(--color-surface-800-200) mb-2">Crop</p>
 						<button
 							type="button"
-							on:click={() => (showCropModal = true)}
+							onclick={() => (showCropModal = true)}
 							disabled={croppingPhoto || !photoUrl}
 							class="{adminBtnSecondary} text-sm {adminRingPrimary} disabled:opacity-50"
 							title="Crop photo"
@@ -1240,7 +1239,7 @@
 						{#if photo.canRestoreOriginal}
 							<button
 								type="button"
-								on:click={handleRestoreOriginal}
+								onclick={handleRestoreOriginal}
 								disabled={restoringOriginal}
 								class="px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 disabled:opacity-50"
 								title="Restore photo to the version before crop/edit"
@@ -1260,7 +1259,7 @@
 					<div class="mt-4 text-center">
 						<button
 							type="button"
-							on:click={handleRegenerateThumbnails}
+							onclick={handleRegenerateThumbnails}
 							disabled={regeneratingThumbnails}
 							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 						>
@@ -1275,7 +1274,7 @@
 
 			<!-- Form -->
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950">
-				<form on:submit={handleSubmit} class="p-6 space-y-6">
+				<form onsubmit={handleSubmit} class="p-6 space-y-6">
 					<!-- Title -->
 					<div>
 						<div class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
@@ -1315,7 +1314,7 @@
 								id="isPublished"
 								name="isPublished"
 								checked={formData.isPublished}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 							/>
 							<label for="isPublished" class="ml-2 block text-sm text-(--color-surface-800-200)">
@@ -1328,7 +1327,7 @@
 								id="isLeading"
 								name="isLeading"
 								checked={formData.isLeading}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 							/>
 							<label for="isLeading" class="ml-2 block text-sm text-(--color-surface-800-200)">
@@ -1341,7 +1340,7 @@
 								id="isGalleryLeading"
 								name="isGalleryLeading"
 								checked={formData.isGalleryLeading}
-								on:change={handleInputChange}
+								onchange={handleInputChange}
 								class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 							/>
 							<label for="isGalleryLeading" class="ml-2 block text-sm text-(--color-surface-800-200)">
@@ -1373,7 +1372,7 @@
 														{getTagName(tag)}
 														<button
 															type="button"
-															on:click={() => {
+															onclick={() => {
 																formData.tags = formData.tags.filter((id) => id !== tagId);
 																formData = formData;
 															}}
@@ -1389,7 +1388,7 @@
 									<!-- Add Tag Button -->
 									<button
 										type="button"
-										on:click={() => (showTagsPopup = true)}
+										onclick={() => (showTagsPopup = true)}
 										class="w-full px-3 py-2 text-sm border border-surface-300-700 rounded-md bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950) text-(--color-surface-800-200) flex items-center justify-center gap-2 mb-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1400,7 +1399,7 @@
 									<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
 										<button
 											type="button"
-											on:click={handleSuggestTags}
+											onclick={handleSuggestTags}
 											class="w-full px-3 py-2 text-sm border border-[color-mix(in_oklab,var(--color-primary-500)_24%,transparent)] rounded-md bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] text-(--color-primary-700) flex items-center justify-center gap-2"
 										>
 											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1410,7 +1409,7 @@
 										</button>
 										<button
 											type="button"
-											on:click={handleSuggestTagsFromContext}
+											onclick={handleSuggestTagsFromContext}
 											class="w-full px-3 py-2 text-sm border border-purple-300 rounded-md bg-purple-50 hover:bg-purple-100 text-purple-700 flex items-center justify-center gap-2"
 										>
 											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1435,7 +1434,7 @@
 													{#each relatedTags as relatedTag}
 														<button
 															type="button"
-															on:click={() => handleApplyRelatedTag(relatedTag.tagId)}
+															onclick={() => handleApplyRelatedTag(relatedTag.tagId)}
 															disabled={applyingRelatedTagId === relatedTag.tagId}
 															class="inline-flex items-center gap-2 rounded-md border border-purple-200 bg-(--color-surface-50-950) px-3 py-1.5 text-sm text-purple-700 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
 															title={`Seen ${relatedTag.count} time${relatedTag.count === 1 ? '' : 's'} with the selected tags`}
@@ -1479,7 +1478,7 @@
 														{getPersonName(person)}
 														<button
 															type="button"
-															on:click={() => {
+															onclick={() => {
 																formData.people = formData.people.filter((id) => id !== personId);
 																formData = formData;
 															}}
@@ -1495,9 +1494,9 @@
 									<!-- Add Person Button -->
 									<button
 										type="button"
-										on:click|preventDefault|stopPropagation={() => {
+										onclick={(e) => { e.preventDefault(); e.stopPropagation(); () => {
 											showPeoplePopup = true;
-										}}
+										(e); }}}
 										class="w-full px-3 py-2 text-sm border border-surface-300-700 rounded-md bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950) text-(--color-surface-800-200) flex items-center justify-center gap-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1529,7 +1528,7 @@
 													{getLocationName(location)}
 													<button
 														type="button"
-														on:click={() => {
+														onclick={() => {
 															formData = { ...formData, location: null };
 														}}
 														class="hover:text-purple-900"
@@ -1543,7 +1542,7 @@
 									<!-- Add Location Button -->
 									<button
 										type="button"
-										on:click={() => (showLocationPopup = true)}
+										onclick={() => (showLocationPopup = true)}
 										class="w-full px-3 py-2 text-sm border border-surface-300-700 rounded-md bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950) text-(--color-surface-800-200) flex items-center justify-center gap-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1625,7 +1624,7 @@
 								<h3 class="text-sm font-medium text-(--color-surface-800-200)">EXIF (from camera/file)</h3>
 								<button
 									type="button"
-									on:click={handleReExtractExif}
+									onclick={handleReExtractExif}
 									disabled={reExtractingExif}
 									class="px-3 py-1.5 text-sm font-medium text-(--color-primary-700) bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-md hover:bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] disabled:opacity-50"
 								>
@@ -1664,7 +1663,7 @@
 										type="datetime-local"
 										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										value={formData.exifOverrides.dateTime}
-										on:input={(e) => {
+										oninput={(e) => {
 											formData.exifOverrides = { ...formData.exifOverrides, dateTime: (e.currentTarget as HTMLInputElement).value };
 											formData = formData;
 										}}
@@ -1678,7 +1677,7 @@
 										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										placeholder="e.g. Canon"
 										value={formData.exifOverrides.make}
-										on:input={(e) => {
+										oninput={(e) => {
 											formData.exifOverrides = { ...formData.exifOverrides, make: (e.currentTarget as HTMLInputElement).value };
 											formData = formData;
 										}}
@@ -1692,7 +1691,7 @@
 										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										placeholder="e.g. EOS R5"
 										value={formData.exifOverrides.model}
-										on:input={(e) => {
+										oninput={(e) => {
 											formData.exifOverrides = { ...formData.exifOverrides, model: (e.currentTarget as HTMLInputElement).value };
 											formData = formData;
 										}}
@@ -1711,7 +1710,7 @@
 										id="meta-rating"
 										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										value={formData.metadata?.rating ?? ''}
-										on:change={(e) => {
+										onchange={(e) => {
 											const v = (e.currentTarget as HTMLSelectElement).value;
 											formData.metadata = { ...formData.metadata, rating: v === '' ? undefined : Number(v) };
 											formData = formData;
@@ -1731,7 +1730,7 @@
 										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										placeholder="e.g. Event, Project"
 										value={formData.metadata?.category ?? ''}
-										on:input={(e) => {
+										oninput={(e) => {
 											const v = (e.currentTarget as HTMLInputElement).value.trim();
 											formData.metadata = { ...formData.metadata, category: v || undefined };
 											formData = formData;
@@ -1840,15 +1839,15 @@
 	processingTime={aiTagProcessingTime}
 	onApply={handleApplyAITags}
 	onDismiss={handleDismissAISuggestion}
-	on:close={() => {
+	onclose={() => {
 		queueSuggestionDismissFeedback('ai', aiTagSuggestions);
 		void flushSuggestionDismissFeedback('ai');
 		showAITagSuggestions = false;
 		aiTagSuggestions = [];
 		aiTagSuggestionsError = null;
 	}}
-	on:apply={(e) => handleApplyAITags(e.detail)}
-	on:dismiss={(e) => handleDismissAISuggestion(e.detail)}
+	onapply={(e) => handleApplyAITags(e.detail)}
+	ondismiss={(e) => handleDismissAISuggestion(e.detail)}
 />
 
 <TagSuggestionsModal
@@ -1860,15 +1859,15 @@
 	processingTime={0}
 	onApply={handleApplyContextTags}
 	onDismiss={handleDismissContextSuggestion}
-	on:close={() => {
+	onclose={() => {
 		queueSuggestionDismissFeedback('context', contextTagSuggestions);
 		void flushSuggestionDismissFeedback('context');
 		showContextTagSuggestions = false;
 		contextTagSuggestions = [];
 		contextTagSuggestionsError = null;
 	}}
-	on:apply={(e) => handleApplyContextTags(e.detail)}
-	on:dismiss={(e) => handleDismissContextSuggestion(e.detail)}
+	onapply={(e) => handleApplyContextTags(e.detail)}
+	ondismiss={(e) => handleDismissContextSuggestion(e.detail)}
 />
 
 <CollectionPopup
@@ -1895,8 +1894,8 @@
 				class="fixed inset-0 transition-opacity bg-(--color-surface-50-950)0 bg-opacity-75"
 				role="button"
 				tabindex="-1"
-				on:click={() => (showCropModal = false)}
-				on:keydown={(e) => {
+				onclick={() => (showCropModal = false)}
+				onkeydown={(e) => {
 					if (e.key === 'Escape') {
 						showCropModal = false;
 					}
@@ -1912,7 +1911,7 @@
 						<h3 class="text-lg font-medium text-(--color-surface-950-50)">Crop Photo</h3>
 						<button
 							type="button"
-							on:click={() => (showCropModal = false)}
+							onclick={() => (showCropModal = false)}
 							class="text-(--color-surface-400-600) hover:text-(--color-surface-600-400)"
 							aria-label="Close crop modal"
 						>

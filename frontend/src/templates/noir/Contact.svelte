@@ -4,7 +4,11 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import type { PageData } from '$lib/types/page-builder';
 
-	export let page: PageData | null = null;
+	let {
+		page = null
+	}: {
+		page?: PageData | null;
+	} = $props();
 </script>
 
 <div class="min-h-screen w-full bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)] px-8 py-16">

@@ -6,13 +6,22 @@
 	import { logger } from '$lib/utils/logger';
 	import { linkifyCommentBody } from '$lib/utils/linkifyCommentBody';
 
-	export let albumId: string;
-	export let albumCreatorId: string;
-	export let albumAlias = '';
-	/** When set, only comments for this photo (or thread on this photo). */
-	export let photoId: string | undefined = undefined;
-	export let variant: 'light' | 'dark' = 'light';
-	export let compact = false;
+	let {
+		albumId,
+		albumCreatorId,
+		albumAlias = $bindable(''),
+		/** When set, only comments for this photo (or thread on this photo). */
+		photoId = undefined,
+		variant = 'light',
+		compact = $bindable(false)
+	}: {
+		albumId: string;
+		albumCreatorId: string;
+		albumAlias?: string;
+		photoId?: string | undefined;
+		variant?: 'light' | 'dark';
+		compact?: boolean;
+	} = $props();
 
 	interface CommentRow {
 		_id: string;
@@ -35,10 +44,9 @@
 	let replyingTo: CommentRow | null = null;
 	let mounted = false;
 
-	$: canModerate =
-		$auth.authenticated &&
+const canModerate = $derived($auth.authenticated &&
 		$auth.user &&
-		($auth.user.role === 'admin' || $auth.user.id === albumCreatorId);
+		($auth.user.role === 'admin' || $auth.user.id === albumCreatorId));
 
 	function buildTree(flat: CommentRow[]) {
 		const roots = flat.filter((c) => !c.parentCommentId);
@@ -57,18 +65,20 @@
 		return { roots, byParent };
 	}
 
-	$: tree = buildTree(comments);
+	const tree = $derived(buildTree(comments));
 
 	onMount(async () => {
 		await loadSession();
 		mounted = true;
 	});
 
-	$: if (browser && mounted && albumId) {
-		photoId;
-		canModerate;
-		void refreshComments();
-	}
+	$effect(() => {
+		if (browser && mounted && albumId) {
+			photoId;
+			canModerate;
+			void refreshComments();
+		}
+	});
 
 	async function refreshComments() {
 		loading = true;
@@ -157,18 +167,18 @@
 		}
 	}
 
-	$: wrapClass =
-		variant === 'dark'
+const wrapClass = $derived(variant === 'dark'
 			? 'rounded-lg border border-white/20 bg-black/50 p-4 text-white shadow-none'
-			: 'rounded-lg border border-gray-200 bg-white p-6 shadow-sm';
+			: 'rounded-lg border border-gray-200 bg-white p-6 shadow-sm');
 
-	$: titleClass = variant === 'dark' ? 'text-lg font-semibold text-white' : 'text-lg font-semibold text-gray-900';
-	$: metaClass = variant === 'dark' ? 'text-xs text-white/60' : 'text-xs text-gray-500';
-	$: bodyClass = variant === 'dark' ? 'text-sm text-white/90 whitespace-pre-wrap' : 'text-sm text-gray-700 whitespace-pre-wrap';
-	$: inputClass =
+const titleClass = $derived(variant === 'dark' ? 'text-lg font-semibold text-white' : 'text-lg font-semibold text-gray-900');
+	const metaClass = $derived(variant === 'dark' ? 'text-xs text-white/60' : 'text-xs text-gray-500');
+const bodyClass = $derived(variant === 'dark' ? 'text-sm text-white/90 whitespace-pre-wrap' : 'text-sm text-gray-700 whitespace-pre-wrap');
+	const inputClass = $derived(
 		variant === 'dark'
 			? 'w-full rounded-md border border-white/30 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/50'
-			: 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500';
+			: 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500'
+	);
 </script>
 
 <section
@@ -217,7 +227,7 @@
 								<button
 									type="button"
 									class={variant === 'dark' ? 'text-sky-400 hover:underline' : 'text-primary-600 hover:underline'}
-									on:click={() => (replyingTo = replyingTo?._id === c._id ? null : c)}
+									onclick={() => (replyingTo = replyingTo?._id === c._id ? null : c)}
 								>
 									{$t('albums.commentsReply')}
 								</button>
@@ -226,7 +236,7 @@
 								<button
 									type="button"
 									class={variant === 'dark' ? 'text-sky-400 hover:underline' : 'text-primary-600 hover:underline'}
-									on:click={() => report(c)}
+									onclick={() => report(c)}
 								>
 									{$t('albums.commentsReport')}
 								</button>
@@ -235,7 +245,7 @@
 								<button
 									type="button"
 									class={variant === 'dark' ? 'text-sky-400 hover:underline' : 'text-primary-600 hover:underline'}
-									on:click={() => setHidden(c, !c.hidden)}
+									onclick={() => setHidden(c, !c.hidden)}
 								>
 									{c.hidden ? $t('albums.commentsShow') : $t('albums.commentsHide')}
 								</button>
@@ -261,7 +271,7 @@
 												<button
 													type="button"
 													class={variant === 'dark' ? 'text-sky-400 hover:underline' : 'text-primary-600 hover:underline'}
-													on:click={() => report(r)}
+													onclick={() => report(r)}
 												>
 													{$t('albums.commentsReport')}
 												</button>
@@ -270,7 +280,7 @@
 												<button
 													type="button"
 													class={variant === 'dark' ? 'text-sky-400 hover:underline' : 'text-primary-600 hover:underline'}
-													on:click={() => setHidden(r, !r.hidden)}
+													onclick={() => setHidden(r, !r.hidden)}
 												>
 													{r.hidden ? $t('albums.commentsShow') : $t('albums.commentsHide')}
 												</button>
@@ -294,7 +304,7 @@
 				<p class="mb-2 text-xs opacity-80">
 					{$t('albums.commentsReplyingTo')}
 					{replyingTo.author.displayName || replyingTo.author.username}
-					<button type="button" class="ml-2 underline" on:click={() => (replyingTo = null)}>
+					<button type="button" class="ml-2 underline" onclick={() => (replyingTo = null)}>
 						{$t('albums.commentsCancelReply')}
 					</button>
 				</p>
@@ -316,7 +326,7 @@
 				type="button"
 				disabled={posting || !draft.trim()}
 				class="mt-2 inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-				on:click={submitComment}
+				onclick={submitComment}
 			>
 				{posting ? $t('albums.commentsPosting') : $t('albums.commentsPost')}
 			</button>

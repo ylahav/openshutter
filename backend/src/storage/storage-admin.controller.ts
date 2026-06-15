@@ -1,13 +1,48 @@
-import { Controller, Get, Put, Post, Body, Param, Query, UseGuards, BadRequestException, Logger } from '@nestjs/common';
+import { Controller, Get, Put, Patch, Post, Body, Param, Query, UseGuards, BadRequestException, Logger, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { storageConfigService } from '../services/storage/config';
 import { StorageManager } from '../services/storage/manager';
 import type { StorageProviderId } from '../services/storage/types';
+import { resolveGoogleOAuthRedirectUri } from '../services/storage/google-oauth-redirect';
+import { resolveGoogleDriveStorageType, mergeGoogleDriveStorageTypeFields } from '../services/storage/google-drive-storage-type';
+import { buildGoogleDriveTestDebugFromDb } from '../services/storage/google-drive-config-debug';
 
 @Controller('admin/storage')
 @UseGuards(AdminGuard)
 export class StorageAdminController {
   private readonly logger = new Logger(StorageAdminController.name);
+
+  private parseEnabledFlag(value: unknown): boolean | undefined {
+    if (value === true || value === 'true' || value === 1) return true;
+    if (value === false || value === 'false' || value === 0) return false;
+    return undefined;
+  }
+
+  /**
+   * Enable or disable a provider without touching credentials/config.
+   * Path: PATCH /api/admin/storage/:providerId/enabled
+   */
+  @Patch(':providerId/enabled')
+  @UsePipes(new ValidationPipe({ whitelist: false, transform: true }))
+  async setProviderEnabled(
+    @Param('providerId') providerId: string,
+    @Body() body: { enabled?: boolean; isEnabled?: boolean },
+  ) {
+    const enabledFlag = this.parseEnabledFlag(body?.enabled ?? body?.isEnabled);
+    if (enabledFlag === undefined) {
+      throw new BadRequestException('Request body must include enabled: true or false');
+    }
+    this.logger.log(
+      `[setProviderEnabled] ${providerId} -> ${enabledFlag}`,
+    );
+    StorageManager.getInstance().removeFromCache(providerId as StorageProviderId);
+    const result = await storageConfigService.setProviderEnabled(
+      providerId as StorageProviderId,
+      enabledFlag,
+    );
+    return result;
+  }
+
   /**
    * Get all storage configurations
    * Path: GET /api/admin/storage
@@ -15,9 +50,8 @@ export class StorageAdminController {
   @Get()
   async getAllConfigs() {
     try {
-      // Force cache refresh to ensure we have the latest data
-      // This is especially important after saves
-      const configs = await storageConfigService.getAllConfigs();
+      // Force fresh read from MongoDB for admin UI (avoid stale 5-minute cache).
+      const configs = await storageConfigService.getAllConfigsFresh();
       
       // Initialize defaults if no configs exist
       if (!configs || configs.length === 0) {
@@ -26,16 +60,57 @@ export class StorageAdminController {
       }
       
       // Ensure all configs have the proper structure and remove any duplicate top-level fields
+      const flattenConfig = (obj: any, depth = 0): any => {
+        if (depth > 5 || !obj || typeof obj !== 'object') return obj ?? {};
+        const flattened: any = {};
+        Object.keys(obj).forEach((key) => {
+          if (key === 'isEnabled') return;
+          if (key === 'config' && typeof obj[key] === 'object' && obj[key] !== null) {
+            const nestedFlattened = flattenConfig(obj[key], depth + 1);
+            Object.keys(nestedFlattened).forEach((nestedKey) => {
+              if (nestedKey === 'storageType') {
+                flattened.storageType = mergeGoogleDriveStorageTypeFields(
+                  flattened.storageType,
+                  nestedFlattened.storageType,
+                );
+              } else {
+                flattened[nestedKey] = nestedFlattened[nestedKey];
+              }
+            });
+          } else if (obj[key] !== undefined && obj[key] !== null) {
+            flattened[key] = obj[key];
+          }
+        });
+        return flattened;
+      };
+
       const normalizedConfigs = configs.map(config => {
         // Create a clean config object with only the fields we want
         // Remove isEnabled from config object if it exists (it should only be at root level)
         const rawConfigObj = config.config || {};
-        const { isEnabled: _, ...cleanConfigObj } = rawConfigObj;
+        const { isEnabled: _, ...cleanConfigObj } = flattenConfig(rawConfigObj);
+        if (config.providerId === 'google-drive') {
+          cleanConfigObj.storageType = resolveGoogleDriveStorageType({
+            config: rawConfigObj as Record<string, unknown>,
+            root: config as unknown as Record<string, unknown>,
+          });
+        } else {
+          const docStorageType = (config as { storageType?: string }).storageType;
+          if (!cleanConfigObj.storageType && docStorageType) {
+            cleanConfigObj.storageType = docStorageType;
+          }
+        }
         
+        const rootEnabled = config.isEnabled === true;
+        const nestedEnabled =
+          rawConfigObj &&
+          typeof rawConfigObj === 'object' &&
+          (rawConfigObj as { isEnabled?: boolean }).isEnabled === true;
+
         const cleanConfig: any = {
           providerId: config.providerId,
           name: config.name,
-          isEnabled: config.isEnabled !== undefined ? config.isEnabled : false,
+          isEnabled: rootEnabled || nestedEnabled,
           config: cleanConfigObj, // Config object without isEnabled
           createdAt: config.createdAt,
           updatedAt: config.updatedAt
@@ -108,11 +183,28 @@ export class StorageAdminController {
    * Path: PUT /api/admin/storage/:providerId
    */
   @Put(':providerId')
+  @UsePipes(new ValidationPipe({ whitelist: false, transform: true }))
   async updateConfig(
     @Param('providerId') providerId: string,
     @Body() updates: any,
   ) {
     try {
+      const enabledFlag = this.parseEnabledFlag(updates?.isEnabled);
+      const configFieldKeys = Object.keys(updates ?? {}).filter(
+        (key) =>
+          key !== 'isEnabled' &&
+          key !== 'config' &&
+          updates[key] !== undefined &&
+          updates[key] !== null,
+      );
+      if (enabledFlag !== undefined && configFieldKeys.length === 0 && updates?.config === undefined) {
+        this.logger.log(`[updateConfig] enable-only shortcut for ${providerId} -> ${enabledFlag}`);
+        return storageConfigService.setProviderEnabled(
+          providerId as StorageProviderId,
+          enabledFlag,
+        );
+      }
+
       // Get existing config or initialize defaults if it doesn't exist
       let existingConfig;
       try {
@@ -150,10 +242,10 @@ export class StorageAdminController {
       };
 
       // Extract isEnabled if provided (can be at top level or in config)
-      if (updates.isEnabled !== undefined) {
-        structuredUpdates.isEnabled = updates.isEnabled;
+      if (enabledFlag !== undefined) {
+        structuredUpdates.isEnabled = enabledFlag;
       } else if (existingConfig.isEnabled !== undefined) {
-        structuredUpdates.isEnabled = existingConfig.isEnabled;
+        structuredUpdates.isEnabled = existingConfig.isEnabled === true;
       }
 
       // Build the config object - merge existing config with updates
@@ -223,12 +315,26 @@ export class StorageAdminController {
         structuredUpdates.config = finalClean;
       }
       
-      // Debug: log storageType specifically for Google Drive
       if (providerId === 'google-drive') {
+        structuredUpdates.config.redirectUri = resolveGoogleOAuthRedirectUri(
+          String(structuredUpdates.config.redirectUri ?? ''),
+        );
+        if (typeof cleanedConfigUpdates.refreshToken === 'string' && cleanedConfigUpdates.refreshToken.trim()) {
+          structuredUpdates.config.refreshToken = cleanedConfigUpdates.refreshToken.trim();
+        }
+        const incomingStorageType = String(
+          cleanedConfigUpdates.storageType ?? updates.storageType ?? '',
+        ).trim().toLowerCase();
+        if (incomingStorageType === 'visible' || incomingStorageType === 'appdata') {
+          structuredUpdates.config.storageType = incomingStorageType;
+        } else if (!structuredUpdates.config.storageType) {
+          structuredUpdates.config.storageType = 'appdata';
+        }
         this.logger.debug(`[updateConfig] Google Drive storageType update: ${JSON.stringify({
           incoming: cleanedConfigUpdates.storageType,
           existing: cleanExistingConfig.storageType,
-          final: structuredUpdates.config.storageType
+          final: structuredUpdates.config.storageType,
+          redirectUri: structuredUpdates.config.redirectUri ? '(set)' : '(missing)',
         })}`);
       }
       
@@ -241,9 +347,9 @@ export class StorageAdminController {
       // Note: updateConfig will use $set which should only update specified fields
       // But we need to ensure we don't accidentally set empty top-level fields
       await storageConfigService.updateConfig(providerId as StorageProviderId, structuredUpdates);
+      StorageManager.getInstance().removeFromCache(providerId as StorageProviderId);
       
       // Force cache refresh to ensure we return the latest data
-      // The updateConfig already invalidates cache, but we need to ensure it's refreshed
       const updatedConfig = await storageConfigService.getConfig(providerId as StorageProviderId);
       
       this.logger.debug(`[updateConfig] Updated config for ${providerId}: ${JSON.stringify({
@@ -251,7 +357,7 @@ export class StorageAdminController {
         isEnabled: updatedConfig.isEnabled,
         hasConfig: !!updatedConfig.config,
         configKeys: updatedConfig.config ? Object.keys(updatedConfig.config) : [],
-        storageType: updatedConfig.config?.storageType || 'not set'
+        storageType: updatedConfig.config?.storageType || 'not set',
       })}`);
       
       return updatedConfig;
@@ -271,20 +377,11 @@ export class StorageAdminController {
   async testConnection(@Param('providerId') providerId: string) {
     try {
       const config = await storageConfigService.getConfig(providerId as StorageProviderId);
-      
-      if (!config.isEnabled) {
-        return {
-          success: false,
-          error: 'Storage provider is not enabled',
-          details: {
-            providerId,
-            isEnabled: config.isEnabled
-          }
-        };
-      }
+      const googleDriveDebug =
+        providerId === 'google-drive' ? await buildGoogleDriveTestDebugFromDb('google-drive') : undefined;
 
       const storageManager = StorageManager.getInstance();
-      const provider = await storageManager.getProvider(providerId as StorageProviderId);
+      const provider = await storageManager.getProviderForConfigTest(providerId as StorageProviderId);
       
       // Use validateConnection for testing (more reliable than listFolders)
       try {
@@ -293,6 +390,7 @@ export class StorageAdminController {
           return {
             success: true,
             message: 'Connection test successful',
+            ...(googleDriveDebug ? { debug: googleDriveDebug } : {}),
           };
         } else {
           return {
@@ -302,6 +400,7 @@ export class StorageAdminController {
               providerId,
               message: 'The storage provider validation failed without throwing an error'
             },
+            ...(googleDriveDebug ? { debug: googleDriveDebug } : {}),
             suggestions: [
               'Check that all configuration fields are correct',
               'Verify that the credentials have the necessary permissions',
@@ -388,6 +487,10 @@ export class StorageAdminController {
 
         if (suggestions.length > 0) {
           response.suggestions = suggestions;
+        }
+
+        if (googleDriveDebug) {
+          response.debug = googleDriveDebug;
         }
 
         return response;
@@ -510,14 +613,8 @@ export class StorageAdminController {
     @Query('maxDepth') maxDepth?: string
   ) {
     try {
-      const config = await storageConfigService.getConfig(providerId as StorageProviderId);
-      
-      if (!config.isEnabled) {
-        throw new BadRequestException(`${providerId} storage provider is not enabled`);
-      }
-
       const storageManager = StorageManager.getInstance();
-      const provider = await storageManager.getProvider(providerId as StorageProviderId);
+      const provider = await storageManager.getProviderForConfigTest(providerId as StorageProviderId);
       
       // Check if the provider has the getFolderTree method
       if (typeof (provider as any).getFolderTree !== 'function') {

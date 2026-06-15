@@ -18,18 +18,39 @@
 		config?: FeatureGridProps;
 	} & FeatureGridProps;
 
-	export let title: NonNullable<FeatureGridProps['title']> = '';
-	export let subtitle: FeatureGridProps['subtitle'] = undefined;
-	export let features: NonNullable<FeatureGridProps['features']> = [];
+	let {
+		title = '',
+		subtitle = undefined,
+		features = [],
+		props,
+		data,
+		compact,
+		...rest
+	}: {
+		title?: FeatureGridProps['title'];
+		subtitle?: FeatureGridProps['subtitle'];
+		features?: FeatureGridProps['features'];
+		props?: LegacyFeatureGridProps;
+		data?: unknown;
+		compact?: boolean;
+		[key: string]: unknown;
+	} = $props();
 
-	// Temporary migration fallback for legacy nested props.config payloads
-	export let props: LegacyFeatureGridProps | undefined = undefined;
-	$: config = (props?.config ??
-		(props && typeof props === 'object' ? props : undefined) ?? {
-			title,
-			subtitle,
-			features
-		}) satisfies FeatureGridProps;
+	const config = $derived.by((): FeatureGridProps => {
+		if (props !== undefined) {
+			return (props.config ??
+				(props && typeof props === 'object' ? props : undefined) ?? {
+					title,
+					subtitle,
+					features
+				}) as FeatureGridProps;
+		}
+		const spread = rest as FeatureGridProps;
+		if (spread.title !== undefined || spread.features !== undefined || spread.subtitle !== undefined) {
+			return spread;
+		}
+		return { title, subtitle, features };
+	});
 </script>
 
 <Layout config={config} />

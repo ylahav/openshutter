@@ -1,6 +1,5 @@
 <!-- frontend/src/lib/page-builder/modules/AlbumGallery/Layout.svelte -->
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
@@ -92,23 +91,29 @@
 		lastPhotoDate?: string | Date;
 	};
 
-	export let config: AlbumGalleryLayoutConfig = {};
-	export let data: any = null;
+	let { config = {}, data = null }: { config?: AlbumGalleryLayoutConfig; data?: any } = $props();
 
-	$: albumGridPack = normalizeTemplatePackId(
-		$activeTemplate ??
-			$siteConfigData?.template?.frontendTemplate ??
-			$siteConfigData?.template?.activeTemplate
-	) as TemplatePackId;
-	$: isNoirPack = albumGridPack === 'noir';
-	$: noirAlbumGrid = isNoirPack && config?.albumsGridVariant === true;
-
-	let sortBy: AlbumCardSortBy = 'manual';
-	let sortDirection: 'asc' | 'desc' = 'asc';
-
-	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
-	$: descriptionHTML = config?.description ? MultiLangUtils.getHTMLValue(config.description, $currentLanguage) : '';
-	$: albumHeaderFieldOrder = (() => {
+	const albumGridPack = $derived(
+		normalizeTemplatePackId(
+			$activeTemplate ??
+				$siteConfigData?.template?.frontendTemplate ??
+				$siteConfigData?.template?.activeTemplate
+		) as TemplatePackId
+	);
+	const isNoirPack = $derived(albumGridPack === 'noir');
+	const noirAlbumGrid = $derived(isNoirPack && config?.albumsGridVariant === true);
+	const titleText = $derived(MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '');
+	const descriptionHTML = $derived(
+		config?.description ? MultiLangUtils.getHTMLValue(config.description, $currentLanguage) : ''
+	);
+	const selectedAlbums = $derived(
+		Array.isArray(config?.selectedAlbums)
+			? config.selectedAlbums
+			: [config?.rootAlbumId, config?.rootGallery].filter(
+					(v): v is string => typeof v === 'string' && v.trim().length > 0
+				)
+	);
+	const albumHeaderFieldOrder = $derived.by(() => {
 		const def: Array<'albumTitle' | 'albumDescription' | 'albumStats'> = ['albumTitle', 'albumDescription', 'albumStats'];
 		const raw = Array.isArray(config?.albumHeaderFieldOrder) ? config.albumHeaderFieldOrder : def;
 		const valid = raw.filter(
@@ -117,32 +122,30 @@
 		);
 		const unique = Array.from(new Set(valid));
 		return unique.length ? unique : def;
-	})();
-	$: showAlbumPageTitle = config?.showAlbumPageTitle !== false;
-	$: showAlbumPageDescription = config?.showAlbumPageDescription !== false;
-	$: showAlbumPageStats = config?.showAlbumPageStats !== false;
-	$: showAlbumHero = config?.showAlbumHero === true;
+	});
+	const showAlbumPageTitle = $derived(config?.showAlbumPageTitle !== false);
+	const showAlbumPageDescription = $derived(config?.showAlbumPageDescription !== false);
+	const showAlbumPageStats = $derived(config?.showAlbumPageStats !== false);
+	const showAlbumHero = $derived(config?.showAlbumHero === true);
 	/** 'root' = root-level albums only (no children), 'featured' = all featured albums (flattened), 'selected' = specific album IDs, 'current' = album from URL (alias) */
-	$: albumSource = config?.albumSource ?? 'root';
-	$: selectedAlbums = Array.isArray(config?.selectedAlbums)
-		? config.selectedAlbums
-		: [config?.rootAlbumId, config?.rootGallery].filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
-	$: includeRoot = config?.includeRoot ?? true;
-	$: showTitle = config?.showTitle !== false;
-	$: showAlbumTitle = config?.showAlbumTitle ?? showTitle;
-	$: showPhotoTitle = config?.showPhotoTitle ?? showTitle;
-	$: showCover = config?.showCover !== false;
-	$: coverAspect =
+	const albumSource = $derived(config?.albumSource ?? 'root');
+	const includeRoot = $derived(config?.includeRoot ?? true);
+	const showTitle = $derived(config?.showTitle !== false);
+	const showAlbumTitle = $derived(config?.showAlbumTitle ?? showTitle);
+	const showPhotoTitle = $derived(config?.showPhotoTitle ?? showTitle);
+	const showCover = $derived(config?.showCover !== false);
+	const coverAspect = $derived(
 		config?.coverAspect === 'square' || config?.coverAspect === 'portrait' || config?.coverAspect === 'video'
 			? config.coverAspect
 			: noirAlbumGrid
 				? 'square'
-				: 'video';
-	$: showDescription = noirAlbumGrid ? config?.showDescription === true : config?.showDescription !== false;
-	$: showAlbumDescription = config?.showAlbumDescription ?? showDescription;
-	$: showPhotoDescription = config?.showPhotoDescription ?? showDescription;
-	$: descriptionLines = Math.min(6, Math.max(1, Number(config?.descriptionLines) || 2));
-	$: cardFieldOrder = (() => {
+				: 'video'
+	);
+	const showDescription = $derived(noirAlbumGrid ? config?.showDescription === true : config?.showDescription !== false);
+	const showAlbumDescription = $derived(config?.showAlbumDescription ?? showDescription);
+	const showPhotoDescription = $derived(config?.showPhotoDescription ?? showDescription);
+	const descriptionLines = $derived(Math.min(6, Math.max(1, Number(config?.descriptionLines) || 2)));
+	const cardFieldOrder = $derived.by(() => {
 		const legacyOrder: AlbumCardField[] =
 			config?.cardLayout === 'titlePhotoDescription'
 				? ['title', 'cover', 'description', 'photoCount', 'featuredBadge']
@@ -151,14 +154,14 @@
 		const valid = raw.filter((f): f is AlbumCardField => DEFAULT_CARD_FIELD_ORDER.includes(f as AlbumCardField));
 		const unique = Array.from(new Set(valid));
 		return unique.length ? unique : DEFAULT_CARD_FIELD_ORDER;
-	})();
-	$: albumCardFieldOrder = (() => {
+	});
+	const albumCardFieldOrder = $derived.by(() => {
 		const raw = Array.isArray(config?.albumCardFieldOrder) ? config.albumCardFieldOrder : cardFieldOrder;
 		const valid = raw.filter((f): f is AlbumCardField => DEFAULT_CARD_FIELD_ORDER.includes(f as AlbumCardField));
 		const unique = Array.from(new Set(valid));
 		return unique.length ? unique : DEFAULT_CARD_FIELD_ORDER;
-	})();
-	$: photoCardFieldOrder = (() => {
+	});
+	const photoCardFieldOrder = $derived.by(() => {
 		const defaultPhotoOrder: Array<'cover' | 'title' | 'description' | 'featuredBadge'> = ['cover', 'title', 'description', 'featuredBadge'];
 		const raw = Array.isArray(config?.photoCardFieldOrder)
 			? config.photoCardFieldOrder
@@ -169,46 +172,51 @@
 		);
 		const unique = Array.from(new Set(valid));
 		return unique.length ? unique : defaultPhotoOrder;
-	})();
-	$: showPhotoCount = config?.showPhotoCount !== false;
-	$: showFeaturedBadge = config?.showFeaturedBadge !== false;
-	$: showAlbumFeaturedBadge = config?.showAlbumFeaturedBadge ?? showFeaturedBadge;
-	$: showPhotoFeaturedBadge = config?.showPhotoFeaturedBadge ?? showFeaturedBadge;
-	$: cardDataType =
+	});
+	const showPhotoCount = $derived(config?.showPhotoCount !== false);
+	const showFeaturedBadge = $derived(config?.showFeaturedBadge !== false);
+	const showAlbumFeaturedBadge = $derived(config?.showAlbumFeaturedBadge ?? showFeaturedBadge);
+	const showPhotoFeaturedBadge = $derived(config?.showPhotoFeaturedBadge ?? showFeaturedBadge);
+	const cardDataType = $derived(
 		config?.cardDataType === 'subAlbums' || config?.cardDataType === 'photos' || config?.cardDataType === 'both'
 			? config.cardDataType
-			: 'both';
-	$: mixedDisplayMode = config?.mixedDisplayMode === 'interleaved' ? 'interleaved' : 'grouped';
+			: 'both'
+	);
+	const mixedDisplayMode = $derived(config?.mixedDisplayMode === 'interleaved' ? 'interleaved' : 'grouped');
 	/** AlbumsGrid sets `albumsGridVariant`; hide "Sub-albums" / "Photos" row titles unless `showHeading` is explicitly true (same for all packs). */
-	$: showGridSectionHeadings =
+	const showGridSectionHeadings = $derived(
 		config?.albumsGridVariant === true
 			? config?.showHeading === true
 			: config?.showHeading === false
 				? false
 				: config?.showHeading === true
 					? true
-					: config?.showSectionLabels !== false;
-	$: albumCardLayout = (config?.albumCardLayout === 'row' ? 'row' : 'stack') as 'stack' | 'row';
-	$: themeAlbumCard = $siteConfigData?.template?.albumCard;
-	$: themePhotoCard = $siteConfigData?.template?.photoCard;
-	$: moduleAlbumCard = config?.albumCard ?? config?.albumCardVariant;
-	$: modulePhotoCard = config?.photoCard ?? config?.photoGridVariant;
-	$: albumCardVisual = resolveAlbumCardVariant(
-		moduleAlbumCard,
-		themeAlbumCard,
-		albumGridPack,
-		noirAlbumGrid,
-		albumCardLayout
+					: config?.showSectionLabels !== false
 	);
-	$: photoGridVisual = resolvePhotoGridVariant(modulePhotoCard, themePhotoCard, albumGridPack);
-	$: photoGridForLayout =
+	const albumCardLayout = $derived((config?.albumCardLayout === 'row' ? 'row' : 'stack') as 'stack' | 'row');
+	const themeAlbumCard = $derived($siteConfigData?.template?.albumCard);
+	const themePhotoCard = $derived($siteConfigData?.template?.photoCard);
+	const moduleAlbumCard = $derived(config?.albumCard ?? config?.albumCardVariant);
+	const modulePhotoCard = $derived(config?.photoCard ?? config?.photoGridVariant);
+	const albumCardVisual = $derived(
+		resolveAlbumCardVariant(
+			moduleAlbumCard,
+			themeAlbumCard,
+			albumGridPack,
+			noirAlbumGrid,
+			albumCardLayout
+		)
+	);
+	const photoGridVisual = $derived(resolvePhotoGridVariant(modulePhotoCard, themePhotoCard, albumGridPack));
+	const photoGridForLayout = $derived(
 		mixedDisplayMode === 'interleaved' &&
-		(photoGridVisual === 'largePreview' || photoGridVisual === 'justifiedRows')
+			(photoGridVisual === 'largePreview' || photoGridVisual === 'justifiedRows')
 			? 'default'
-			: photoGridVisual;
-	$: photoCardPres = photoCardPresentation(photoGridForLayout);
+			: photoGridVisual
+	);
+	const photoCardPres = $derived(photoCardPresentation(photoGridForLayout));
 
-	$: albumListBaseClass = (() => {
+	const albumListBaseClass = $derived.by(() => {
 		if (albumCardVisual === 'compactList') {
 			return 'pb-albumGallery__list pb-albumGallery__list--compactAlbums';
 		}
@@ -217,45 +225,51 @@
 		}
 		const portraitExtra = albumCardVisual === 'portraitGrid' ? ' pb-albumGallery__list--portraitAlbums' : '';
 		return `pb-albumGallery__list pb-albumGallery__list--grid${portraitExtra}`;
-	})();
+	});
 
-	$: photosGridModifierClass = (() => {
+	const photosGridModifierClass = $derived.by(() => {
 		const v = photoGridForLayout;
 		if (v === 'squareTight') return 'pb-albumGallery__list--photosSquareTight';
 		if (v === 'landscape43') return 'pb-albumGallery__list--photosLandscape43';
 		if (v === 'portrait34') return 'pb-albumGallery__list--photosPortrait34';
 		if (v === 'masonry') return 'pb-albumGallery__list--photosMasonry';
 		return '';
-	})();
+	});
 
-	$: groupedPhotosListClass = ['pb-albumGallery__list', 'pb-albumGallery__list--photos', photosGridModifierClass]
-		.filter(Boolean)
-		.join(' ');
-	$: interleavedListClass = [albumListBaseClass, photosGridModifierClass].filter(Boolean).join(' ');
+	const groupedPhotosListClass = $derived(
+		['pb-albumGallery__list', 'pb-albumGallery__list--photos', photosGridModifierClass]
+			.filter(Boolean)
+			.join(' ')
+	);
+	const interleavedListClass = $derived([albumListBaseClass, photosGridModifierClass].filter(Boolean).join(' '));
 
-	$: albumGallerySectionClass = [
-		'pb-albumGallery',
-		noirAlbumGrid ? 'pb-albumGallery--noirGrid' : '',
-		albumCardVisual === 'bareSquare' && !noirAlbumGrid ? 'pb-albumGallery--bareSquareAlbums' : '',
-	]
-		.filter(Boolean)
-		.join(' ');
+	const albumGallerySectionClass = $derived(
+		[
+			'pb-albumGallery',
+			noirAlbumGrid ? 'pb-albumGallery--noirGrid' : '',
+			albumCardVisual === 'bareSquare' && !noirAlbumGrid ? 'pb-albumGallery--bareSquareAlbums' : '',
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
-	$: largePreviewHeroAspectClass = 'pb-albumGallery__aspect pb-albumGallery__aspect--video';
+	const largePreviewHeroAspectClass = $derived('pb-albumGallery__aspect pb-albumGallery__aspect--video');
 
-	$: sortBy = (
+	const sortBy = $derived(
 		config?.sortBy === 'order' ||
-		config?.sortBy === 'name' ||
-		config?.sortBy === 'photoCount' ||
-		config?.sortBy === 'createdAt' ||
-		config?.sortBy === 'lastPhotoDate'
-	) ? config.sortBy : 'manual';
-	$: sortDirection = config?.sortDirection === 'desc' ? 'desc' : 'asc';
+			config?.sortBy === 'name' ||
+			config?.sortBy === 'photoCount' ||
+			config?.sortBy === 'createdAt' ||
+			config?.sortBy === 'lastPhotoDate'
+			? config.sortBy
+			: 'manual'
+	);
+	const sortDirection = $derived(config?.sortDirection === 'desc' ? 'desc' : 'asc');
 	/** Cap for root/featured/selected grids only; album detail (`current`) shows all loaded photos + load more. */
-	$: maxItems = Math.min(500, Math.max(1, Number(config?.limit) || 12));
-	$: albumListSliceCap = albumSource === 'current' ? Number.POSITIVE_INFINITY : maxItems;
+	const maxItems = $derived(Math.min(500, Math.max(1, Number(config?.limit) || 12)));
+	const albumListSliceCap = $derived(albumSource === 'current' ? Number.POSITIVE_INFINITY : maxItems);
 
-	$: sortedAlbums = (() => {
+	const sortedAlbums = $derived.by(() => {
 		const list: AlbumCard[] = Array.isArray(albums) ? [...albums] : [];
 		const cap = albumListSliceCap;
 		if (sortBy === 'manual') {
@@ -294,37 +308,40 @@
 			return ((ao - bo) || getAlbumName(a).localeCompare(getAlbumName(b))) * dir;
 		});
 		return list.slice(0, cap);
-	})();
+	});
 
-	$: coverAspectClass =
+	const coverAspectClass = $derived(
 		coverAspect === 'square'
 			? 'pb-albumGallery__aspect pb-albumGallery__aspect--square'
 			: coverAspect === 'portrait'
 				? 'pb-albumGallery__aspect pb-albumGallery__aspect--portrait'
-				: 'pb-albumGallery__aspect pb-albumGallery__aspect--video';
+				: 'pb-albumGallery__aspect pb-albumGallery__aspect--video'
+	);
 
-	$: albumCardCoverAspectClass =
+	const albumCardCoverAspectClass = $derived(
 		albumCardVisual === 'portraitGrid'
 			? 'pb-albumGallery__aspect pb-albumGallery__aspect--portrait'
 			: albumCardVisual === 'permanentOverlay'
 				? 'pb-albumGallery__aspect pb-albumGallery__aspect--square'
 				: albumCardVisual === 'roundedCard' || albumCardVisual === 'editorialList'
 					? 'pb-albumGallery__aspect pb-albumGallery__aspect--landscape43'
-					: coverAspectClass;
+					: coverAspectClass
+	);
 
-	$: photoCoverAspectClass =
+	const photoCoverAspectClass = $derived(
 		photoGridForLayout === 'landscape43'
 			? 'pb-albumGallery__aspect pb-albumGallery__aspect--landscape43'
 			: photoGridForLayout === 'portrait34'
 				? 'pb-albumGallery__aspect pb-albumGallery__aspect--portrait'
 				: photoGridForLayout === 'squareTight' || photoGridForLayout === 'justifiedRows'
 					? 'pb-albumGallery__aspect pb-albumGallery__aspect--square'
-					: coverAspectClass;
+					: coverAspectClass
+	);
 
-	$: albumItems = sortedAlbums.filter((item) => item.cardType !== 'photo');
-	$: photoItems = sortedAlbums.filter((item) => item.cardType === 'photo');
+	const albumItems = $derived(sortedAlbums.filter((item) => item.cardType !== 'photo'));
+	const photoItems = $derived(sortedAlbums.filter((item) => item.cardType === 'photo'));
 	// Get album alias from page context (URL parameter), with URL fallback.
-	$: currentAlbumAlias = (() => {
+	const currentAlbumAlias = $derived.by(() => {
 		const fromData =
 			(typeof data?.params?.albumAlias === 'string' && data.params.albumAlias.trim()) ||
 			(typeof data?.params?.alias === 'string' && data.params.alias.trim()) ||
@@ -339,46 +356,47 @@
 			if (match?.[1]) return decodeURIComponent(match[1]);
 		}
 		return null;
-	})();
+	});
 
 	const PHOTO_PAGE_SIZE = 100;
 
-	let albums: AlbumCard[] = [];
-	let loading = true;
+	let albums = $state<AlbumCard[]>([]);
+	let loading = $state(true);
 	/** Photo pagination for `albumSource === 'current'` (API returns paginated photos). */
-	let currentAlbumPagination: { page: number; limit: number; total: number; pages: number } | null = null;
-	let loadingMorePhotos = false;
+	let currentAlbumPagination = $state<{ page: number; limit: number; total: number; pages: number } | null>(null);
+	let loadingMorePhotos = $state(false);
 	/** Template / parent-provided list error (skips internal fetch). */
-	let listError: string | null = null;
-	let coverImages: Record<string, string> = {};
-	let lastSelectedAlbums: string[] = [];
-	let lastAlbumSource: string = '';
-	let currentAlbum: any = null;
+	let listError = $state<string | null>(null);
+	let coverImages = $state<Record<string, string>>({});
+	let lastAlbumsReloadKey = $state('');
+	let currentAlbum = $state<any>(null);
 
-	$: currentAlbumTitleText = currentAlbum ? MultiLangUtils.getTextValue(currentAlbum?.name, $currentLanguage) : '';
-	$: currentAlbumDescriptionHTML = currentAlbum?.description
-		? MultiLangUtils.getHTMLValue(currentAlbum.description, $currentLanguage)
-		: '';
-	$: currentAlbumDescriptionText = stripHtml(currentAlbumDescriptionHTML);
-	$: currentAlbumLeadingPhotoUrl = getCurrentAlbumLeadingPhotoUrl(
-		currentAlbum,
-		albums
+	const currentAlbumTitleText = $derived(currentAlbum ? MultiLangUtils.getTextValue(currentAlbum?.name, $currentLanguage) : '');
+	const currentAlbumDescriptionHTML = $derived(
+		currentAlbum?.description
+			? MultiLangUtils.getHTMLValue(currentAlbum.description, $currentLanguage)
+			: ''
 	);
-	$: currentAlbumHeroImage =
+	const currentAlbumDescriptionText = $derived(stripHtml(currentAlbumDescriptionHTML));
+	const currentAlbumLeadingPhotoUrl = $derived(getCurrentAlbumLeadingPhotoUrl(currentAlbum, albums));
+	const currentAlbumHeroImage = $derived(
 		currentAlbumLeadingPhotoUrl ||
-		getCurrentAlbumCoverImage(currentAlbum) ||
-		(coverImages[currentAlbum?._id ?? ''] || '');
-	$: currentAlbumPhotoCount = Number(currentAlbum?.photoCount) || 0;
-	$: loadedPhotoCount = sortedAlbums.filter((a) => a.cardType === 'photo').length;
-	$: showAlbumLoadMore =
+			getCurrentAlbumCoverImage(currentAlbum) ||
+			coverImages[currentAlbum?._id ?? ''] ||
+			''
+	);
+	const currentAlbumPhotoCount = $derived(Number(currentAlbum?.photoCount) || 0);
+	const loadedPhotoCount = $derived(sortedAlbums.filter((a) => a.cardType === 'photo').length);
+	const showAlbumLoadMore = $derived(
 		albumSource === 'current' &&
-		currentAlbumPagination != null &&
-		currentAlbumPagination.page < currentAlbumPagination.pages;
+			currentAlbumPagination != null &&
+			currentAlbumPagination.page < currentAlbumPagination.pages
+	);
 	// Prefer sub-albums count from the fetched payload (we store it on `currentAlbum` when available).
-	$: currentAlbumSubAlbumCount = Number((currentAlbum as any)?.childAlbumCount) || 0;
+	const currentAlbumSubAlbumCount = $derived(Number((currentAlbum as any)?.childAlbumCount) || 0);
 
-	let lightboxOpen = false;
-	let lightboxIndex = 0;
+	let lightboxOpen = $state(false);
+	let lightboxIndex = $state(0);
 
 	function albumEditorialIndex(list: AlbumCard[], index: number): number {
 		let n = 0;
@@ -435,59 +453,69 @@
 	}
 
 	// Lightbox should follow the same photo order as what's currently displayed (manual/interleaved included).
-	$: lightboxPhotosSource = sortedAlbums.filter((a) => a.cardType === 'photo');
-	$: lightboxIndexById = (() => {
+	const lightboxPhotosSource = $derived(sortedAlbums.filter((a) => a.cardType === 'photo'));
+	const lightboxIndexById = $derived.by(() => {
 		const m = new Map<string, number>();
 		lightboxPhotosSource.forEach((p, idx) => {
 			const id = (p as any)?._id;
 			if (id != null) m.set(String(id), idx);
 		});
 		return m;
-	})();
+	});
 
-	$: lightboxPhotos = lightboxPhotosSource.map((p: any) => ({
-		_id: p?._id,
-		url: getPhotoFullUrl(p),
-		thumbnailUrl: getPhotoUrl(p, { preferThumbnail: true }),
-		title: p?.title ?? p?.name ?? p?.filename ?? p?.originalName ?? '',
-		description: p?.description,
-		takenAt: p?.exif?.dateTimeOriginal,
-		exif: p?.exif,
-		iptcXmp: p?.iptcXmp,
-		rotation: p?.rotation,
-		metadata: p?.metadata,
-		storage: p?.storage,
-		faceRecognition: p?.faceRecognition
-	}));
+	const lightboxPhotos = $derived(
+		lightboxPhotosSource.map((p: any) => ({
+			_id: p?._id,
+			url: getPhotoFullUrl(p),
+			thumbnailUrl: getPhotoUrl(p, { preferThumbnail: true }),
+			title: p?.title ?? p?.name ?? p?.filename ?? p?.originalName ?? '',
+			description: p?.description,
+			takenAt: p?.exif?.dateTimeOriginal,
+			exif: p?.exif,
+			iptcXmp: p?.iptcXmp,
+			rotation: p?.rotation,
+			metadata: p?.metadata,
+			storage: p?.storage,
+			faceRecognition: p?.faceRecognition
+		}))
+	);
 
-	$: effectiveSelectedAlbums = albumSource === 'selected'
-		? (Array.isArray(selectedAlbums) ? selectedAlbums : selectedAlbums ? [selectedAlbums] : [])
-		: [];
+	const effectiveSelectedAlbums = $derived(
+		albumSource === 'selected'
+			? Array.isArray(selectedAlbums)
+				? selectedAlbums
+				: selectedAlbums
+					? [selectedAlbums]
+					: []
+			: []
+	);
 
-	$: currentAlbumKey = albumSource === 'current' ? `current:${currentAlbumAlias || 'none'}` : '';
-	let lastInjectedAlbumsSig = '';
-	$: injectedAlbumsSig = (() => {
+	const currentAlbumKey = $derived(albumSource === 'current' ? `current:${currentAlbumAlias || 'none'}` : '');
+	const injectedAlbumsSig = $derived.by(() => {
 		const d = data as { albums?: unknown; albumListLoading?: boolean; albumListError?: string | null } | null | undefined;
 		if (d != null && Array.isArray(d.albums)) {
 			const ids = (d.albums as { _id?: string }[]).map((a) => a?._id ?? '');
 			return `inj:${JSON.stringify(ids)}:${d.albumListLoading === true}:${d.albumListError ?? ''}`;
 		}
 		return 'no-inj';
-	})();
-	$: if (browser && (
-		JSON.stringify(effectiveSelectedAlbums) !== JSON.stringify(lastSelectedAlbums) || 
-		albumSource !== lastAlbumSource ||
-		(albumSource === 'current' && currentAlbumKey !== lastAlbumSource) ||
-		injectedAlbumsSig !== lastInjectedAlbumsSig
-	)) {
-		lastSelectedAlbums = [...effectiveSelectedAlbums];
-		lastAlbumSource = albumSource === 'current' ? currentAlbumKey : albumSource;
-		lastInjectedAlbumsSig = injectedAlbumsSig;
-		loadAlbums();
-	}
-
-	onMount(async () => {
-		await loadAlbums();
+	});
+	const albumsReloadKey = $derived.by(() => {
+		if (albumSource === 'selected') {
+			return `selected:${JSON.stringify(effectiveSelectedAlbums)}`;
+		}
+		if (albumSource === 'current') {
+			return currentAlbumKey;
+		}
+		if (injectedAlbumsSig !== 'no-inj') {
+			return injectedAlbumsSig;
+		}
+		return albumSource;
+	});
+	$effect(() => {
+		if (!browser) return;
+		if (albumsReloadKey === lastAlbumsReloadKey) return;
+		lastAlbumsReloadKey = albumsReloadKey;
+		void loadAlbums();
 	});
 
 	async function loadAlbums() {
@@ -858,7 +886,7 @@
 									photos={photoItems}
 									gapPx={4}
 									targetRowHeight={220}
-									on:open={(e) => openLightboxForPhoto(e.detail.photo)}
+									onopen={({ photo }) => openLightboxForPhoto(photo)}
 								/>
 							</div>
 						{:else if photoGridVisual === 'largePreview'}
@@ -874,7 +902,7 @@
 										{descriptionLines}
 										showFeaturedBadge={showPhotoFeaturedBadge}
 										presentation="full"
-										on:open={() => openLightboxForPhoto(photoItems[0])}
+										onopen={() => openLightboxForPhoto(photoItems[0])}
 									/>
 								</div>
 								{#if photoItems.length > 1}
@@ -892,7 +920,7 @@
 												{descriptionLines}
 												showFeaturedBadge={showPhotoFeaturedBadge}
 												presentation={photoCardPres}
-												on:open={() => openLightboxForPhoto(album)}
+												onopen={() => openLightboxForPhoto(album)}
 											/>
 										{/each}
 									</div>
@@ -911,7 +939,7 @@
 										{descriptionLines}
 										showFeaturedBadge={showPhotoFeaturedBadge}
 										presentation={photoCardPres}
-										on:open={() => openLightboxForPhoto(album)}
+										onopen={() => openLightboxForPhoto(album)}
 									/>
 								{/each}
 							</div>
@@ -931,7 +959,7 @@
 									{descriptionLines}
 									showFeaturedBadge={showPhotoFeaturedBadge}
 									presentation={photoCardPres}
-									on:open={() => openLightboxForPhoto(album)}
+									onopen={() => openLightboxForPhoto(album)}
 								/>
 							{:else}
 								<AlbumCard
@@ -962,7 +990,7 @@
 							type="button"
 							class="pb-albumGallery__loadMore"
 							disabled={loadingMorePhotos}
-							on:click={loadMorePhotosForCurrentAlbum}
+							onclick={loadMorePhotosForCurrentAlbum}
 						>
 							{loadingMorePhotos
 								? 'Loading…'

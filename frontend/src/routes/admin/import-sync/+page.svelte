@@ -15,13 +15,24 @@
 		| 'storage-migration'
 		| 'full-db'
 		| 'templates-pages';
-	let migrationOption: MigrationOption = 'templates-pages';
-	let activeTab: Tab = 'export';
+	let migrationOption: MigrationOption = $state('templates-pages');
+	let activeTab: Tab = $state('export');
+
+	function storageProviderLabel(id: string): string {
+		const labels: Record<string, string> = {
+			'google-drive': 'Google Drive',
+			'aws-s3': 'AWS S3',
+			local: 'Local',
+			backblaze: 'Backblaze B2',
+			wasabi: 'Wasabi',
+		};
+		return labels[id] ?? id;
+	}
 
 	// Export
-	let exportBundle = true;
-	let exportScope: 'full' | 'templates-pages' = 'full';
-	let exportIncludeConfig = true;
+	let exportBundle = $state(true);
+	let exportScope: 'full' | 'templates-pages' = $state('full');
+	let exportIncludeConfig = $state(true);
 	let exportPreview: {
 		albumCount: number;
 		photoCount: number;
@@ -29,22 +40,22 @@
 		albumTree: any[];
 		pageCount?: number;
 		includesConfig?: boolean;
-	} | null = null;
-	let exportLoading = false;
-	let exportJobId: string | null = null;
-	let exportStatus: { status: string; progress: number; total: number; current?: string; error?: string } | null = null;
-	let exportPollInterval: ReturnType<typeof setInterval> | null = null;
-		let exportBundlePath: string | null = null;
-		let exportSkippedCount: number | null = null;
-		let exportBundleError: string | null = null;
+	} | null = $state(null);
+	let exportLoading = $state(false);
+	let exportJobId: string | null = $state(null);
+	let exportStatus: { status: string; progress: number; total: number; current?: string; error?: string } | null = $state(null);
+	let exportPollInterval: ReturnType<typeof setInterval> | null = $state(null);
+		let exportBundlePath: string | null = $state(null);
+		let exportSkippedCount: number | null = $state(null);
+		let exportBundleError: string | null = $state(null);
 
 	// Import
-	let importPath = '';
+	let importPath = $state('');
 	let importPathInput: HTMLInputElement | null = null;
 	let importZipInput: HTMLInputElement | null = null;
-	let importUploadLoading = false;
-	let importMode: 'package' | 'raw' = 'package';
-	let importIncludeConfig = true;
+	let importUploadLoading = $state(false);
+	let importMode: 'package' | 'raw' = $state('package');
+	let importIncludeConfig = $state(true);
 	let importConfigMode: 'merge' | 'replace' = 'merge';
 	let importPreview: {
 		albumCount: number;
@@ -53,36 +64,38 @@
 		folderTree?: any[];
 		pageCount?: number;
 		hasTemplateConfig?: boolean;
-	} | null = null;
-	let importLoading = false;
-	let importJobId: string | null = null;
-	let importStatus: { status: string; progress: number; total: number; current?: string; error?: string } | null = null;
-	let importPollInterval: ReturnType<typeof setInterval> | null = null;
+	} | null = $state(null);
+	let importLoading = $state(false);
+	let importJobId: string | null = $state(null);
+	let importStatus: { status: string; progress: number; total: number; current?: string; error?: string } | null = $state(null);
+	let importPollInterval: ReturnType<typeof setInterval> | null = $state(null);
 
 	// Storage migration
-	let storageProviders: string[] = [];
-	let sourceProviderId = '';
-	let targetProviderId = '';
-	let storageAlbums: Array<{ _id: string; name: any; alias: string; photoCount: number; level: number; parentAlbumId?: string }> = [];
-	let filteredStorageAlbums: typeof storageAlbums = [];
-	let selectedStorageAlbumIds = new Set<string>();
-	let storageSelectAll = false;
-	let isFilteringAlbums = false;
-	let storagePreview: { photoCount: number; estimatedSizeBytes: number } | null = null;
-	let storageLoading = false;
-	let storageJobId: string | null = null;
-	let storageStatus: { status: string; progress: number; total: number; current?: string; error?: string } | null = null;
-	let storagePollInterval: ReturnType<typeof setInterval> | null = null;
+	let storageProviders: string[] = $state([]);
+	let sourceProviderId = $state('');
+	let targetProviderId = $state('');
+	let storageAlbums: Array<{ _id: string; name: any; alias: string; photoCount: number; level: number; parentAlbumId?: string }> = $state([]);
+	let filteredStorageAlbums: typeof storageAlbums = $state([]);
+	let selectedStorageAlbumIds = $state(new Set<string>());
+	let storageSelectAll = $state(false);
+	let isFilteringAlbums = $state(false);
+	let storagePreview: { photoCount: number; estimatedSizeBytes: number } | null = $state(null);
+	let storageLoading = $state(false);
+	let storageJobId: string | null = $state(null);
+	let storageStatus: { status: string; progress: number; total: number; current?: string; error?: string } | null = $state(null);
+	let storagePollInterval: ReturnType<typeof setInterval> | null = $state(null);
 
-	let fullDbLoading = false;
+	let fullDbLoading = $state(false);
 
 	// Storage restore (index existing remote repository)
 	type RestoreStage = 'albums' | 'photos';
-	let restoreStage: RestoreStage = 'albums';
-	let restoreProviders: string[] = [];
-	let restoreProviderId = '';
-	let restoreRootPrefix = '';
-	let restoreLoading = false;
+	let restoreStage: RestoreStage = $state('albums');
+	let restoreProviders: string[] = $state([]);
+	let restoreProviderId = $state('');
+	let restoreRootPrefix = $state('');
+	let restoreLoading = $state(false);
+	let restoreScanStatus = $state('');
+	let restoreScanFromCache = $state(false);
 	let restoreAlbumReport: {
 		summary: { total: number; existing: number; toCreate: number };
 		items: Array<{
@@ -92,7 +105,7 @@
 			status: string;
 			proposedAlias?: string;
 		}>;
-	} | null = null;
+	} | null = $state(null);
 	let restorePhotoReport: {
 		summary: { total: number; existing: number; toCreate: number; orphan: number };
 		items: Array<{
@@ -102,11 +115,11 @@
 			status: string;
 			storagePath: string;
 		}>;
-	} | null = null;
-	let restoreSelectedIds = new Set<string>();
+	} | null = $state(null);
+	let restoreSelectedIds = $state(new Set<string>());
 	let restoreExecuteResult: { created: number; skipped: number; errors: Array<{ id: string; message: string }> } | null =
-		null;
-	let restoreAlbumsPreviewOpen = false;
+		$state(null);
+	let restoreAlbumsPreviewOpen = $state(false);
 
 	async function selectImportDirectory() {
 		// Always use file input with webkitdirectory as it's more reliable
@@ -280,9 +293,9 @@
 
 	// Reactive statement to filter albums when source provider or albums list changes
 	// Track last values to prevent unnecessary calls
-	let lastSourceProviderId = '';
-	let lastStorageAlbumsLength = 0;
-	$: {
+	let lastSourceProviderId = $state('');
+	let lastStorageAlbumsLength = $state(0);
+$effect(() => {
 		const providerChanged = sourceProviderId !== lastSourceProviderId;
 		const albumsChanged = storageAlbums.length !== lastStorageAlbumsLength;
 		
@@ -302,7 +315,7 @@
 				storageSelectAll = false;
 			}
 		}
-	}
+	});
 
 	function getAlbumDisplayName(album: any): string {
 		if (typeof album.name === 'object') {
@@ -344,7 +357,7 @@
 	loadStorageProviders();
 	loadStorageAlbums();
 
-	$: {
+$effect(() => {
 		if (migrationOption === 'templates-pages') {
 			activeTab = activeTab === 'storage' ? 'export' : activeTab;
 			exportScope = 'templates-pages';
@@ -360,11 +373,11 @@
 		} else if (migrationOption === 'full-db') {
 			activeTab = 'export';
 		}
-	}
+	});
 
-	$: if (activeTab === 'storage' && storageAlbums.length === 0) {
+$effect(() => { if (activeTab === 'storage' && storageAlbums.length === 0) {
 		loadStorageAlbums();
-	}
+	} });
 
 	function showMsg(msg: string, type: 'success' | 'error' | 'info' = 'success') {
 		if (type === 'error') adminToast.error({ title: msg });
@@ -713,9 +726,9 @@
 		}
 	}
 
-	$: if (migrationOption === 'albums-photos-db' && restoreProviders.length === 0) {
+$effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.length === 0) {
 		loadRestoreProviders();
-	}
+	} });
 
 	function restoreCurrentReport() {
 		return restoreStage === 'albums' ? restoreAlbumReport : restorePhotoReport;
@@ -745,44 +758,135 @@
 		restoreSelectedIds = new Set();
 	}
 
-	async function restoreScan(options?: { openAlbumsPreview?: boolean }) {
+	function normalizeAlbumScanReport(input: any): {
+		summary: { total: number; existing: number; toCreate: number };
+		items: Array<{
+			id: string;
+			storagePath: string;
+			folderName: string;
+			status: string;
+			proposedAlias?: string;
+		}>;
+	} {
+		const source = input?.data && typeof input.data === 'object' ? input.data : input;
+		const items = Array.isArray(source?.items) ? source.items : [];
+		const summary = source?.summary && typeof source.summary === 'object' ? source.summary : {};
+		return {
+			summary: {
+				total: Number(summary.total ?? items.length ?? 0),
+				existing: Number(summary.existing ?? 0),
+				toCreate: Number(summary.toCreate ?? items.filter((i: any) => i?.status === 'create').length ?? 0),
+			},
+			items,
+		};
+	}
+
+	function applyAlbumScanReport(
+		report: ReturnType<typeof normalizeAlbumScanReport>,
+		opts?: { openPreview?: boolean; fromCache?: boolean },
+	) {
+		restoreAlbumReport = report;
+		restoreScanFromCache = opts?.fromCache === true;
+		selectAllRestoreCreate();
+		if (opts?.openPreview !== false) {
+			restoreAlbumsPreviewOpen = true;
+		}
+	}
+
+	async function pollAlbumScanJob(jobId: string, openPreview: boolean): Promise<void> {
+		const maxAttempts = 600;
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const res = await fetch(`/api/admin/storage-restore/scan-albums/status/${encodeURIComponent(jobId)}`, {
+				credentials: 'include',
+			});
+			if (!res.ok) await handleApiErrorResponse(res);
+			const status = await res.json();
+			if (status.current) {
+				restoreScanStatus = String(status.current);
+			}
+			if (status.status === 'completed' && status.report) {
+				applyAlbumScanReport(normalizeAlbumScanReport(status.report), { openPreview });
+				return;
+			}
+			if (status.status === 'failed') {
+				throw new Error(status.error || 'Scan failed');
+			}
+			if (status.status === 'cancelled') {
+				throw new Error('Scan cancelled');
+			}
+			await new Promise((r) => setTimeout(r, 2000));
+		}
+		throw new Error('Scan timed out. Try again or use a narrower root prefix.');
+	}
+
+	async function restoreScan(options?: { openAlbumsPreview?: boolean; forceRefresh?: boolean }) {
 		restoreLoading = true;
 		restoreExecuteResult = null;
+		restoreScanStatus = '';
+		restoreScanFromCache = false;
 		if (options?.openAlbumsPreview !== false) {
 			restoreSelectedIds = new Set();
 		}
 		try {
-			const endpoint =
-				restoreStage === 'albums'
-					? '/api/admin/storage-restore/scan-albums'
-					: '/api/admin/storage-restore/scan-photos';
-			const res = await fetch(endpoint, {
+			if (restoreStage === 'albums') {
+				const res = await fetch('/api/admin/storage-restore/scan-albums', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({
+						providerId: restoreProviderId,
+						rootPrefix: restoreRootPrefix.trim() || undefined,
+						useCache: options?.forceRefresh ? false : true,
+						forceRefresh: options?.forceRefresh === true,
+					}),
+				});
+				if (!res.ok) await handleApiErrorResponse(res);
+				const data = await res.json();
+
+				if (data.fromCache && data.report) {
+					applyAlbumScanReport(normalizeAlbumScanReport(data.report), {
+						openPreview: options?.openAlbumsPreview !== false,
+						fromCache: true,
+					});
+					showMsg('Loaded cached scan (under 10 minutes old)');
+					return;
+				}
+
+				if (data.jobId) {
+					restoreScanStatus =
+						restoreProviderId === 'google-drive'
+							? 'Scanning Google Drive folders…'
+							: 'Scanning storage…';
+					await pollAlbumScanJob(String(data.jobId), options?.openAlbumsPreview !== false);
+					showMsg('Scan complete');
+					return;
+				}
+
+				applyAlbumScanReport(normalizeAlbumScanReport(data), {
+					openPreview: options?.openAlbumsPreview !== false,
+				});
+				showMsg('Scan complete');
+				return;
+			}
+
+			const res = await fetch('/api/admin/storage-restore/scan-photos', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
 				body: JSON.stringify({
 					providerId: restoreProviderId,
-					rootPrefix: restoreRootPrefix.trim() || undefined
-				})
+					rootPrefix: restoreRootPrefix.trim() || undefined,
+				}),
 			});
 			if (!res.ok) await handleApiErrorResponse(res);
-			const data = await res.json();
-			if (restoreStage === 'albums') {
-				restoreAlbumReport = data;
-				if (options?.openAlbumsPreview !== false) {
-					selectAllRestoreCreate();
-					restoreAlbumsPreviewOpen = true;
-				} else {
-					selectAllRestoreCreate();
-				}
-			} else {
-				restorePhotoReport = data;
-				selectAllRestoreCreate();
-			}
+			restorePhotoReport = await res.json();
+			selectAllRestoreCreate();
 			showMsg('Scan complete');
 		} catch (e) {
 			showMsg(handleError(e, 'Scan failed'), 'error');
 		} finally {
 			restoreLoading = false;
+			restoreScanStatus = '';
 		}
 	}
 
@@ -857,35 +961,35 @@
 		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 mb-6">
 			<button
 				class="text-left px-4 py-3 rounded border {migrationOption === 'albums-photos-db' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'albums-photos-db')}
+				onclick={() => (migrationOption = 'albums-photos-db')}
 			>
 				<strong>Albums &amp; Photos (DB only)</strong><br />
 				<span class="text-xs opacity-80">{$t('admin.migrationAlbumsPhotosDbSubtitle')}</span>
 			</button>
 			<button
 				class="text-left px-4 py-3 rounded border {migrationOption === 'storage-backup' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'storage-backup')}
+				onclick={() => (migrationOption = 'storage-backup')}
 			>
 				<strong>Storage Backup</strong><br />
 				<span class="text-xs opacity-80">Export photos + albums package</span>
 			</button>
 			<button
 				class="text-left px-4 py-3 rounded border {migrationOption === 'storage-migration' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'storage-migration')}
+				onclick={() => (migrationOption = 'storage-migration')}
 			>
 				<strong>Storage → Storage Migration</strong><br />
 				<span class="text-xs opacity-80">Copy files and update DB references</span>
 			</button>
 			<button
 				class="text-left px-4 py-3 rounded border {migrationOption === 'full-db' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'full-db')}
+				onclick={() => (migrationOption = 'full-db')}
 			>
 				<strong>Full DB Backup</strong><br />
 				<span class="text-xs opacity-80">All collections JSON snapshot</span>
 			</button>
 			<button
 				class="text-left px-4 py-3 rounded border {migrationOption === 'templates-pages' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'templates-pages')}
+				onclick={() => (migrationOption = 'templates-pages')}
 			>
 				<strong>Templates &amp; Pages</strong><br />
 				<span class="text-xs opacity-80">Deploy style/layout changes from dev to prod</span>
@@ -901,7 +1005,7 @@
 					type="button"
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					disabled={fullDbLoading}
-					on:click={downloadFullDbBackup}
+					onclick={downloadFullDbBackup}
 				>
 					{fullDbLoading ? 'Preparing backup...' : 'Download full DB backup'}
 				</button>
@@ -911,7 +1015,7 @@
 		{#if migrationOption === 'albums-photos-db'}
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 mb-6">
 				<p class="text-(--color-surface-600-400) mb-4">
-					Scan an existing storage repository (Wasabi, S3, Backblaze, or local) and rebuild album and photo
+					Scan an existing storage repository (Google Drive, Wasabi, S3, Backblaze, or local) and rebuild album and photo
 					records in the database without re-uploading files. Each folder is an album; variant subfolders
 					(hero, large, medium, small, micro) are ignored. Only files named with a 13-digit timestamp prefix
 					(e.g. <code class="text-sm">1703123456789-photo.jpg</code>) are imported as photos.
@@ -922,7 +1026,7 @@
 						class="px-4 py-2 rounded-t {restoreStage === 'albums'
 							? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium'
 							: 'text-(--color-surface-600-400)'}"
-						on:click={() => {
+						onclick={() => {
 							restoreStage = 'albums';
 							restoreSelectedIds = new Set();
 							restoreExecuteResult = null;
@@ -936,7 +1040,7 @@
 						class="px-4 py-2 rounded-t {restoreStage === 'photos'
 							? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium'
 							: 'text-(--color-surface-600-400)'}"
-						on:click={() => {
+						onclick={() => {
 							restoreStage = 'photos';
 							restoreSelectedIds = new Set();
 							restoreExecuteResult = null;
@@ -959,7 +1063,7 @@
 								<option value="">No providers enabled</option>
 							{:else}
 								{#each restoreProviders as p}
-									<option value={p}>{p}</option>
+									<option value={p}>{storageProviderLabel(p)}</option>
 								{/each}
 							{/if}
 						</select>
@@ -977,21 +1081,41 @@
 						/>
 					</div>
 				</div>
+				{#if restoreScanStatus}
+					<p class="mb-3 text-sm text-(--color-surface-600-400)" role="status">
+						{restoreScanStatus}
+					</p>
+				{/if}
+				{#if restoreScanFromCache && restoreAlbumReport}
+					<p class="mb-3 text-xs text-(--color-surface-600-400)">
+						Showing cached scan from the last 10 minutes. Use “Rescan storage” to refresh from Google Drive.
+					</p>
+				{/if}
 				<div class="flex flex-wrap gap-2 mb-4">
 					<button
 						type="button"
 						class="px-4 py-2 bg-(--color-surface-200-800) rounded hover:bg-(--color-surface-300-700) disabled:opacity-50"
 						disabled={restoreLoading || !restoreProviderId}
-						on:click={restoreScan}
+						onclick={() => restoreScan()}
 					>
 						{restoreLoading ? 'Scanning…' : 'Scan & preview'}
 					</button>
+					{#if restoreStage === 'albums'}
+						<button
+							type="button"
+							class="px-4 py-2 text-sm border border-surface-300-700 rounded hover:bg-(--color-surface-200-800) disabled:opacity-50"
+							disabled={restoreLoading || !restoreProviderId}
+							onclick={() => restoreScan({ forceRefresh: true })}
+						>
+							Rescan storage
+						</button>
+					{/if}
 					{#if restoreStage === 'photos'}
 						<button
 							type="button"
 							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 							disabled={restoreLoading || !restoreProviderId || restoreSelectedIds.size === 0}
-							on:click={() => restoreExecute()}
+							onclick={() => restoreExecute()}
 						>
 							Confirm &amp; create selected
 						</button>
@@ -999,14 +1123,14 @@
 							<button
 								type="button"
 								class="px-3 py-2 text-sm text-(--color-surface-700-300) hover:underline"
-								on:click={selectAllRestoreCreate}
+								onclick={selectAllRestoreCreate}
 							>
 								Select all to create
 							</button>
 							<button
 								type="button"
 								class="px-3 py-2 text-sm text-(--color-surface-700-300) hover:underline"
-								on:click={clearRestoreSelection}
+								onclick={clearRestoreSelection}
 							>
 								Clear selection
 							</button>
@@ -1015,7 +1139,7 @@
 						<button
 							type="button"
 							class="px-3 py-2 text-sm text-(--color-surface-700-300) hover:underline"
-							on:click={() => (restoreAlbumsPreviewOpen = true)}
+							onclick={() => (restoreAlbumsPreviewOpen = true)}
 						>
 							Review scan results…
 						</button>
@@ -1089,7 +1213,7 @@
 												<input
 													type="checkbox"
 													checked={restoreSelectedIds.has(item.id)}
-													on:change={() => toggleRestoreItem(item.id)}
+													onchange={() => toggleRestoreItem(item.id)}
 												/>
 											{/if}
 										</td>
@@ -1115,14 +1239,14 @@
 		<div class="flex gap-2 mb-6 border-b border-surface-200-800">
 			<button
 				class="px-4 py-2 rounded-t {activeTab === 'export' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
-				on:click={() => (activeTab = 'export')}
+				onclick={() => (activeTab = 'export')}
 				disabled={migrationOption === 'storage-migration'}
 			>
 				Export
 			</button>
 			<button
 				class="px-4 py-2 rounded-t {activeTab === 'import' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
-				on:click={() => (activeTab = 'import')}
+				onclick={() => (activeTab = 'import')}
 				disabled={migrationOption === 'storage-migration' || migrationOption === 'storage-backup'}
 			>
 				Import
@@ -1135,7 +1259,7 @@
 			>
 				<button
 					class="px-4 py-2 rounded-t {activeTab === 'storage' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
-					on:click={() => (activeTab = 'storage')}
+					onclick={() => (activeTab = 'storage')}
 					disabled={migrationOption !== 'storage-migration'}
 				>
 					Storage migration
@@ -1175,7 +1299,7 @@
 					<button
 						class="px-4 py-2 bg-(--color-surface-200-800) rounded hover:bg-(--color-surface-300-700) disabled:opacity-50"
 						disabled={exportLoading}
-						on:click={exportDoPreview}
+						onclick={exportDoPreview}
 					>
 						Preview
 					</button>
@@ -1183,7 +1307,7 @@
 						type="button"
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 						disabled={exportLoading || !!exportJobId}
-						on:click={exportStart}
+						onclick={exportStart}
 					>
 						Start export
 					</button>
@@ -1233,7 +1357,7 @@
 									<button
 										type="button"
 										class="{adminBtnPrimarySm} {adminRingPrimary}"
-										on:click={downloadExportBundle}
+										onclick={downloadExportBundle}
 									>
 										Download ZIP
 									</button>
@@ -1255,7 +1379,7 @@
 							<p class="text-red-600">{exportStatus.error}</p>
 						{/if}
 						{#if exportStatus.status === 'running'}
-							<button class="mt-2 px-3 py-1 bg-red-100 text-red-800 rounded" on:click={exportCancel}>
+							<button class="mt-2 px-3 py-1 bg-red-100 text-red-800 rounded" onclick={exportCancel}>
 								Cancel
 							</button>
 						{/if}
@@ -1313,20 +1437,20 @@
 							class="hidden"
 							webkitdirectory
 							bind:this={importPathInput}
-							on:change={handleImportDirectorySelect}
+							onchange={handleImportDirectorySelect}
 						/>
 						<input
 							type="file"
 							class="hidden"
 							accept=".zip,application/zip"
 							bind:this={importZipInput}
-							on:change={uploadImportZip}
+							onchange={uploadImportZip}
 						/>
 						<button
 							type="button"
 							class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded hover:bg-(--color-surface-300-700) disabled:opacity-50"
 							disabled={importLoading}
-							on:click={selectImportDirectory}
+							onclick={selectImportDirectory}
 						>
 							Browse...
 						</button>
@@ -1335,7 +1459,7 @@
 								type="button"
 								class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded hover:bg-(--color-surface-300-700) disabled:opacity-50"
 								disabled={importLoading || importUploadLoading}
-								on:click={() => importZipInput?.click()}
+								onclick={() => importZipInput?.click()}
 							>
 								{importUploadLoading ? 'Uploading...' : 'Upload ZIP...'}
 							</button>
@@ -1346,14 +1470,14 @@
 					<button
 						class="px-4 py-2 bg-(--color-surface-200-800) rounded hover:bg-(--color-surface-300-700) disabled:opacity-50"
 						disabled={importLoading}
-						on:click={importDoPreview}
+						onclick={importDoPreview}
 					>
 						Preview
 					</button>
 					<button
 						class="px-4 py-2 bg-(--color-primary-600) text-white rounded hover:bg-(--color-primary-700) disabled:opacity-50"
 						disabled={importLoading || !!importJobId}
-						on:click={importStart}
+						onclick={importStart}
 					>
 						Start import
 					</button>
@@ -1386,7 +1510,7 @@
 							<p class="text-red-600">{importStatus.error}</p>
 						{/if}
 						{#if importStatus.status === 'running'}
-							<button class="mt-2 px-3 py-1 bg-red-100 text-red-800 rounded" on:click={importCancel}>
+							<button class="mt-2 px-3 py-1 bg-red-100 text-red-800 rounded" onclick={importCancel}>
 								Cancel
 							</button>
 						{/if}
@@ -1415,7 +1539,7 @@
 							<option value="" disabled>No providers configured</option>
 						{:else}
 							{#each storageProviders as p}
-								<option value={p}>{p}</option>
+								<option value={p}>{storageProviderLabel(p)}</option>
 							{/each}
 						{/if}
 					</select>
@@ -1433,14 +1557,14 @@
 								<option value="" disabled>No providers configured</option>
 							{:else}
 								{#each storageProviders as p}
-									<option value={p}>{p}</option>
+									<option value={p}>{storageProviderLabel(p)}</option>
 								{/each}
 							{/if}
 						</select>
 						<button
 							class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded hover:bg-(--color-surface-300-700) disabled:opacity-50"
 							disabled={storageLoading || !storageProviders.length || !sourceProviderId || !targetProviderId}
-							on:click={storageDoPreview}
+							onclick={storageDoPreview}
 						>
 							Preview
 						</button>
@@ -1448,7 +1572,7 @@
 							type="button"
 							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 							disabled={storageLoading || !storageProviders.length || !sourceProviderId || !targetProviderId || !!storageJobId}
-							on:click={storageStart}
+							onclick={storageStart}
 						>
 							Start migration
 						</button>
@@ -1475,8 +1599,8 @@
 								<input
 									type="checkbox"
 									checked={storageSelectAll}
-									on:change={(e) => toggleStorageSelectAll(e)}
-									on:click={(e) => e.stopPropagation()}
+									onchange={(e) => toggleStorageSelectAll(e)}
+									onclick={(e) => e.stopPropagation()}
 								/>
 								<span class="font-medium">Select all albums ({filteredStorageAlbums.length})</span>
 							</label>
@@ -1489,8 +1613,8 @@
 										<input
 											type="checkbox"
 											checked={selectedStorageAlbumIds.has(album._id)}
-											on:change={(e) => toggleStorageAlbum(album._id, e)}
-											on:click={(e) => e.stopPropagation()}
+											onchange={(e) => toggleStorageAlbum(album._id, e)}
+											onclick={(e) => e.stopPropagation()}
 										/>
 										<span>{getAlbumDisplayName(album)} ({album.photoCount || 0} photos)</span>
 									</label>
@@ -1517,7 +1641,7 @@
 							<p class="text-red-600">{storageStatus.error}</p>
 						{/if}
 						{#if storageStatus.status === 'running'}
-							<button class="mt-2 px-3 py-1 bg-red-100 text-red-800 rounded" on:click={storageCancel}>Cancel</button>
+							<button class="mt-2 px-3 py-1 bg-red-100 text-red-800 rounded" onclick={storageCancel}>Cancel</button>
 						{/if}
 					</div>
 				{/if}

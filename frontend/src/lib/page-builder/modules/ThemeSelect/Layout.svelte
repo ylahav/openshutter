@@ -2,10 +2,10 @@
 <script lang="ts">
 	import TemplateSelector from '$pageBuilder/primitives/template-selector/TemplateSelector.svelte';
 
-	export let config: any = {};
+	let { config = {} }: { config?: Record<string, unknown> } = $props();
 
-	$: compact = config?.compact ?? false;
-	$: className = config?.className || '';
+	const compact = $derived(config?.compact ?? false);
+	const className = $derived((config?.className as string) || '');
 </script>
 
 <div class="pb-themeSelectModule">

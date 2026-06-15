@@ -10,7 +10,7 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface Album {
 		_id: string;
@@ -31,13 +31,12 @@ import { t } from '$stores/i18n';
 
 	const isAdmin = data.user?.role === 'admin';
 	const isOwner = data.user?.role === 'owner';
-	let pageTitle = '';
 
 	onMount(async () => {
 		await fetchAlbums();
 	});
 
-	$: pageTitle = isAdmin ? $t('admin.albumsManagement') : $t('owner.myAlbums');
+	const pageTitle = $derived(isAdmin ? $t('admin.albumsManagement') : $t('owner.myAlbums'));
 
 	async function fetchAlbums() {
 		try {
@@ -97,7 +96,7 @@ import { t } from '$stores/i18n';
 			<div class="text-red-600 text-xl mb-4">⚠️</div>
 			<p class="text-gray-600">{error}</p>
 			<button
-				on:click={fetchAlbums}
+				onclick={fetchAlbums}
 				class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 			>
 				Try Again
@@ -127,7 +126,7 @@ import { t } from '$stores/i18n';
 				</div>
 				<div class="flex space-x-3">
 					<button
-						on:click={() => goto(isAdmin ? '/admin' : '/owner')}
+						onclick={() => goto(isAdmin ? '/admin' : '/owner')}
 						class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 					>
 						<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,7 +145,7 @@ import { t } from '$stores/i18n';
 					</button>
 					{#if canCreateAlbums(data.user)}
 						<button
-							on:click={() => goto('/albums/new')}
+							onclick={() => goto('/albums/new')}
 							class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 						>
 							<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,7 +174,7 @@ import { t } from '$stores/i18n';
 					</p>
 					{#if canCreateAlbums(data.user)}
 						<button
-							on:click={() => goto('/albums/new')}
+							onclick={() => goto('/albums/new')}
 							class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 						>
 							<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

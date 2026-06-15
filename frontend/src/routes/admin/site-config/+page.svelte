@@ -28,13 +28,13 @@
 	} from '$lib/admin/admin-cerberus';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 
-	let config: SiteConfig | null = null;
-	let descriptionValue: any = {};
-	let loading = true;
-	let saving = false;
-	let message = '';
-	let activeTab = 'basic';
-	let availableLanguages: Array<{ code: string; name: string; flag: string }> = [];
+	let config = $state<SiteConfig | null>(null);
+	let descriptionValue = $state<any>({});
+	let loading = $state(true);
+	let saving = $state(false);
+	let message = $state('');
+	let activeTab = $state('basic');
+	let availableLanguages = $state<Array<{ code: string; name: string; flag: string }>>([]);
 
 	interface MenuItem {
 		labelKey?: string;
@@ -45,8 +45,8 @@
 		showWhen?: 'always' | 'loggedIn' | 'loggedOut';
 		type?: 'link' | 'login' | 'logout';
 	}
-	let menuItems: MenuItem[] = [];
-	let navigationClearDialogOpen = false;
+	let menuItems = $state<MenuItem[]>([]);
+	let navigationClearDialogOpen = $state(false);
 
 	function openNavigationClearDialog() {
 		navigationClearDialogOpen = true;
@@ -101,16 +101,16 @@
 		return CONFIG_TAB_GROUPS.flatMap((g) => g.tabs);
 	}
 
-	let baselineSerialized = '';
+	let baselineSerialized = $state('');
 	type BaselineClone = {
 		config: SiteConfig;
 		descriptionValue: Record<string, unknown>;
 		menuItems: MenuItem[];
 	};
-	let baselineState: BaselineClone | null = null;
+	let baselineState = $state<BaselineClone | null>(null);
 
-	let unsavedTabSwitchDialogOpen = false;
-	let pendingTabId: string | null = null;
+	let unsavedTabSwitchDialogOpen = $state(false);
+	let pendingTabId = $state<string | null>(null);
 
 	function sortKeysDeep(v: unknown): unknown {
 		if (v === null || typeof v !== 'object') return v;
@@ -186,13 +186,14 @@
 		}
 	}
 
-	$: isDirty =
+	const isDirty = $derived(
 		!!config &&
-		!!baselineState &&
-		(() => {
-			const p = getSavePayload();
-			return !!(p && stableSerializePayload(p) !== baselineSerialized);
-		})();
+			!!baselineState &&
+			(() => {
+				const p = getSavePayload();
+				return !!(p && stableSerializePayload(p) !== baselineSerialized);
+			})()
+	);
 
 	function requestTabChange(next: string) {
 		if (next === activeTab) return;
@@ -223,23 +224,30 @@
 		return stripped.length > 180 ? `${stripped.slice(0, 177)}…` : stripped;
 	}
 
-	$: previewLang = config?.languages?.defaultLanguage || 'en';
-	$: seoPreviewTitle = String(
-		MultiLangUtils.getValue(config?.seo?.metaTitle || {}, previewLang) ||
-			MultiLangUtils.getValue(config?.title || {}, previewLang) ||
-			'',
-	).trim();
-	$: seoPreviewDescRaw = MultiLangUtils.getValue(config?.seo?.metaDescription || {}, previewLang);
-	$: seoPreviewDesc =
-		typeof seoPreviewDescRaw === 'string' ? stripHtmlForPreview(seoPreviewDescRaw) : '';
-	$: seoPreviewHost = $page.url.hostname || 'example.com';
+	const previewLang = $derived(config?.languages?.defaultLanguage || 'en');
+	const seoPreviewTitle = $derived(
+		String(
+			MultiLangUtils.getValue(config?.seo?.metaTitle || {}, previewLang) ||
+				MultiLangUtils.getValue(config?.title || {}, previewLang) ||
+				''
+		).trim()
+	);
+	const seoPreviewDescRaw = $derived(
+		MultiLangUtils.getValue(config?.seo?.metaDescription || {}, previewLang)
+	);
+	const seoPreviewDesc = $derived(
+		typeof seoPreviewDescRaw === 'string' ? stripHtmlForPreview(seoPreviewDescRaw) : ''
+	);
+	const seoPreviewHost = $derived($page.url.hostname || 'example.com');
 
 	// Test email modal
-	let showTestMailModal = false;
-	let testTo = '';
-	let testSubject = 'Test email';
-	let testBody = 'This is a test email.';
-	let testMailResult: 'idle' | 'sending' | { success: true } | { success: false; error: string } = 'idle';
+	let showTestMailModal = $state(false);
+	let testTo = $state('');
+	let testSubject = $state('Test email');
+	let testBody = $state('This is a test email.');
+	let testMailResult = $state<'idle' | 'sending' | { success: true } | { success: false; error: string }>(
+		'idle'
+	);
 
 	function normalizeWelcomeEmailMultiLang(data: any) {
 		const welcomeEmail = data?.welcomeEmail || {};
@@ -311,7 +319,7 @@
 		config.features.enableComments = anyOn;
 	}
 
-	$: collabVisAdmin = config ? resolveCollaborationVisibility(config.features) : null;
+	const collabVisAdmin = $derived(config ? resolveCollaborationVisibility(config.features) : null);
 
 	onMount(async () => {
 		await Promise.all([loadConfig(), loadAvailableLanguages()]);
@@ -679,7 +687,10 @@
 				</div>
 			{/if}
 
-			<form on:submit|preventDefault={handleSubmit} class="flex flex-col lg:flex-row gap-6">
+			<form onsubmit={(e) => {
+				e.preventDefault();
+				handleSubmit(e);
+			}} class="flex flex-col lg:flex-row gap-6">
 				<Tabs
 					class="flex min-w-0 flex-col gap-6 lg:flex-row w-full"
 					value={activeTab}
@@ -696,7 +707,7 @@
 								id="site-config-tab-select"
 								class="select lg:hidden w-full py-3 px-4 text-sm font-medium border-0 border-b border-surface-200-800 rounded-t-lg"
 								value={activeTab}
-								on:change={(e) =>
+								onchange={(e) =>
 									requestTabChange((e.currentTarget as HTMLSelectElement).value)}
 							>
 								{#each CONFIG_TAB_GROUPS as group}
@@ -789,7 +800,7 @@
 											<input
 												type="checkbox"
 												checked={isActive}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (!config) return;
 													const currentLanguages = config.languages?.activeLanguages || [];
 													const newLanguages = e.currentTarget.checked
@@ -815,7 +826,7 @@
 								<select
 									id="defaultLanguage"
 									value={config?.languages?.defaultLanguage || 'en'}
-									on:change={(e) => {
+									onchange={(e) => {
 										if (!config) return;
 										updateLanguages(
 											config.languages?.activeLanguages || ['en'],
@@ -860,7 +871,7 @@
 											id="logo-url"
 											type="text"
 											value={config.logo}
-											on:input={(e) => updateConfig('logo', e.currentTarget.value)}
+											oninput={(e) => updateConfig('logo', e.currentTarget.value)}
 											placeholder="/api/storage/serve/..."
 											class={adminInputSmClass}
 										/>
@@ -891,7 +902,7 @@
 											id="favicon-url"
 											type="text"
 											value={config.favicon}
-											on:input={(e) => updateConfig('favicon', e.currentTarget.value)}
+											oninput={(e) => updateConfig('favicon', e.currentTarget.value)}
 											placeholder="/api/storage/serve/..."
 											class={adminInputSmClass}
 										/>
@@ -936,7 +947,7 @@
 												id="wl-logo-url"
 												type="text"
 												value={config?.whiteLabel?.logo ?? ''}
-												on:input={(e) =>
+												oninput={(e) =>
 													config &&
 													updateConfig('whiteLabel', {
 														...(config.whiteLabel || {}),
@@ -962,7 +973,7 @@
 												id="wl-favicon-url"
 												type="text"
 												value={config?.whiteLabel?.favicon ?? ''}
-												on:input={(e) =>
+												oninput={(e) =>
 													config &&
 													updateConfig('whiteLabel', {
 														...(config.whiteLabel || {}),
@@ -985,7 +996,7 @@
 										<input
 											type="checkbox"
 											checked={config?.whiteLabel?.hideOpenShutterBranding ?? false}
-											on:change={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), hideOpenShutterBranding: e.currentTarget.checked })}
+											onchange={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), hideOpenShutterBranding: e.currentTarget.checked })}
 											class="rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 										/>
 										<span class="text-sm text-(--color-surface-800-200)">{$t('admin.whiteLabelHideOpenShutter')}</span>
@@ -996,7 +1007,7 @@
 											id="terms-url"
 											type="url"
 											value={config?.whiteLabel?.termsOfServiceUrl ?? ''}
-											on:input={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), termsOfServiceUrl: e.currentTarget.value || undefined })}
+											oninput={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), termsOfServiceUrl: e.currentTarget.value || undefined })}
 											placeholder="https://..."
 											class={adminInputSmClass}
 										/>
@@ -1007,7 +1018,7 @@
 											id="privacy-url"
 											type="url"
 											value={config?.whiteLabel?.privacyPolicyUrl ?? ''}
-											on:input={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), privacyPolicyUrl: e.currentTarget.value || undefined })}
+											oninput={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), privacyPolicyUrl: e.currentTarget.value || undefined })}
 											placeholder="https://..."
 											class={adminInputSmClass}
 										/>
@@ -1134,7 +1145,7 @@ onChange={(value) => {
 									id="og-image"
 									type="text"
 									value={config.seo?.ogImage || ''}
-on:input={(e) => {
+oninput={(e) => {
 												if (!config) return;
 												config = {
 													...(config),
@@ -1157,7 +1168,7 @@ on:input={(e) => {
 											src={config.seo.ogImage}
 											alt={$t('admin.seoOgPreviewAlt')}
 											class="max-w-md h-32 object-contain border border-surface-200-800 rounded p-2 bg-(--color-surface-50-950)"
-											on:error={(e) => {
+											onerror={(e) => {
 												(e.currentTarget as HTMLImageElement).style.display = 'none';
 											}}
 										/>
@@ -1177,7 +1188,7 @@ on:input={(e) => {
 									id="contact-email"
 									type="email"
 									value={config.contact?.email || ''}
-									on:input={(e) => {
+									oninput={(e) => {
 										if (!config) return;
 										config = {
 											...(config),
@@ -1201,7 +1212,7 @@ on:input={(e) => {
 									id="contact-phone"
 									type="tel"
 									value={config.contact?.phone || ''}
-									on:input={(e) => {
+									oninput={(e) => {
 										if (!config) return;
 										config = {
 											...(config),
@@ -1255,7 +1266,7 @@ on:input={(e) => {
 											id="social-facebook"
 											type="text"
 											value={config.contact?.socialMedia?.facebook || ''}
-											on:input={(e) => {
+											oninput={(e) => {
 												if (!config) return;
 												config = {
 													...(config),
@@ -1282,7 +1293,7 @@ on:input={(e) => {
 											id="social-instagram"
 											type="text"
 											value={config.contact?.socialMedia?.instagram || ''}
-											on:input={(e) => {
+											oninput={(e) => {
 												if (!config) return;
 												config = {
 													...(config),
@@ -1309,7 +1320,7 @@ on:input={(e) => {
 											id="social-flickr"
 											type="text"
 											value={config.contact?.socialMedia?.flickr || ''}
-											on:input={(e) => {
+											oninput={(e) => {
 												if (!config) return;
 												config = {
 													...(config),
@@ -1336,7 +1347,7 @@ on:input={(e) => {
 											id="social-twitter"
 											type="text"
 											value={config.contact?.socialMedia?.twitter || ''}
-											on:input={(e) => {
+											oninput={(e) => {
 												if (!config) return;
 												config = {
 													...(config),
@@ -1363,7 +1374,7 @@ on:input={(e) => {
 											id="social-linkedin"
 											type="text"
 											value={config.contact?.socialMedia?.linkedin || ''}
-											on:input={(e) => {
+											oninput={(e) => {
 												if (!config) return;
 												config = {
 													...(config),
@@ -1416,7 +1427,7 @@ on:input={(e) => {
 									<h3 class="text-lg font-semibold text-(--color-surface-950-50)">Services</h3>
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											if (!config) return;
 											const services = config.homePage?.services || [];
 											config = {
@@ -1448,7 +1459,7 @@ on:input={(e) => {
 													<h4 class="text-sm font-semibold text-(--color-surface-950-50)">Service #{index + 1}</h4>
 													<button
 														type="button"
-on:click={() => {
+onclick={() => {
 															if (!config) return;
 															const services = config.homePage?.services || [];
 															config = {
@@ -1475,7 +1486,7 @@ on:click={() => {
 															id="service-number-{index}"
 															type="text"
 															value={service.number || ''}
-															on:input={(e) => {
+															oninput={(e) => {
 																if (!config) return;
 																const services = config.homePage?.services || [];
 																services[index] = {
@@ -1562,7 +1573,7 @@ on:click={() => {
 										<p class="text-(--color-surface-600-400) mb-4">No services added yet.</p>
 										<button
 											type="button"
-											on:click={() => {
+											onclick={() => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -1606,7 +1617,7 @@ on:click={() => {
 													{#if index > 0}
 														<button
 															type="button"
-															on:click={() => {
+															onclick={() => {
 																const newItems = [...menuItems];
 																[newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
 																menuItems = newItems;
@@ -1620,7 +1631,7 @@ on:click={() => {
 													{#if index < menuItems.length - 1}
 														<button
 															type="button"
-															on:click={() => {
+															onclick={() => {
 																const newItems = [...menuItems];
 																[newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
 																menuItems = newItems;
@@ -1633,7 +1644,7 @@ on:click={() => {
 													{/if}
 													<button
 														type="button"
-														on:click={() => {
+														onclick={() => {
 															menuItems = menuItems.filter((_, i) => i !== index);
 														}}
 														class="text-red-600 hover:text-red-800 text-sm font-medium"
@@ -1652,7 +1663,7 @@ on:click={() => {
 														id="menu-labelKey-{index}"
 														type="text"
 														value={item.labelKey || ''}
-														on:input={(e) => {
+														oninput={(e) => {
 															menuItems[index] = { ...menuItems[index], labelKey: e.currentTarget.value || undefined };
 															menuItems = [...menuItems];
 														}}
@@ -1672,7 +1683,7 @@ on:click={() => {
 														id="menu-label-{index}"
 														type="text"
 														value={item.label || ''}
-														on:input={(e) => {
+														oninput={(e) => {
 															menuItems[index] = { ...menuItems[index], label: e.currentTarget.value || undefined };
 															menuItems = [...menuItems];
 														}}
@@ -1691,7 +1702,7 @@ on:click={() => {
 													<select
 														id="menu-type-{index}"
 														value={item.type ?? 'link'}
-														on:change={(e) => {
+														onchange={(e) => {
 															const v = e.currentTarget.value as 'link' | 'login' | 'logout';
 															menuItems[index] = {
 																...menuItems[index],
@@ -1717,7 +1728,7 @@ on:click={() => {
 													<select
 														id="menu-showWhen-{index}"
 														value={item.showWhen ?? 'always'}
-														on:change={(e) => {
+														onchange={(e) => {
 															menuItems[index] = { ...menuItems[index], showWhen: e.currentTarget.value as 'always' | 'loggedIn' | 'loggedOut' };
 															menuItems = [...menuItems];
 														}}
@@ -1739,7 +1750,7 @@ on:click={() => {
 														type="text"
 														value={item.href}
 														disabled={item.type === 'logout'}
-														on:input={(e) => {
+														oninput={(e) => {
 															menuItems[index] = { ...menuItems[index], href: e.currentTarget.value };
 															menuItems = [...menuItems];
 														}}
@@ -1763,7 +1774,7 @@ on:click={() => {
 																<input
 																	type="checkbox"
 																	checked={isSelected}
-																	on:change={(e) => {
+																	onchange={(e) => {
 																		const currentRoles = item.roles || [];
 																		const newRoles = e.currentTarget.checked
 																			? [...currentRoles, roleOpt.value]
@@ -1790,7 +1801,7 @@ on:click={() => {
 														<input
 															type="checkbox"
 															checked={item.external || false}
-															on:change={(e) => {
+															onchange={(e) => {
 																menuItems[index] = { ...menuItems[index], external: e.currentTarget.checked || undefined };
 																menuItems = [...menuItems];
 															}}
@@ -1816,7 +1827,7 @@ on:click={() => {
 								<div class="flex flex-wrap gap-2">
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											menuItems = [
 												...menuItems,
 												{ href: '', label: '' }
@@ -1828,7 +1839,7 @@ on:click={() => {
 									</button>
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											menuItems = [
 												...menuItems,
 												{ type: 'login', labelKey: 'auth.signIn', href: '/login', showWhen: 'loggedOut' }
@@ -1840,7 +1851,7 @@ on:click={() => {
 									</button>
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											menuItems = [
 												...menuItems,
 												{ type: 'logout', labelKey: 'header.logout', href: '#', showWhen: 'loggedIn' }
@@ -1855,7 +1866,7 @@ on:click={() => {
 								{#if menuItems.length > 0}
 									<button
 										type="button"
-										on:click={openNavigationClearDialog}
+										onclick={openNavigationClearDialog}
 										class="btn preset-tonal text-sm"
 									>
 										{$t('admin.navigationClearAll')}
@@ -1887,7 +1898,7 @@ on:click={() => {
 								<div class="flex gap-2 mb-4">
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -1903,7 +1914,7 @@ on:click={() => {
 									</button>
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -1925,7 +1936,7 @@ on:click={() => {
 											<input
 												type="checkbox"
 												checked={isChecked}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (!config) return;
 													const current = config.exifMetadata?.displayFields ?? [];
 													const next = e.currentTarget.checked
@@ -1961,7 +1972,7 @@ on:click={() => {
 								<div class="flex gap-2 mb-4">
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -1977,7 +1988,7 @@ on:click={() => {
 									</button>
 									<button
 										type="button"
-										on:click={() => {
+										onclick={() => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -1999,7 +2010,7 @@ on:click={() => {
 											<input
 												type="checkbox"
 												checked={isChecked}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (!config) return;
 													const current = config.iptcXmpMetadata?.displayFields ?? [];
 													const next = e.currentTarget.checked
@@ -2067,7 +2078,7 @@ on:click={() => {
 														type="checkbox"
 														class="h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 														checked={collabVisAdmin.comments.enabled}
-														on:change={(e) =>
+														onchange={(e) =>
 															setCollabServiceEnabled('comments', e.currentTarget.checked)}
 														aria-label={$t('admin.collabServiceEnabledColumn')}
 													/>
@@ -2078,7 +2089,7 @@ on:click={() => {
 														class="h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 														checked={collabVisAdmin.comments.public}
 														disabled={!collabVisAdmin.comments.enabled}
-														on:change={(e) =>
+														onchange={(e) =>
 															setCollabFlag('comments', 'public', e.currentTarget.checked)}
 													/>
 												</td>
@@ -2088,7 +2099,7 @@ on:click={() => {
 														class="h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 														checked={collabVisAdmin.comments.authenticated}
 														disabled={!collabVisAdmin.comments.enabled}
-														on:change={(e) =>
+														onchange={(e) =>
 															setCollabFlag('comments', 'authenticated', e.currentTarget.checked)}
 													/>
 												</td>
@@ -2102,7 +2113,7 @@ on:click={() => {
 														type="checkbox"
 														class="h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 														checked={collabVisAdmin.tasks.enabled}
-														on:change={(e) => setCollabServiceEnabled('tasks', e.currentTarget.checked)}
+														onchange={(e) => setCollabServiceEnabled('tasks', e.currentTarget.checked)}
 														aria-label={$t('admin.collabServiceEnabledColumn')}
 													/>
 												</td>
@@ -2112,7 +2123,7 @@ on:click={() => {
 														class="h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 														checked={collabVisAdmin.tasks.public}
 														disabled={!collabVisAdmin.tasks.enabled}
-														on:change={(e) => setCollabFlag('tasks', 'public', e.currentTarget.checked)}
+														onchange={(e) => setCollabFlag('tasks', 'public', e.currentTarget.checked)}
 													/>
 												</td>
 												<td class="p-3 align-middle text-center">
@@ -2121,7 +2132,7 @@ on:click={() => {
 														class="h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 														checked={collabVisAdmin.tasks.authenticated}
 														disabled={!collabVisAdmin.tasks.enabled}
-														on:change={(e) =>
+														onchange={(e) =>
 															setCollabFlag('tasks', 'authenticated', e.currentTarget.checked)}
 													/>
 												</td>
@@ -2135,7 +2146,7 @@ on:click={() => {
 														type="checkbox"
 														class="h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 														checked={collabVisAdmin.activity.enabled}
-														on:change={(e) =>
+														onchange={(e) =>
 															setCollabServiceEnabled('activity', e.currentTarget.checked)}
 														aria-label={$t('admin.collabServiceEnabledColumn')}
 													/>
@@ -2146,7 +2157,7 @@ on:click={() => {
 														class="h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 														checked={collabVisAdmin.activity.public}
 														disabled={!collabVisAdmin.activity.enabled}
-														on:change={(e) =>
+														onchange={(e) =>
 															setCollabFlag('activity', 'public', e.currentTarget.checked)}
 													/>
 												</td>
@@ -2156,7 +2167,7 @@ on:click={() => {
 														class="h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
 														checked={collabVisAdmin.activity.authenticated}
 														disabled={!collabVisAdmin.activity.enabled}
-														on:change={(e) =>
+														onchange={(e) =>
 															setCollabFlag('activity', 'authenticated', e.currentTarget.checked)}
 													/>
 												</td>
@@ -2176,7 +2187,7 @@ on:click={() => {
 										id="tag-feedback-search-boost"
 										type="checkbox"
 										checked={config.features?.enableTagFeedbackSearchBoost === true}
-										on:change={(e) => {
+										onchange={(e) => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -2229,7 +2240,7 @@ on:click={() => {
 												id="sharing-on-album"
 												type="checkbox"
 												checked={config.features?.sharingOnAlbum !== false}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (!config) return;
 													config = {
 														...(config),
@@ -2248,7 +2259,7 @@ on:click={() => {
 												id="sharing-on-photo"
 												type="checkbox"
 												checked={config.features?.sharingOnPhoto !== false}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (!config) return;
 													config = {
 														...(config),
@@ -2274,7 +2285,7 @@ on:click={() => {
 												id="share-twitter"
 												type="checkbox"
 												checked={opts.includes('twitter')}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (!config) return;
 													const current = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy'];
 													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'twitter'), 'twitter'] : current.filter((x: string) => x !== 'twitter');
@@ -2289,7 +2300,7 @@ on:click={() => {
 												id="share-facebook"
 												type="checkbox"
 												checked={opts.includes('facebook')}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (!config) return;
 													const current = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy'];
 													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'facebook'), 'facebook'] : current.filter((x: string) => x !== 'facebook');
@@ -2304,7 +2315,7 @@ on:click={() => {
 												id="share-whatsapp"
 												type="checkbox"
 												checked={opts.includes('whatsapp')}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (!config) return;
 													const current = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy'];
 													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'whatsapp'), 'whatsapp'] : current.filter((x: string) => x !== 'whatsapp');
@@ -2319,7 +2330,7 @@ on:click={() => {
 												id="share-copy"
 												type="checkbox"
 												checked={opts.includes('copy')}
-												on:change={(e) => {
+												onchange={(e) => {
 													if (!config) return;
 													const current = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy'];
 													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'copy'), 'copy'] : current.filter((x: string) => x !== 'copy');
@@ -2349,7 +2360,7 @@ on:click={() => {
 										id="mail-host"
 										type="text"
 										value={config.mail?.host ?? ''}
-										on:input={(e) => {
+										oninput={(e) => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -2366,7 +2377,7 @@ on:click={() => {
 										id="mail-port"
 										type="number"
 										value={config.mail?.port ?? ''}
-										on:input={(e) => {
+										oninput={(e) => {
 											if (!config) return;
 											const v = e.currentTarget.value ? Number(e.currentTarget.value) : undefined;
 											config = { ...(config), mail: { ...config.mail, port: v } } as SiteConfig;
@@ -2382,7 +2393,7 @@ on:click={() => {
 										id="mail-user"
 										type="text"
 										value={config.mail?.user ?? ''}
-										on:input={(e) => {
+										oninput={(e) => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -2399,7 +2410,7 @@ on:click={() => {
 										id="mail-password"
 										type="password"
 										value={config.mail?.password ?? ''}
-										on:input={(e) => {
+										oninput={(e) => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -2417,7 +2428,7 @@ on:click={() => {
 										id="mail-from"
 										type="text"
 										value={config.mail?.from ?? ''}
-										on:input={(e) => {
+										oninput={(e) => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -2433,7 +2444,7 @@ on:click={() => {
 										<input
 											type="checkbox"
 											checked={config.mail?.secure ?? false}
-											on:change={(e) => {
+											onchange={(e) => {
 												if (!config) return;
 												config = {
 													...(config),
@@ -2456,7 +2467,7 @@ on:click={() => {
 									<input
 										type="checkbox"
 										checked={config.welcomeEmail?.enabled ?? false}
-										on:change={(e) => {
+										onchange={(e) => {
 											if (!config) return;
 											config = {
 												...(config),
@@ -2512,7 +2523,7 @@ on:click={() => {
 							<div class="border-t border-surface-200-800 pt-6">
 								<button
 									type="button"
-									on:click={openTestMailModal}
+									onclick={openTestMailModal}
 									class={adminBtnPrimarySm}
 								>
 									{$t('admin.sendTestEmail')}
@@ -2550,7 +2561,7 @@ on:click={() => {
 						<h2 id="test-email-title" class="text-lg font-semibold text-(--color-surface-950-50)">Send test email</h2>
 						<button
 							type="button"
-							on:click={closeTestMailModal}
+							onclick={closeTestMailModal}
 							class="text-(--color-surface-400-600) hover:text-(--color-surface-600-400) p-1 rounded"
 							aria-label="Close"
 						>
@@ -2559,7 +2570,10 @@ on:click={() => {
 					</div>
 					<div class="p-4 overflow-y-auto flex-1">
 						{#if testMailResult === 'idle' || testMailResult === 'sending'}
-							<form on:submit|preventDefault={sendTestEmail} class="space-y-4">
+							<form onsubmit={(e) => {
+										e.preventDefault();
+										sendTestEmail(e);
+									}} class="space-y-4">
 								<div>
 									<label for="test-email-to" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">To</label>
 									<input
@@ -2592,7 +2606,7 @@ on:click={() => {
 								<div class="flex gap-2 justify-end pt-2">
 									<button
 										type="button"
-										on:click={closeTestMailModal}
+										onclick={closeTestMailModal}
 										class="btn preset-tonal text-sm"
 									>
 										Cancel
@@ -2624,7 +2638,7 @@ on:click={() => {
 								<div class="flex justify-end">
 									<button
 										type="button"
-										on:click={closeTestMailModal}
+										onclick={closeTestMailModal}
 										class={adminBtnPrimary}
 									>
 										Close

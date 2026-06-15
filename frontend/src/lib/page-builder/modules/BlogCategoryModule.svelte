@@ -3,25 +3,34 @@
 	import Layout from './BlogCategory/Layout.svelte';
 	import type { BlogCategoryLayoutConfig } from './BlogCategory/types';
 
-	/** Section heading (optional); string or per-locale map */
-	export let title: string | Record<string, string> | undefined = undefined;
-	/** Optional category alias filter */
-	export let categoryAlias: string | undefined = undefined;
-	/** Visual layout */
-	export let layout: 'chips' | 'list' = 'chips';
-	/** Show published article counts (extra request aggregation on server when true) */
-	export let showCount = false;
-	export let maxItems = 10;
-	export let sortBy: 'name' | 'count' = 'name';
-	/** If true, each item links to articlesListPath?category=<alias> */
-	export let linkToArticles = false;
-	/** Base path for article listing (site-specific until a public /blog route exists) */
-	export let articlesListPath = '/blog';
+	let {
+		title = undefined,
+		categoryAlias = undefined,
+		layout = 'chips',
+		showCount = false,
+		maxItems = 10,
+		sortBy = 'name',
+		linkToArticles = false,
+		articlesListPath = '/blog',
+		data = null,
+		compact,
+		...rest
+	}: {
+		title?: string | Record<string, string>;
+		categoryAlias?: string;
+		layout?: 'chips' | 'list';
+		showCount?: boolean;
+		maxItems?: number;
+		sortBy?: 'name' | 'count';
+		linkToArticles?: boolean;
+		articlesListPath?: string;
+		data?: unknown;
+		compact?: boolean;
+		[key: string]: unknown;
+	} = $props();
 
-	// svelte-ignore export_let_unused - passed by PageRenderer for all modules
-	export let data: unknown = null;
-
-	$: moduleConfig = {
+	const moduleConfig = $derived({
+		...(rest as BlogCategoryLayoutConfig),
 		title,
 		categoryAlias,
 		layout,
@@ -30,7 +39,7 @@
 		sortBy,
 		linkToArticles,
 		articlesListPath
-	} satisfies BlogCategoryLayoutConfig;
+	}) satisfies BlogCategoryLayoutConfig;
 </script>
 
 <Layout config={moduleConfig} />

@@ -3,11 +3,15 @@
 	import { getTemplatePack } from '$lib/template/packs/registry';
 	import type { PackCmsPageProps } from '$lib/template-packs/pack-page-props';
 
-	export let page: PackCmsPageProps['page'] = null;
-	export let error: PackCmsPageProps['error'] = null;
+	let {
+		page = null,
+		error = null
+	}: {
+		page?: PackCmsPageProps['page'];
+		error?: PackCmsPageProps['error'];
+	} = $props();
 
-	$: packPromise = getTemplatePack($activeTemplate);
-</script>
+const packPromise = $derived(getTemplatePack($activeTemplate));</script>
 
 {#await packPromise then pack}
 	<svelte:component this={pack.pages.CmsPage} {page} {error} />

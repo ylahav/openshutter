@@ -32,17 +32,17 @@
 		seoDescription: { en?: string; he?: string };
 	}
 
-	let loading = true;
-	let saving = false;
+	let loading = $state(true);
+	let saving = $state(false);
 	interface CategoryOption {
 		alias: string;
 		title: unknown;
 	}
 
-	let categoryOptions: CategoryOption[] = [];
-	let articleId = '';
+	let categoryOptions: CategoryOption[] = $state([]);
+	let articleId = $state('');
 
-	let formData: BlogFormData = {
+	let formData: BlogFormData = $state({
 		title: { en: '', he: '' },
 		category: '',
 		tags: [],
@@ -52,9 +52,9 @@
 		isFeatured: false,
 		seoTitle: { en: '', he: '' },
 		seoDescription: { en: '', he: '' }
-	};
+	});
 
-	let tagInput = '';
+	let tagInput = $state('');
 
 	function asLangObj(val: unknown): { en?: string; he?: string } {
 		if (val && typeof val === 'object') return { ...(val as object) } as { en?: string; he?: string };
@@ -143,7 +143,7 @@
 					a.leadingImage && typeof a.leadingImage === 'object'
 						? (a.leadingImage as BlogFormData['leadingImage'])
 						: undefined
-			};
+	};
 
 			const cat = formData.category;
 			if (cat && !categoryOptions.some((c) => c.alias === cat)) {
@@ -232,7 +232,7 @@
 			<div class="flex justify-between items-center mb-8">
 				<h1 class="text-3xl font-bold text-(--color-surface-950-50)">{$t('admin.edit')} — {$t('admin.blogArticles')}</h1>
 				<button
-					on:click={() => goto('/admin/blog-articles')}
+					onclick={() => goto('/admin/blog-articles')}
 					class="btn preset-filled-primary-500 inline-flex items-center"
 				>
 					{$t('admin.backToBlogWorkspace')}
@@ -240,7 +240,7 @@
 			</div>
 
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-				<form on:submit={handleSubmit} class="space-y-6">
+				<form onsubmit={handleSubmit} class="space-y-6">
 					<div>
 						<h3 class="text-lg font-medium text-(--color-surface-950-50) mb-4">{$t('owner.basicInformation')}</h3>
 						<div class="space-y-4">
@@ -283,7 +283,7 @@
 										id="edit-article-tags"
 										type="text"
 										bind:value={tagInput}
-										on:keypress={(e) => {
+										onkeypress={(e) => {
 											if (e.key === 'Enter') {
 												e.preventDefault();
 												handleAddTag();
@@ -291,7 +291,7 @@
 										}}
 										class="flex-1 px-3 py-2 border border-surface-300-700 rounded-l-md"
 									/>
-									<button type="button" on:click={handleAddTag} class="{adminBtnPrimarySm} {adminRingPrimary} rounded-l-none rounded-r-md">
+									<button type="button" onclick={handleAddTag} class="{adminBtnPrimarySm} {adminRingPrimary} rounded-l-none rounded-r-md">
 										{$t('owner.add')}
 									</button>
 								</div>
@@ -300,7 +300,7 @@
 										{#each formData.tags as tag}
 											<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] text-(--color-primary-800)">
 												{tag}
-												<button type="button" on:click={() => handleRemoveTag(tag)} class="ml-1">×</button>
+												<button type="button" onclick={() => handleRemoveTag(tag)} class="ml-1">×</button>
 											</span>
 										{/each}
 									</div>
@@ -314,7 +314,7 @@
 						<input
 							type="url"
 							value={formData.leadingImage?.url || ''}
-							on:input={(e) => {
+							oninput={(e) => {
 								formData.leadingImage = {
 									url: e.currentTarget.value,
 									alt: formData.leadingImage?.alt || { [$currentLanguage]: '' },

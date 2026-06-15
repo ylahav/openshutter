@@ -1,23 +1,28 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { getPhotoUrl } from '$lib/utils/photoUrl';
 	import { layoutJustifiedRows, photoAspectRatio } from './justify-rows';
 
-	export let photos: any[] = [];
-	export let gapPx = 4;
-	export let targetRowHeight = 220;
+	let {
+		photos = [],
+		gapPx = 4,
+		targetRowHeight = 220,
+		onopen = undefined
+	}: {
+		photos?: any[];
+		gapPx?: number;
+		targetRowHeight?: number;
+		onopen?: (detail: { photo: any }) => void;
+	} = $props();
 
-	const dispatch = createEventDispatcher<{ open: { photo: any } }>();
+	let container = $state<HTMLDivElement | null>(null);
+	let width = $state(0);
 
-	let container: HTMLDivElement | null = null;
-	let width = 0;
-
-	$: items = photos.map((p) => ({ photo: p, aspect: photoAspectRatio(p) }));
-	$: rows =
-		width > 0 && items.length > 0
-			? layoutJustifiedRows(items, width, targetRowHeight, gapPx)
-			: [];
+	const items = $derived(photos.map((p) => ({ photo: p, aspect: photoAspectRatio(p) })));
+	const rows = $derived(
+		width > 0 && items.length > 0 ? layoutJustifiedRows(items, width, targetRowHeight, gapPx) : []
+	);
 
 	function thumbUrl(p: any) {
 		return getPhotoUrl(p ?? {}, { preferThumbnail: true, fallback: '' });
@@ -53,7 +58,7 @@
 					class="pb-justifyPhotoGrid__cell"
 					style="width:{Math.round(cell.widthPx)}px;height:{Math.round(cell.heightPx)}px"
 					aria-label={label(cell.item.photo)}
-					on:click={() => dispatch('open', { photo: cell.item.photo })}
+					onclick={() => onopen?.({ photo: cell.item.photo })}
 				>
 					{#if thumbUrl(cell.item.photo)}
 						<img

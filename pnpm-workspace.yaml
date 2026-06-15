@@ -13,6 +13,31 @@ allowBuilds:
   protobufjs: true
   sharp: true
 
+minimumReleaseAgeExclude:
+  - '@aws-sdk/client-s3@3.1068.0'
+  - '@aws-sdk/s3-request-presigner@3.1068.0'
+  - '@tailwindcss/node@4.3.1'
+  - '@tailwindcss/oxide-android-arm64@4.3.1'
+  - '@tailwindcss/oxide-darwin-arm64@4.3.1'
+  - '@tailwindcss/oxide-darwin-x64@4.3.1'
+  - '@tailwindcss/oxide-freebsd-x64@4.3.1'
+  - '@tailwindcss/oxide-linux-arm-gnueabihf@4.3.1'
+  - '@tailwindcss/oxide-linux-arm64-gnu@4.3.1'
+  - '@tailwindcss/oxide-linux-arm64-musl@4.3.1'
+  - '@tailwindcss/oxide-linux-x64-gnu@4.3.1'
+  - '@tailwindcss/oxide-linux-x64-musl@4.3.1'
+  - '@tailwindcss/oxide-wasm32-wasi@4.3.1'
+  - '@tailwindcss/oxide-win32-arm64-msvc@4.3.1'
+  - '@tailwindcss/oxide-win32-x64-msvc@4.3.1'
+  - '@tailwindcss/oxide@4.3.1'
+  - '@tailwindcss/postcss@4.3.1'
+  - '@tailwindcss/vite@4.3.1'
+  - eslint@10.5.0
+  - svelte-dnd-action@0.9.70
+  - tailwindcss@4.3.1
+  - '@sveltejs/kit@2.65.1'
+  - '@types/yauzl@3.4.0'
+
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@parcel/watcher'

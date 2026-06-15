@@ -1,10 +1,19 @@
 <script lang="ts">
-	export let searchTerm = '';
-	export let roleFilter = 'all';
-	export let blockedFilter = 'all';
-	export let roles: Array<{ value: string; label: string; description?: string }> = [];
-	export let onFilterChange: (() => void) | undefined = undefined;
-	export let onAddUser: (() => void) | undefined = undefined;
+	let {
+		searchTerm = $bindable(''),
+		roleFilter = $bindable('all'),
+		blockedFilter = $bindable('all'),
+		roles = [],
+		onFilterChange = undefined,
+		onAddUser = undefined
+	}: {
+		searchTerm?: string;
+		roleFilter?: string;
+		blockedFilter?: string;
+		roles?: Array<{ value: string; label: string; description?: string }>;
+		onFilterChange?: (() => void) | undefined;
+		onAddUser?: (() => void) | undefined;
+	} = $props();
 </script>
 
 <div class="flex items-center justify-between mb-6">
@@ -14,7 +23,7 @@
 				type="text"
 				placeholder="Search users..."
 				bind:value={searchTerm}
-				on:input={() => onFilterChange?.()}
+				oninput={() => onFilterChange?.()}
 				class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 			/>
 			<svg
@@ -34,7 +43,7 @@
 
 		<select
 			bind:value={roleFilter}
-			on:change={() => onFilterChange?.()}
+			onchange={() => onFilterChange?.()}
 			class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 		>
 			<option value="all">All Roles</option>
@@ -45,7 +54,7 @@
 
 		<select
 			bind:value={blockedFilter}
-			on:change={() => onFilterChange?.()}
+			onchange={() => onFilterChange?.()}
 			class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 		>
 			<option value="all">All Status</option>
@@ -56,7 +65,7 @@
 
 	<button
 		type="button"
-		on:click={() => onAddUser?.()}
+		onclick={() => onAddUser?.()}
 		class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
 	>
 		<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

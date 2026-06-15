@@ -1,69 +1,80 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import PhotoLightbox from '../PhotoLightbox.svelte';
 	import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
 
-	export let results: {
-		photos: any[];
-		albums: any[];
-		people: any[];
-		locations: any[];
-		totalPhotos: number;
-		totalAlbums: number;
-		totalPeople: number;
-		totalLocations: number;
-		page: number;
-		limit: number;
-		hasMore: boolean;
-	};
-	export let loading = false;
-	export let error: string | null = null;
-	export let query = '';
-	/** Summary of current search (query + active filters) for display in results header */
-	export let searchSummary = '';
+	let {
+		results,
+		loading = false,
+		error = null,
+		query = '',
+		searchSummary = '',
+		onloadMore = undefined
+	}: {
+		results: {
+			photos: any[];
+			albums: any[];
+			people: any[];
+			locations: any[];
+			totalPhotos: number;
+			totalAlbums: number;
+			totalPeople: number;
+			totalLocations: number;
+			page: number;
+			limit: number;
+			hasMore: boolean;
+		};
+		loading?: boolean;
+		error?: string | null;
+		query?: string;
+		/** Summary of current search (query + active filters) for display in results header */
+		searchSummary?: string;
+		onloadMore?: () => void;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
+	let lightboxOpen = $state(false);
+	let lightboxIndex = $state(0);
 
-	let lightboxOpen = false;
-	let lightboxIndex = 0;
+	const photoCount = $derived(
+		Array.isArray(results.photos) && results.photos.length > 0
+			? results.photos.length
+			: results.totalPhotos || 0
+	);
+	const hasResults = $derived(photoCount > 0 || results.totalPhotos > 0);
 
-	$: photoCount = Array.isArray(results.photos) && results.photos.length > 0
-		? results.photos.length
-		: results.totalPhotos || 0;
-	$: hasResults = photoCount > 0 || results.totalPhotos > 0;
-
-	$: lightboxPhotos = Array.isArray(results.photos)
-		? results.photos.map((photo: any) => {
-				const imageUrl = getPhotoFullUrl(photo, '');
-				const thumbnailUrl = getPhotoUrl(photo, { fallback: '' });
-				return {
-					_id: photo._id,
-					url: imageUrl || thumbnailUrl,
-					thumbnailUrl: thumbnailUrl || imageUrl,
-					title:
-						typeof photo.title === 'string'
-							? photo.title
-							: MultiLangUtils.getTextValue(photo.title || {}, $currentLanguage) || '',
-					takenAt: photo.exif?.dateTime || photo.uploadedAt,
-					exif: photo.exif,
-					rotation: photo.rotation,
-					metadata: photo.dimensions
-						? {
-								width: photo.dimensions.width,
-								height: photo.dimensions.height,
-								fileSize: photo.size,
-								format: photo.mimeType
-							}
-						: undefined
-				};
-			})
-		: [];
+	const lightboxPhotos = $derived(
+		Array.isArray(results.photos)
+			? results.photos.map((photo: any) => {
+					const imageUrl = getPhotoFullUrl(photo, '');
+					const thumbnailUrl = getPhotoUrl(photo, { fallback: '' });
+					return {
+						_id: photo._id,
+						url: imageUrl || thumbnailUrl,
+						thumbnailUrl: thumbnailUrl || imageUrl,
+						title:
+							typeof photo.title === 'string'
+								? photo.title
+								: MultiLangUtils.getTextValue(photo.title || {}, $currentLanguage) || '',
+						takenAt: photo.exif?.dateTime || photo.uploadedAt,
+						exif: photo.exif,
+						rotation: photo.rotation,
+						metadata: photo.dimensions
+							? {
+									width: photo.dimensions.width,
+									height: photo.dimensions.height,
+									fileSize: photo.size,
+									format: photo.mimeType
+								}
+							: undefined
+					};
+				})
+			: []
+	);
 
 	function handleLoadMore() {
-		dispatch('loadMore');
+		onloadMore?.();
 	}
 
 	function openLightbox(index: number) {
@@ -88,7 +99,7 @@
 				<p class="text-sm text-gray-600 mt-1">{error}</p>
 			</div>
 			<button
-				on:click={() => window.location.reload()}
+				onclick={() => window.location.reload()}
 				class="os-search-results__action"
 			>
 				{$t('search.retry')}
@@ -153,7 +164,7 @@
 					{#each results.photos as photo, index}
 						<button
 							type="button"
-							on:click={() => openLightbox(index)}
+							onclick={() => openLightbox(index)}
 							class="os-search-results__card cursor-pointer bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow w-full text-left border-0 p-0 font-inherit"
 							aria-label="{$t('search.viewPhoto')}: {photo.filename || (typeof photo.title === 'string' ? photo.title : '') || $t('search.untitled')}"
 						>
@@ -185,7 +196,7 @@
 			{#if results.hasMore}
 				<div class="os-search-results__load-more text-center">
 					<button
-						on:click={handleLoadMore}
+						onclick={handleLoadMore}
 						disabled={loading}
 						class="os-search-results__action px-8 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
 					>

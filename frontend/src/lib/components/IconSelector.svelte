@@ -1,15 +1,20 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { AVAILABLE_ICON_NAMES } from '$lib/icons';
 	import IconRenderer from './IconRenderer.svelte';
 
-	export let value: string = '';
-	export let placeholder: string = 'Select an icon...';
+	let {
+		value = $bindable(''),
+		placeholder = 'Select an icon...',
+		onchange = undefined
+	}: {
+		value?: string;
+		placeholder?: string;
+		onchange?: (detail: { value: string }) => void;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
-
-	let isOpen = false;
-	let sortedIcons = [...AVAILABLE_ICON_NAMES].sort();
+	let isOpen = $state(false);
+	let sortedIcons = $state([...AVAILABLE_ICON_NAMES].sort());
 
 	function toggle() {
 		isOpen = !isOpen;
@@ -21,19 +26,19 @@
 
 	function selectIcon(iconName: string) {
 		value = iconName;
-		dispatch('change', { value: iconName });
+		onchange?.({ value: iconName });
 		close();
 	}
 
 	function selectCustom() {
 		value = 'custom';
-		dispatch('change', { value: 'custom' });
+		onchange?.({ value: 'custom' });
 		close();
 	}
 
 	function selectNone() {
 		value = '';
-		dispatch('change', { value: '' });
+		onchange?.({ value: '' });
 		close();
 	}
 
@@ -53,15 +58,15 @@
 		};
 	});
 
-	$: displayValue = value === 'custom' ? 'Custom...' : value || placeholder;
-	$: selectedIcon = value && value !== 'custom' ? value : null;
+	const displayValue = $derived(value === 'custom' ? 'Custom...' : value || placeholder);
+	const selectedIcon = $derived(value && value !== 'custom' ? value : null);
 </script>
 
 <div class="icon-selector relative">
 	<!-- Current Selection Display -->
 	<button
 		type="button"
-		on:click={toggle}
+		onclick={toggle}
 		class="w-full flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm text-left"
 		aria-haspopup="listbox"
 		aria-expanded={isOpen}
@@ -91,8 +96,8 @@
 			class="fixed inset-0 z-10"
 			role="button"
 			tabindex="-1"
-			on:click={close}
-			on:keydown={(e) => e.key === 'Escape' && close()}
+			onclick={close}
+			onkeydown={(e) => e.key === 'Escape' && close()}
 		></div>
 
 		<!-- Dropdown Menu -->
@@ -102,7 +107,7 @@
 				<li>
 					<button
 						type="button"
-						on:click={selectNone}
+						onclick={selectNone}
 						class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors text-sm text-gray-700"
 					>
 						<span class="w-5 h-5"></span>
@@ -119,7 +124,7 @@
 					<li>
 						<button
 							type="button"
-							on:click={() => selectIcon(iconName)}
+							onclick={() => selectIcon(iconName)}
 							class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors text-sm {isSelected
 								? 'bg-blue-50 text-blue-700'
 								: 'text-gray-900'}"
@@ -148,7 +153,7 @@
 				<li>
 					<button
 						type="button"
-						on:click={selectCustom}
+						onclick={selectCustom}
 						class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors text-sm {value === 'custom'
 							? 'bg-blue-50 text-blue-700'
 							: 'text-gray-900'}"

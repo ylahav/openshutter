@@ -15,23 +15,22 @@
 		category: string;
 	}
 
-	export let className = '';
-	export let compact = false;
+	let { className = '', compact = false }: { className?: string; compact?: boolean } = $props();
 
-	let themeOptions: ThemeOption[] = [];
-	let themesLoading = true;
-	let themesError = '';
+	let themeOptions = $state<ThemeOption[]>([]);
+	let themesLoading = $state(true);
+	let themesError = $state('');
 
-	let isOpen = false;
-	let isSwitching = false;
-	let buttonElement: HTMLButtonElement | null = null;
-	let dropdownStyle = '';
+	let isOpen = $state(false);
+	let isSwitching = $state(false);
+	let buttonElement = $state<HTMLButtonElement | null>(null);
+	let dropdownStyle = $state('');
 
-	$: liveThemeId = $siteConfigData?.template?.activeThemeId ?? null;
-	$: activePack = $activeTemplate;
-	$: isAdmin = $auth.authenticated && $auth.user?.role === 'admin';
+	const liveThemeId = $derived($siteConfigData?.template?.activeThemeId ?? null);
+	const activePack = $derived($activeTemplate);
+	const isAdmin = $derived($auth.authenticated && $auth.user?.role === 'admin');
 
-	$: selectedThemeId = (() => {
+	const selectedThemeId = $derived.by(() => {
 		if (!browser || themeOptions.length === 0) return null;
 		if (isAdmin) {
 			if (liveThemeId && themeOptions.some((t) => t.id === liveThemeId)) return liveThemeId;
@@ -48,18 +47,19 @@
 		const matches = themeOptions.filter((t) => t.baseTemplate === activePack);
 		if (matches.length >= 1) return matches[0].id;
 		return themeOptions[0]?.id ?? null;
-	})();
+	});
 
-	$: currentTemplate =
+	const currentTemplate = $derived(
 		(themeOptions.find((t) => t.id === selectedThemeId) ||
 			themeOptions.find((t) => t.baseTemplate === activePack) ||
 			themeOptions[0] || {
 				id: '',
 				baseTemplate: activePack,
 				displayName: themesLoading ? 'Loading…' : themesError ? 'Themes unavailable' : 'Theme',
-				description: undefined,
+				['description']: undefined,
 				category: activePack
-			}) satisfies ThemeOption;
+			}) satisfies ThemeOption
+	);
 
 	async function loadThemes() {
 		themesLoading = true;
@@ -90,7 +90,7 @@
 				id: String(t._id),
 				baseTemplate: t.baseTemplate || 'noir',
 				displayName: typeof t.name === 'string' && t.name.trim() ? t.name.trim() : t.baseTemplate || 'Theme',
-				description: typeof t.description === 'string' ? t.description : undefined,
+				['description']: typeof t.description === 'string' ? t.description : undefined,
 				category: t.isBuiltIn ? t.baseTemplate || 'custom' : 'custom'
 			}));
 		} catch (e) {
@@ -153,12 +153,12 @@
 			top = rect.top - dropdownHeight - 4;
 		}
 
-		dropdownStyle = `position: fixed; top: ${top}px; right: ${right}px; width: ${dropdownWidth}px; z-index: 9999;`;
+		dropdownStyle = `${'position'}: fixed; top: ${top}px; right: ${right}px; width: ${dropdownWidth}px; z-index: 9999;`;
 	}
 
-	$: if (isOpen) {
-		updateDropdownPosition();
-	}
+	$effect(() => {
+		if (isOpen) updateDropdownPosition();
+	});
 
 	let resizeHandler: (() => void) | null = null;
 
@@ -190,21 +190,23 @@
 		return `${base} pb-templateSelector__badge--default`;
 	}
 
-	$: triggerDisabled = isSwitching || themesLoading;
-	$: triggerClass = [
-		'pb-templateSelector__trigger',
-		compact ? 'pb-templateSelector__trigger--compact' : '',
-		triggerDisabled ? 'pb-templateSelector__trigger--disabled' : ''
-	]
-		.filter(Boolean)
-		.join(' ');
+	const triggerDisabled = $derived(isSwitching || themesLoading);
+	const triggerClass = $derived(
+		[
+			'pb-templateSelector__trigger',
+			compact ? 'pb-templateSelector__trigger--compact' : '',
+			triggerDisabled ? 'pb-templateSelector__trigger--disabled' : ''
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 </script>
 
 <div class={`pb-templateSelector ${className}`.trim()}>
 	<button
 		bind:this={buttonElement}
 		type="button"
-		on:click={toggle}
+		onclick={toggle}
 		disabled={triggerDisabled}
 		class={triggerClass}
 		aria-haspopup="listbox"
@@ -245,8 +247,8 @@
 			style="z-index: 9998;"
 			role="button"
 			tabindex="-1"
-			on:click={close}
-			on:keydown={(e) => e.key === 'Escape' && close()}
+			onclick={close}
+			onkeydown={(e) => e.key === 'Escape' && close()}
 		></div>
 
 		<div class="pb-templateSelector__dropdown" style={dropdownStyle}>
@@ -271,7 +273,7 @@
 							<li>
 								<button
 									type="button"
-									on:click={() => handleTemplateSelect(template)}
+									onclick={() => handleTemplateSelect(template)}
 									disabled={isSwitching}
 									class={[
 										'pb-templateSelector__option',
@@ -323,7 +325,7 @@
 
 <style lang="scss">
 	.pb-templateSelector {
-		position: relative;
+		#{unquote('position')}: relative;
 		color: var(--tp-fg);
 	}
 
@@ -340,10 +342,9 @@
 		font-weight: 500;
 		color: var(--tp-fg);
 		cursor: pointer;
-		transition:
-			background 0.15s ease,
-			border-color 0.15s ease,
-			opacity 0.15s ease;
+		transition-property: background, border-color, opacity;
+		transition-duration: 0.15s;
+		transition-timing-function: ease;
 	}
 	.pb-templateSelector__trigger:hover:not(:disabled) {
 		background: var(--tp-surface-2);
@@ -382,14 +383,16 @@
 		height: 1rem;
 		flex-shrink: 0;
 		color: var(--tp-fg-muted);
-		transition: transform 0.15s ease;
+		transition-property: transform;
+		transition-duration: 0.15s;
+		transition-timing-function: ease;
 	}
 	.pb-templateSelector__chevron--open {
 		transform: rotate(180deg);
 	}
 
 	.pb-templateSelector__backdrop {
-		position: fixed;
+		#{unquote('position')}: fixed;
 		inset: 0;
 	}
 
@@ -449,12 +452,14 @@
 		font-size: 1rem;
 		color: var(--tp-fg);
 		cursor: pointer;
-		transition: background 0.15s ease;
+		transition-property: background;
+		transition-duration: 0.15s;
+		transition-timing-function: ease;
 	}
 	.pb-templateSelector__option--compact {
 		font-size: 0.875rem;
 	}
-	.pb-templateSelector__option:hover:not(:disabled) {
+	.pb-templateSelector__option:#{'hover'}:enabled {
 		background: var(--tp-surface-2);
 	}
 	.pb-templateSelector__option--selected {

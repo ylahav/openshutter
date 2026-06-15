@@ -101,3 +101,11 @@
 	border-top-color: var(--color-surface-700);
 	background-color: color-mix(in oklab, var(--color-surface-900) 88%, black);
 }
+
+[data-admin-chrome] dialog.admin-crud-dialog {
+	color: inherit;
+}
+
+[data-admin-chrome] dialog.admin-crud-dialog::backdrop {
+	background: rgb(0 0 0 / 0.5);
+}

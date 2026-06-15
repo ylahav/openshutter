@@ -3,11 +3,17 @@
 	import { productName } from '$stores/siteConfig';
 	import { t } from '$stores/i18n';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	$: featuredListings = (data.listings || []).filter((l: { featured?: boolean }) => l.featured);
-	$: otherListings = (data.listings || []).filter((l: { featured?: boolean }) => !l.featured);
-	$: showFeaturedSection = featuredListings.length > 0 && !data.searchQuery && !data.category;
+	const featuredListings = $derived(
+		(data.listings || []).filter((l: { featured?: boolean }) => l.featured)
+	);
+	const otherListings = $derived(
+		(data.listings || []).filter((l: { featured?: boolean }) => !l.featured)
+	);
+	const showFeaturedSection = $derived(
+		featuredListings.length > 0 && !data.searchQuery && !data.category
+	);
 
 	const CATEGORY_LABELS: Record<string, string> = {
 		integration: 'Integration',

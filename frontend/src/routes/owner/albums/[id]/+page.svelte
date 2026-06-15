@@ -12,7 +12,7 @@
 	import { handleError } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface Album {
 		_id: string;
@@ -118,7 +118,7 @@
 		<div class="text-center">
 			<p class="text-gray-600">Album not found</p>
 			<button
-				on:click={() => goto(backHref)}
+				onclick={() => goto(backHref)}
 				class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 			>
 				Back to Albums
@@ -138,25 +138,25 @@
 				</div>
 				<div class="flex flex-wrap gap-3">
 					<button
-						on:click={() => goto(editHref)}
+						onclick={() => goto(editHref)}
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 					>
 						Edit Album
 					</button>
 					<button
-						on:click={() => goto(`/admin/photos/upload?albumId=${albumId}&returnTo=/owner/albums`)}
+						onclick={() => goto(`/admin/photos/upload?albumId=${albumId}&returnTo=/owner/albums`)}
 						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
 					>
 						Upload Photos
 					</button>
 					<button
-						on:click={() => goto(`/albums/new?parentAlbumId=${albumId}`)}
+						onclick={() => goto(`/albums/new?parentAlbumId=${albumId}`)}
 						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
 					>
 						Create Sub-Album
 					</button>
 					<button
-						on:click={refresh}
+						onclick={refresh}
 						class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 					>
 						Refresh
@@ -206,7 +206,7 @@
 					<p class="mt-1 text-sm text-gray-500">Get started by uploading some photos</p>
 					<div class="mt-6">
 						<button
-							on:click={() => goto(`/admin/photos/upload?albumId=${albumId}&returnTo=/owner/albums`)}
+							onclick={() => goto(`/admin/photos/upload?albumId=${albumId}&returnTo=/owner/albums`)}
 							class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 						>
 							Upload Photos
@@ -254,7 +254,7 @@
 										</a>
 										<button
 											type="button"
-											on:click={() => openPhotoDeleteDialog(photo)}
+											onclick={() => openPhotoDeleteDialog(photo)}
 											disabled={photoDeleteDialog.isDeleting}
 											class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
 										>

@@ -89,10 +89,10 @@
 	const uiDocNavIdle =
 		'border border-transparent hover:bg-[color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color-mix(in_oklab,var(--color-surface-50)_10%,transparent)] text-(--color-surface-800-200)';
 
-	let selectedId = 'concepts';
+	let selectedId = $state('concepts');
 
-	$: active = docs.find((d) => d.id === selectedId) ?? docs[0];
-	$: renderedBody = marked(active.body, { async: false }) as string;
+	const active = $derived(docs.find((d) => d.id === selectedId) ?? docs[0]);
+	const renderedBody = $derived(marked(active.body, { async: false }) as string);
 </script>
 
 <svelte:head>
@@ -127,7 +127,7 @@
 										type="button"
 										class="w-full text-left px-3 py-2 rounded-md text-sm transition-colors
 											{selectedId === d.id ? uiDocNavSelected : uiDocNavIdle}"
-										on:click={() => (selectedId = d.id)}
+										onclick={() => (selectedId = d.id)}
 									>
 										{d.title}
 									</button>
@@ -146,7 +146,7 @@
 										type="button"
 										class="w-full text-left px-3 py-2 rounded-md text-sm transition-colors
 											{selectedId === d.id ? uiDocNavSelected : uiDocNavIdle}"
-										on:click={() => (selectedId = d.id)}
+										onclick={() => (selectedId = d.id)}
 									>
 										{d.title}
 									</button>
@@ -165,7 +165,7 @@
 										type="button"
 										class="w-full text-left px-3 py-2 rounded-md text-sm transition-colors
 											{selectedId === d.id ? uiDocNavSelected : uiDocNavIdle}"
-										on:click={() => (selectedId = d.id)}
+										onclick={() => (selectedId = d.id)}
 									>
 										{d.title}
 									</button>

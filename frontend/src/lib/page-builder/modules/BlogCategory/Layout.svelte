@@ -5,7 +5,7 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import type { BlogCategoryLayoutConfig } from './types';
 
-	export let config: BlogCategoryLayoutConfig = {};
+	let { config = {} }: { config?: BlogCategoryLayoutConfig } = $props();
 
 	type CategoryRow = {
 		alias: string;
@@ -13,9 +13,9 @@
 		articleCount?: number;
 	};
 
-	let loading = true;
-	let errorMessage: string | null = null;
-	let categories: CategoryRow[] = [];
+	let loading = $state(true);
+	let errorMessage = $state<string | null>(null);
+	let categories = $state<CategoryRow[]>([]);
 
 	function normTitle(cat: CategoryRow): string {
 		const t = cat.title;
@@ -29,29 +29,34 @@
 		return `${base}?${q.toString()}`;
 	}
 
-	$: layout = config.layout ?? 'chips';
-	$: showCount = config.showCount === true;
-	$: maxItemsRaw = config.maxItems ?? 10;
-	$: maxItems = Math.min(100, Math.max(1, Number(maxItemsRaw) || 10));
-	$: sortBy = config.sortBy === 'count' ? 'count' : 'name';
-	$: categoryAliasFilter = typeof config.categoryAlias === 'string' ? config.categoryAlias.trim() : '';
-	$: linkToArticles = config.linkToArticles === true;
-	$: sectionTitle =
+	const layout = $derived(config.layout ?? 'chips');
+	const showCount = $derived(config.showCount === true);
+	const maxItemsRaw = $derived(config.maxItems ?? 10);
+	const maxItems = $derived(Math.min(100, Math.max(1, Number(maxItemsRaw) || 10)));
+	const sortBy = $derived(config.sortBy === 'count' ? 'count' : 'name');
+	const categoryAliasFilter = $derived(
+		typeof config.categoryAlias === 'string' ? config.categoryAlias.trim() : ''
+	);
+	const linkToArticles = $derived(config.linkToArticles === true);
+	const sectionTitle = $derived(
 		config.title !== undefined && config.title !== null
 			? MultiLangUtils.getTextValue(config.title, $currentLanguage)
-			: '';
+			: ''
+	);
 
-	$: sortedCategories = (() => {
+	const sortedCategories = $derived.by(() => {
 		const list = categoryAliasFilter
 			? categories.filter((c) => c.alias === categoryAliasFilter)
 			: [...categories];
 		if (sortBy === 'count') {
-			list.sort((a, b) => (b.articleCount ?? 0) - (a.articleCount ?? 0) || normTitle(a).localeCompare(normTitle(b)));
+			list.sort(
+				(a, b) => (b.articleCount ?? 0) - (a.articleCount ?? 0) || normTitle(a).localeCompare(normTitle(b))
+			);
 		} else {
 			list.sort((a, b) => normTitle(a).localeCompare(normTitle(b), undefined, { sensitivity: 'base' }));
 		}
 		return list.slice(0, maxItems);
-	})();
+	});
 
 	onMount(() => {
 		if (!browser) return;
@@ -60,7 +65,6 @@
 		fetch(`/api/blog/categories?includeCounts=${includeCounts}`)
 			.then((res) => res.json())
 			.then((body) => {
-				// Dev Vite proxy may return Nest body `{ categories }` without `success`; SvelteKit route wraps `{ success, data }`.
 				if (body && body.success === false) {
 					errorMessage = typeof body?.error === 'string' ? body.error : 'Failed to load categories';
 					categories = [];

@@ -1323,7 +1323,7 @@
     "importSync": "Import & Sync",
     "migrationToolsPageTitle": "Migration Tools",
     "importSyncDescription": "Import content from external storage providers",
-    "migrationAlbumsPhotosDbSubtitle": "Restore DB records from existing storage (Wasabi, S3, …)",
+    "migrationAlbumsPhotosDbSubtitle": "Restore DB records from existing storage (Google Drive, Wasabi, S3, local, …)",
     "migrationTabStorageMigrationTooltip": "Choose “Storage → Storage Migration” in the options above to use storage migration.",
     "googleDriveImport": "Google Drive Import",
     "googleDriveImportDescription": "Scan and import folders and photos from Google Drive",

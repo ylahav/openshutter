@@ -27,12 +27,18 @@
 		hasMore: boolean;
 	}
 
-	let query = '';
-	export let limit = 20;
-	export let showSearchSummary = true;
-	$: pageSize = Math.max(1, Number(limit) || 20);
+	let {
+		limit = 20,
+		showSearchSummary = true
+	}: {
+		limit?: number;
+		showSearchSummary?: boolean;
+	} = $props();
 
-	let filters: SearchModuleFilters = {
+	const pageSize = $derived(Math.max(1, Number(limit) || 20));
+
+	let query = $state('');
+	let filters = $state<SearchModuleFilters>({
 		albumId: null,
 		tags: [],
 		people: [],
@@ -40,8 +46,8 @@
 		dateFrom: '',
 		dateTo: '',
 		sortOrder: 'desc'
-	};
-	let results: SearchResultPayload = {
+	});
+	let results = $state<SearchResultPayload>({
 		photos: [],
 		albums: [],
 		people: [],
@@ -53,13 +59,14 @@
 		page: 1,
 		limit: 20,
 		hasMore: false
-	};
-	let loading = false;
-	let error: string | null = null;
-	let currentPage = 1;
+	});
+	let loading = $state(false);
+	let error = $state<string | null>(null);
+	let currentPage = $state(1);
 	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	$: if (browser) {
+	$effect(() => {
+		if (!browser) return;
 		const templateId = String($activeTemplate || '').trim().toLowerCase();
 		const templateStylePath = `/src/templates/${templateId}/styles/_searchResults.scss`;
 		const defaultStylePath = '/src/lib/page-builder/modules/SearchResults/_styles.scss';
@@ -76,11 +83,11 @@
 				loadedTemplateSearchResultsStyles.add(styleKey);
 			}
 		}
-	}
+	});
 
-	const unsubscribe = searchModulesState.subscribe((state) => {
-		query = state.query;
-		filters = state.filters;
+	$effect(() => {
+		query = $searchModulesState.query;
+		filters = $searchModulesState.filters;
 		triggerSearch();
 	});
 
@@ -211,7 +218,7 @@
 		}
 	}
 
-	$: searchSummary = showSearchSummary && query?.trim() ? `"${query.trim()}"` : '';
+	const searchSummary = $derived(showSearchSummary && query?.trim() ? `"${query.trim()}"` : '');
 </script>
 
-<SearchResults {results} {loading} {error} {query} {searchSummary} on:loadMore={handleLoadMore} />
+<SearchResults {results} {loading} {error} {query} {searchSummary} onloadMore={handleLoadMore} />

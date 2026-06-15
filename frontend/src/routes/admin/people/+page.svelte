@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
 	import { t } from '$stores/i18n';
-	import { useCrudLoader } from '$lib/composables/useCrudLoader';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
-	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import { handleError } from '$lib/utils/errorHandler';
 	import {
@@ -21,15 +19,15 @@
 	import CollectionImportExportButtons from '$lib/components/admin/CollectionImportExportButtons.svelte';
 	import PersonFaceCrop from '$lib/components/admin/PersonFaceCrop.svelte';
 	import type { PageData } from './$types';
+	import { routePageData } from '$lib/admin/routePageData';
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
-	// svelte-ignore export_let_unused - Required by SvelteKit page component
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	let translate: (key: string, fallback?: string) => string = (key, fallback) => fallback || key;
-	$: translate = $t;
+	const pd = routePageData<PageData>();
 
+	const translate = $derived($t);
 	interface Person {
 		_id: string;
 		firstName: MultiLangText;
@@ -60,11 +58,25 @@
 		};
 	}
 
-	// Use CRUD composables
-	const crudLoader = useCrudLoader<Person>('/api/admin/people', {
-		searchParam: 'search',
-		searchValue: () => searchTerm
-	});
+	const people = $derived(($pd.people ?? []) as Person[]);
+
+	let searchTerm = $state(data.filters?.search ?? '');
+
+	async function refreshPeople() {
+		await invalidate('admin:people');
+	}
+
+	async function applyFilters() {
+		const params = new URLSearchParams();
+		if (searchTerm.trim()) params.set('search', searchTerm.trim());
+		const query = params.toString();
+		await goto(query ? `/admin/people?${query}` : '/admin/people', {
+			keepFocus: true,
+			noScroll: true,
+			invalidateAll: true
+		});
+	}
+
 	/** Form/payload shape for create/update person (tags can be string or array). */
 	type PersonFormData = Partial<Omit<Person, '_id'>> & { tags?: string | string[] | Array<{ _id: string; name: string }> };
 	/** Payload sent to API (tags normalized to string[]). */
@@ -75,7 +87,7 @@
 		updateSuccessMessage: $t('admin.personUpdatedSuccessfully'),
 		deleteSuccessMessage: $t('admin.personDeletedSuccessfully'),
 		transformPayload: (data: PersonFormData): PersonPayload => {
-			let tagsArray: string[] = [];
+			let tagsArray: string[] = $state([]);
 			if (data.tags) {
 				if (typeof data.tags === 'string') {
 					tagsArray = data.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean);
@@ -94,68 +106,45 @@
 				isActive: data.isActive
 			};
 		},
-		onCreateSuccess: (newPerson) => {
-			crudLoader.items.update(items => [...items, newPerson]);
-			dialogs.closeAll();
+		onCreateSuccess: async () => {
+			closeAllDialogs();
 			resetForm();
+			await refreshPeople();
 		},
-		onUpdateSuccess: (updatedPerson) => {
-			const currentEditingPerson = editingPerson;
-			if (currentEditingPerson) {
-				crudLoader.items.update(items => 
-					items.map(p => p._id === currentEditingPerson._id ? updatedPerson : p)
-				);
-			}
-			dialogs.closeAll();
+		onUpdateSuccess: async () => {
+			closeAllDialogs();
 			editingPerson = null;
 			resetForm();
+			await refreshPeople();
 		},
-		onDeleteSuccess: () => {
-			const currentPersonToDelete = personToDelete;
-			if (currentPersonToDelete) {
-				crudLoader.items.update(items => 
-					items.filter(p => p._id !== currentPersonToDelete._id)
-				);
-			}
-			dialogs.closeAll();
+		onDeleteSuccess: async () => {
+			closeAllDialogs();
 			personToDelete = null;
+			await refreshPeople();
 		}
 	});
-	const dialogs = useDialogManager();
+	const crudSaving = crudOps.saving;
+	const crudError = crudOps.error;
+	const crudMessage = crudOps.message;
+	let error = $state('');
+	let editingPerson: Person | null = $state(null);
+	let personToDelete: Person | null = $state(null);
+	let importExportBusy = $state(false);
+	let showCreateDialog = $state(false);
+	let showEditDialog = $state(false);
+	let showDeleteDialog = $state(false);
 
-	// Reactive stores from composables
-	let people: Person[] = [];
-	let loading = false;
-	let saving = false;
-	let error = '';
-	let searchTerm = '';
-	let showCreateDialog = false;
-	let showEditDialog = false;
-	let showDeleteDialog = false;
-	let editingPerson: Person | null = null;
-	let personToDelete: Person | null = null;
-	let importExportBusy = false;
+	function closeAllDialogs() {
+		showCreateDialog = false;
+		showEditDialog = false;
+		showDeleteDialog = false;
+	}
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => people = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.saving.subscribe(value => saving = value);
-	crudOps.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.message.subscribe((value) => {
-		if (!value) return;
-		adminToast.success({ title: value });
-	});
-	dialogs.showCreate.subscribe(value => showCreateDialog = value);
-	dialogs.showEdit.subscribe(value => showEditDialog = value);
-	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
+$effect(() => { if ($crudError) error = $crudError; });
+$effect(() => { if ($crudMessage) adminToast.success({ title: $crudMessage }); });
 
 	// Form state
-	let formData = {
+	let formData = $state({
 		firstName: {} as MultiLangText,
 		lastName: {} as MultiLangText,
 		nickname: {} as MultiLangText,
@@ -163,12 +152,11 @@
 		description: {} as MultiLangText,
 		tags: '',
 		isActive: true
-	};
+	});
 
-	$: defaultLang = $currentLanguage;
-
-	onMount(async () => {
-		await crudLoader.loadItems();
+	const defaultLang = $derived($currentLanguage);
+	onMount(() => {
+		searchTerm = data.filters?.search ?? '';
 	});
 
 	function resetForm() {
@@ -180,13 +168,15 @@
 			description: {},
 			tags: '',
 			isActive: true
-		};
+	};
 	}
 
 	function openCreateDialog() {
 		resetForm();
-		dialogs.openCreate();
-		crudOps.error.set('');
+		showCreateDialog = true;
+		showEditDialog = false;
+		showDeleteDialog = false;
+		crudError.set('');
 	}
 
 	function openEditDialog(person: Person) {
@@ -201,15 +191,19 @@
 			description: normalizeMultiLangText(person.description),
 			tags: personTagNamesForForm(person),
 			isActive: person.isActive !== undefined ? person.isActive : true
-		};
-		dialogs.openEdit();
-		crudOps.error.set('');
+	};
+		showEditDialog = true;
+		showCreateDialog = false;
+		showDeleteDialog = false;
+		crudError.set('');
 	}
 
 	function openDeleteDialog(person: Person) {
 		personToDelete = person;
-		dialogs.openDelete();
-		crudOps.error.set('');
+		showDeleteDialog = true;
+		showCreateDialog = false;
+		showEditDialog = false;
+		crudError.set('');
 	}
 
 	async function handleCreate() {
@@ -324,7 +318,7 @@
 
 	function setImportSummaryMessage(created: number, failed: number) {
 		const template = translate('admin.collectionImportResult');
-		crudOps.message.set(applyTemplateVars(template, { created, failed }));
+		crudMessage.set(applyTemplateVars(template, { created, failed }));
 	}
 
 	function tagDisplayName(tag: Record<string, unknown>): string {
@@ -353,7 +347,7 @@
 
 	async function handlePeopleExport() {
 		importExportBusy = true;
-		crudOps.error.set('');
+		crudError.set('');
 		try {
 			const [rows, tagMap] = await Promise.all([
 				fetchAdminPaginatedList('/api/admin/people'),
@@ -405,7 +399,7 @@
 				items
 			});
 		} catch (err) {
-			crudOps.error.set(handleError(err, translate('admin.collectionExportFailed')));
+			crudError.set(handleError(err, translate('admin.collectionExportFailed')));
 		} finally {
 			importExportBusy = false;
 		}
@@ -413,9 +407,9 @@
 
 	async function handlePeopleImport(file: File) {
 		importExportBusy = true;
-		crudOps.error.set('');
-		let created = 0;
-		let failed = 0;
+		crudError.set('');
+		let created = $state(0);
+		let failed = $state(0);
 		const failureLines: string[] = [];
 		try {
 			const list = parseImportItems(await file.text());
@@ -445,7 +439,7 @@
 					description: (o.description as Person['description']) ?? {},
 					tags,
 					isActive: o.isActive !== false
-				};
+	};
 				const fn = payload.firstName && typeof payload.firstName === 'object' ? payload.firstName : {};
 				const ln = payload.lastName && typeof payload.lastName === 'object' ? payload.lastName : {};
 				const anyFirst = Object.values(fn).some((v) => typeof v === 'string' && v.trim());
@@ -463,13 +457,13 @@
 					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
 				}
 			}
-			await crudLoader.loadItems();
+			await refreshPeople();
 			setImportSummaryMessage(created, failed);
 			if (failureLines.length) {
-				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
+				crudError.set(failureLines.slice(0, 8).join(' · '));
 			}
 		} catch (err) {
-			crudOps.error.set(importFileErrorMessage(err));
+			crudError.set(importFileErrorMessage(err));
 		} finally {
 			importExportBusy = false;
 		}
@@ -500,7 +494,7 @@
 							type="text"
 							placeholder="Search people..."
 							bind:value={searchTerm}
-							on:input={() => crudLoader.loadItems()}
+							oninput={() => applyFilters()}
 							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 						/>
 						<svg
@@ -529,7 +523,7 @@
 					/>
 					<button
 						type="button"
-						on:click={openCreateDialog}
+						onclick={openCreateDialog}
 						class="{adminBtnPrimarySm} {adminRingPrimary} flex items-center gap-2"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -546,10 +540,9 @@
 			</div>
 
 			<!-- People List -->
-			{#if loading}
+			{#if $pd.peopleLoadError}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
-					<p class="mt-2 text-(--color-surface-600-400)">Loading people...</p>
+					<p class="text-red-600">{$pd.peopleLoadError}</p>
 				</div>
 			{:else if people.length === 0}
 				<div class="text-center py-8">
@@ -615,7 +608,7 @@
 										<div class="flex shrink-0 items-center gap-0.5 -mt-0.5 -me-1">
 											<button
 												type="button"
-												on:click={() => openEditDialog(person)}
+												onclick={() => openEditDialog(person)}
 												class="p-2 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded-md"
 												aria-label="Edit person"
 											>
@@ -630,7 +623,7 @@
 											</button>
 											<button
 												type="button"
-												on:click={() => openDeleteDialog(person)}
+												onclick={() => openDeleteDialog(person)}
 												class="p-2 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md"
 												aria-label="Delete person"
 											>
@@ -783,8 +776,8 @@
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							resetForm();
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
@@ -793,11 +786,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleCreate}
-						disabled={saving}
+						onclick={handleCreate}
+						disabled={$crudSaving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							Creating...
 						{:else}
 							Create Person
@@ -901,8 +894,8 @@
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							editingPerson = null;
 							resetForm();
 						}}
@@ -912,11 +905,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleEdit}
-						disabled={saving}
+						onclick={handleEdit}
+						disabled={$crudSaving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							Updating...
 						{:else}
 							Update Person
@@ -946,8 +939,8 @@
 				<div class="flex justify-end space-x-2">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							personToDelete = null;
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
@@ -956,11 +949,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleDelete}
-						disabled={saving}
+						onclick={handleDelete}
+						disabled={$crudSaving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							Deleting...
 						{:else}
 							Delete Person

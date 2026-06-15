@@ -3,34 +3,40 @@
 	type Margin = 'none' | 'sm' | 'md' | 'lg';
 	type LineStyle = 'solid' | 'dashed' | 'dotted';
 
-	export let config: {
-		thickness?: Thickness;
-		margin?: Margin;
-		/** Stored as `lineStyle` in JSON (avoids clashing with HTML `style`). */
-		lineStyle?: LineStyle;
-		className?: string;
-	} = {};
+	let {
+		config = {}
+	}: {
+		config?: {
+			thickness?: Thickness;
+			margin?: Margin;
+			/** Stored as `lineStyle` in JSON (avoids clashing with HTML `style`). */
+			lineStyle?: LineStyle;
+			className?: string;
+		};
+	} = $props();
 
-	$: thickness = (config.thickness ?? 'thin') as Thickness;
-	$: margin = (config.margin ?? 'sm') as Margin;
-	$: lineStyle = (config.lineStyle ?? 'solid') as LineStyle;
-	$: extra = (config.className ?? '').trim();
+	const thickness = $derived((config.thickness ?? 'thin') as Thickness);
+	const margin = $derived((config.margin ?? 'sm') as Margin);
+	const lineStyle = $derived((config.lineStyle ?? 'solid') as LineStyle);
+	const extra = $derived((config.className ?? '').trim());
 
-	$: thicknessClass = thickness === 'medium' ? 'pb-divider--medium' : 'pb-divider--thin';
-	$: marginClass =
+	const thicknessClass = $derived(thickness === 'medium' ? 'pb-divider--medium' : 'pb-divider--thin');
+	const marginClass = $derived(
 		margin === 'none'
 			? 'pb-divider--mNone'
 			: margin === 'md'
 				? 'pb-divider--mMd'
 				: margin === 'lg'
 					? 'pb-divider--mLg'
-					: 'pb-divider--mSm';
-	$: lineClass =
+					: 'pb-divider--mSm'
+	);
+	const lineClass = $derived(
 		lineStyle === 'dashed'
 			? 'pb-divider--dashed'
 			: lineStyle === 'dotted'
 				? 'pb-divider--dotted'
-				: 'pb-divider--solid';
+				: 'pb-divider--solid'
+	);
 </script>
 
 <hr

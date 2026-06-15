@@ -34,9 +34,13 @@ Use this as the working document for the multi-pack/page-builder integration.
 
 ## Known issues (current codebase)
 
-1. **Svelte 4 stores vs Svelte 5 runes** — **Visitor pack id** (`active-template.svelte.ts`) and **site-config–derived branding** (`site-config-derivatives.svelte.ts`: `productName`, `publicSiteLogo`, `publicSiteFavicon`) use `$derived` + `fromStore`/`toStore`; call sites keep `$productName` etc. **`language`** `isRTL` / `textDirection` stay `derived` for now (module init order). Full `siteConfig` writable→runes is optional follow-up.
-2. **`TemplateService` vs registry** — Visitor pages must use `getTemplatePack()` from `lib/template-packs/registry.ts`. `TemplateService` remains for static metadata, overrides, and admin fetch paths; shrink or rename over time so “pack loader” is unambiguously the registry.
-3. **Loose `PageData`** — Fields like `introText`, `content` are loosely typed; pack pages can ignore required CMS props without compile errors. Tighten shared types and pack page prop contracts.
+1. **Svelte 5 runes migration (2026-05)** — Visitor and admin Svelte components use `$props()`, `$state`, `$derived`, and `$effect`. Legacy `$:` blocks and `export let` were converted in bulk; watch for:
+   - **Broken `$props()` destructuring** — Type annotations must not appear as property names (wrong: `{ packId: string }`; correct: `{ packId }: { packId: string }`).
+   - **`$effect` infinite loops** — Do not increment `$state` counters inside effects that depend on those counters (e.g. Hero gallery prefetch `galleryFetchGen`; use a plain `let` for stale-fetch tokens).
+   - **Admin data reactivity** — List pages should read SvelteKit `data` via `$derived` or `routePageData()`; avoid syncing load data into `$state` with `$effect` unless the derived key pattern is used (see `AlbumGallery` `albumsReloadKey`).
+2. **Visitor pack id + branding** — `active-template.svelte.ts` and `site-config-derivatives.svelte.ts` use runes + `toStore`; `$activeTemplate`, `$productName`, etc. unchanged at call sites.
+3. **`TemplateService` vs registry** — Visitor pages must use `getTemplatePack()` from `lib/template-packs/registry.ts`. `TemplateService` remains for static metadata, overrides, and admin fetch paths.
+4. **Loose `PageData`** — Fields like `introText`, `content` are loosely typed; pack pages can ignore required CMS props without compile errors.
 
 ## Phased implementation
 
@@ -55,12 +59,13 @@ Use this as the working document for the multi-pack/page-builder integration.
 - **`HomeTemplateSwitcher`**: no longer passes unused `data` (pack `Home` components fetch internally).
 - Next: consolidate naming docs only — **pack** = visitor identity (`frontendTemplate`).
 
-### Phase C — Runes migration (visitor pack + branding reads)
+### Phase C — Runes migration (visitor + admin)
 
 - **`active-template.svelte.ts`**: `fromStore(page)` + `fromStore(siteConfigData)` → `$derived.by` → `resolveVisitorTemplatePackId` → **`toStore`** → **`$activeTemplate`** unchanged for consumers.
 - **`site-config-derivatives.svelte.ts`**: `fromStore(siteConfigData)` + `fromStore(currentLanguage)` → **`$productName`**, **`$publicSiteLogo`**, **`$publicSiteFavicon`** via **`toStore`**; **`siteConfig.ts`** re-exports them (same `$stores/siteConfig` path).
-- **`stores/template.ts`**: re-exports `activeTemplate` only.
-- **Pattern**: runes for derived logic on top of legacy stores; **`toStore`** where the app still uses store subscription / `$` syntax.
+- **Visitor components**: page-builder modules, template pack pages, and shared chrome migrated to runes; repair pass fixed migration-script corruption (`});` / `};` swaps, broken `$props()` types).
+- **Admin**: many routes use SSR **`+page.server.ts`** + **`routePageData()`** / **`$derived(data.*)`** for reliable list refresh; **`adminNavigate()`** and **`hooks.client.ts`** hard-navigate when client routing leaves stale admin views.
+- **Pattern**: runes for derived logic on top of legacy stores where needed; **`toStore`** where the app still uses store subscription / `$` syntax.
 - **No SvelteKit request** (`activeTemplate` only): reading `page` throws outside a request; branch **falls back** to `getConfiguredPackId(siteConfig)`.
 
 ### Phase D — Consolidate docs (done)

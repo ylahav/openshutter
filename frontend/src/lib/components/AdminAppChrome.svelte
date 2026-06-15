@@ -1,8 +1,10 @@
 <script lang="ts">
 	import '$lib/styles/admin.css';
 	import { onMount, onDestroy } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
+	import { get } from 'svelte/store';
 	import AdminToastRegion from '$lib/components/admin/AdminToastRegion.svelte';
 	import AdminSidebar from '$lib/components/admin/AdminSidebar.svelte';
 	import { applyHtmlThemeClass, getResolvedSiteThemeFromStore } from '$lib/stores/theme';
@@ -13,49 +15,56 @@
 	import { adminSelectSmClass } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
 
-	$: hideOs = !!$siteConfigData?.whiteLabel?.hideOpenShutterBranding;
-	$: brand = hideOs ? $t('admin.chromeBrandShort') : $t('admin.chromeBrandLong');
-	$: chromeHeading = $t('admin.chromeHeading')
-		.replace('{brand}', brand)
-		.replace('{site}', $productName);
+	let { children }: { children: Snippet } = $props();
 
-	/** Same rule as `LanguageSelector`: enabled site languages only (omit control until config is known). */
-	$: activeLanguages = $siteConfigData?.languages?.activeLanguages;
-	$: adminUiLanguages = activeLanguages?.length
-		? SUPPORTED_LANGUAGES.filter((lang) => activeLanguages.includes(lang.code))
-		: [];
-	$: showAdminLangSwitch = adminUiLanguages.length > 1;
-
-	/** If the stored UI language was removed from site config, snap to default or first active. */
-	$: if (browser && adminUiLanguages.length > 0) {
-		const ok = adminUiLanguages.some((l) => l.code === $currentLanguage);
-		if (!ok) {
-			const def = $siteConfigData?.languages?.defaultLanguage;
-			const next =
-				def && adminUiLanguages.some((l) => l.code === def)
-					? def
-					: adminUiLanguages[0].code;
-			setLanguage(next as LanguageCode);
-		}
-	}
-
-	/** Outlined like nav links — `preset-tonal` + `light-dark()` broke when `color-scheme` did not match admin dark UI. */
 	const colorModeBtnClass =
 		'btn btn-sm preset-outlined-surface-200-800 inline-flex items-center justify-center p-2 min-w-[2.25rem]';
 
-	let uiDebugMetrics = {
+	let uiDebugMetrics = $state({
 		zoomPct: 100,
 		rootFontSize: '16px',
-		dpr: 1,
-	};
+		dpr: 1
+	});
+	let savedSiteColorMode = $state<'light' | 'dark' | null>(null);
+	let mobileNavOpen = $state(false);
 
-	/** Snapshot site `<html>` theme so we can restore it when leaving admin. */
-	let savedSiteColorMode: 'light' | 'dark' | null = null;
+	const hideOs = $derived(!!$siteConfigData?.whiteLabel?.hideOpenShutterBranding);
+	const brand = $derived(hideOs ? $t('admin.chromeBrandShort') : $t('admin.chromeBrandLong'));
+	const chromeHeading = $derived(
+		$t('admin.chromeHeading').replace('{brand}', brand).replace('{site}', $productName)
+	);
+	const activeLanguages = $derived($siteConfigData?.languages?.activeLanguages);
+	const adminUiLanguages = $derived(
+		activeLanguages?.length
+			? SUPPORTED_LANGUAGES.filter((lang) => activeLanguages.includes(lang.code))
+			: []
+	);
+	const showAdminLangSwitch = $derived(adminUiLanguages.length > 1);
+	const showUiDebug = $derived(browser && $page.url.searchParams.get('uiDebug') === '1');
+
+	$effect(() => {
+		if (!browser || adminUiLanguages.length === 0) return;
+		const lang = get(currentLanguage);
+		const ok = adminUiLanguages.some((l) => l.code === lang);
+		if (!ok) {
+			const def = get(siteConfigData)?.languages?.defaultLanguage;
+			const next =
+				def && adminUiLanguages.some((l) => l.code === def) ? def : adminUiLanguages[0].code;
+			setLanguage(next as LanguageCode);
+		}
+	});
+
+	$effect(() => {
+		if (!browser) return;
+		document.body.style.setProperty(
+			'color-scheme',
+			get(adminUiColorMode) === 'dark' ? 'dark' : 'light'
+		);
+	});
 
 	onMount(() => {
 		if (!browser) return;
 		savedSiteColorMode = getResolvedSiteThemeFromStore();
-		// Admin defaults to light on the document root; dark mode uses `class="dark"` on this `<main>` only.
 		applyHtmlThemeClass('light');
 
 		const refreshUiDebugMetrics = () => {
@@ -63,7 +72,7 @@
 			uiDebugMetrics = {
 				zoomPct: Math.round((1 / vvScale) * 100),
 				rootFontSize: getComputedStyle(document.documentElement).fontSize,
-				dpr: Number(window.devicePixelRatio || 1),
+				dpr: Number(window.devicePixelRatio || 1)
 			};
 		};
 		refreshUiDebugMetrics();
@@ -86,22 +95,8 @@
 			savedSiteColorMode = null;
 		}
 	});
-
-	// Skeleton `light-dark()` tokens (e.g. `preset-filled`, `preset-tonal`) follow **used color-scheme**, not Tailwind `dark:`.
-	// Keep `html` without `.dark` for the public theme, but set scheme on `body` so admin + portaled dialogs/toasts resolve tokens correctly.
-	$: if (browser) {
-		document.body.style.setProperty(
-			'color-scheme',
-			$adminUiColorMode === 'dark' ? 'dark' : 'light',
-		);
-	}
-
-	let mobileNavOpen = false;
-
-	$: showUiDebug = browser && $page.url.searchParams.get('uiDebug') === '1';
 </script>
 
-<!-- Cerberus CSS variables are defined on this node; body on public routes stays unchanged. -->
 <main
 	class="min-h-screen antialiased bg-(--body-background-color) text-(--base-font-color) dark:bg-(--body-background-color-dark) dark:text-(--base-font-color-dark) {$adminUiColorMode === 'dark'
 		? '[color-scheme:dark]'
@@ -110,9 +105,7 @@
 	data-admin-chrome
 	data-theme="cerberus"
 >
-	<div
-		class="w-full max-w-[min(100vw-0px,96rem)] mx-auto px-[var(--os-padding)] box-border"
-	>
+	<div class="w-full max-w-[min(100vw-0px,96rem)] mx-auto px-[var(--os-padding)] box-border">
 		<header
 			class="border-b border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] py-2.5 mb-4"
 			aria-label={chromeHeading}
@@ -122,19 +115,14 @@
 					<button
 						type="button"
 						class="{colorModeBtnClass} lg:hidden"
-						on:click={() => (mobileNavOpen = true)}
+						onclick={() => (mobileNavOpen = true)}
 						aria-expanded={mobileNavOpen}
 						aria-controls="admin-sidebar-nav"
 						title={$t('admin.sidebarOpenMenu')}
 						aria-label={$t('admin.sidebarOpenMenu')}
 					>
 						<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 6h16M4 12h16M4 18h16"
-							/>
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
 						</svg>
 					</button>
 					<p
@@ -147,13 +135,12 @@
 					<button
 						type="button"
 						class={colorModeBtnClass}
-						on:click={toggleAdminUiColorMode}
+						onclick={toggleAdminUiColorMode}
 						title={$t('admin.chromeColorModeTitle')}
 						aria-label={$t('admin.chromeColorModeAria')}
 						aria-pressed={$adminUiColorMode === 'dark'}
 					>
 						{#if $adminUiColorMode === 'dark'}
-							<!-- Sun: switch to light -->
 							<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 								<path
 									stroke-linecap="round"
@@ -163,7 +150,6 @@
 								/>
 							</svg>
 						{:else}
-							<!-- Moon: switch to dark -->
 							<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 								<path
 									stroke-linecap="round"
@@ -180,7 +166,7 @@
 							id="admin-chrome-lang"
 							class={`${adminSelectSmClass} !w-auto max-w-[6.25rem] sm:max-w-[7rem] shrink-0`}
 							value={$currentLanguage}
-							on:change={(e) => setLanguage(e.currentTarget.value as LanguageCode)}
+							onchange={(e) => setLanguage(e.currentTarget.value as LanguageCode)}
 							title={$t('admin.chromeLanguageAria')}
 						>
 							{#each adminUiLanguages as lang}
@@ -194,7 +180,7 @@
 		<div class="flex flex-col lg:flex-row lg:items-stretch gap-0 lg:gap-6 pb-10">
 			<AdminSidebar bind:mobileOpen={mobileNavOpen} heading={chromeHeading} />
 			<div class="flex-1 min-w-0 min-h-0">
-				<slot />
+				{@render children()}
 			</div>
 		</div>
 	</div>

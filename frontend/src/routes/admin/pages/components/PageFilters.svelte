@@ -2,13 +2,23 @@
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import type { PageCategoryOption } from '../types';
 
-	export let searchTerm = '';
-	export let categoryFilter = 'all';
-	export let publishedFilter = 'all';
-	export let sortBy = 'title-asc';
-	export let categories: PageCategoryOption[] = [];
-	export let onFilterChange: () => void = () => {};
-	export let onAddPage: () => void = () => {};
+	let {
+		searchTerm = $bindable(''),
+		categoryFilter = $bindable('all'),
+		publishedFilter = $bindable('all'),
+		sortBy = $bindable('title-asc'),
+		categories = [],
+		onFilterChange = () => {},
+		onAddPage = () => {}
+	}: {
+		searchTerm?: string;
+		categoryFilter?: string;
+		publishedFilter?: string;
+		sortBy?: string;
+		categories?: PageCategoryOption[];
+		onFilterChange?: () => void;
+		onAddPage?: () => void;
+	} = $props();
 </script>
 
 <div class="flex items-center justify-between mb-6">
@@ -18,7 +28,7 @@
 				type="text"
 				placeholder="Search pages..."
 				bind:value={searchTerm}
-				on:input={onFilterChange}
+				oninput={onFilterChange}
 				class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 			/>
 			<svg
@@ -38,7 +48,7 @@
 
 		<select
 			bind:value={categoryFilter}
-			on:change={onFilterChange}
+			onchange={onFilterChange}
 			class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 		>
 			<option value="all">All Categories</option>
@@ -49,7 +59,7 @@
 
 		<select
 			bind:value={publishedFilter}
-			on:change={onFilterChange}
+			onchange={onFilterChange}
 			class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 		>
 			<option value="all">All Status</option>
@@ -59,7 +69,7 @@
 
 		<select
 			bind:value={sortBy}
-			on:change={onFilterChange}
+			onchange={onFilterChange}
 			class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 		>
 			<option value="title-asc">Title A-Z</option>
@@ -71,7 +81,7 @@
 
 	<button
 		type="button"
-		on:click={onAddPage}
+		onclick={onAddPage}
 		class="{adminBtnPrimarySm} {adminRingPrimary} flex items-center gap-2"
 	>
 		<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

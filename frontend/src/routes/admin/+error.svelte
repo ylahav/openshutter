@@ -2,8 +2,7 @@
 	import { adminBtnPrimary } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
 
-	export let status: number;
-	export let error: Error & { message?: string };
+	let { status, error }: { status: number; error: Error & { message?: string } } = $props();
 </script>
 
 <div
@@ -19,7 +18,7 @@
 	</p>
 	<div class="flex flex-wrap gap-3">
 		<a href="/admin" class={adminBtnPrimary}>{$t('admin.errorBackDashboard')}</a>
-		<button type="button" class="btn preset-tonal" on:click={() => history.back()}>
+		<button type="button" class="btn preset-tonal" onclick={() => history.back()}>
 			{$t('admin.errorGoBack')}
 		</button>
 	</div>

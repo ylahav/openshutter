@@ -5,30 +5,48 @@
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import type { AlbumCardVisualVariant } from './card-layout';
 
-	export let album: any;
-	export let href: string = '#';
-	export let coverUrl: string = '';
-	export let coverAspectClass: string = 'pb-albumGallery__aspect pb-albumGallery__aspect--video';
-	export let layout: 'stack' | 'row' = 'stack';
-	export let cardFieldOrder: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'> = [
-		'cover',
-		'title',
-		'description',
-		'photoCount',
-		'featuredBadge',
-	];
-	export let showTitle = true;
-	export let showCover = true;
-	export let showDescription = true;
-	export let descriptionLines = 2;
-	export let showPhotoCount = true;
-	export let showFeaturedBadge = true;
-	/** Visual preset (see AlbumGallery `albumCard` / `albumCardVariant`). */
-	export let variant: AlbumCardVisualVariant = 'roundedCard';
-	/** 1-based index for editorial list rows (01, 02, …). */
-	export let editorialIndex: number | undefined = undefined;
-	/** @deprecated use `variant="bareSquare"` */
-	export let noirStackCard = false;
+	let {
+		album,
+		href = '#',
+		coverUrl = '',
+		coverAspectClass = 'pb-albumGallery__aspect pb-albumGallery__aspect--video',
+		layout = 'stack',
+		cardFieldOrder = [
+			'cover',
+			'title',
+			'description',
+			'photoCount',
+			'featuredBadge',
+		] as Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>,
+		showTitle = true,
+		showCover = true,
+		showDescription = true,
+		descriptionLines = 2,
+		showPhotoCount = true,
+		showFeaturedBadge = true,
+		/** Visual preset (see AlbumGallery `albumCard` / `albumCardVariant`). */
+		variant = 'roundedCard' as AlbumCardVisualVariant,
+		/** 1-based index for editorial list rows (01, 02, …). */
+		editorialIndex = undefined,
+		/** @deprecated use `variant="bareSquare"` */
+		noirStackCard = false
+	}: {
+		album: any;
+		href?: string;
+		coverUrl?: string;
+		coverAspectClass?: string;
+		layout?: 'stack' | 'row';
+		cardFieldOrder?: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>;
+		showTitle?: boolean;
+		showCover?: boolean;
+		showDescription?: boolean;
+		descriptionLines?: number;
+		showPhotoCount?: boolean;
+		showFeaturedBadge?: boolean;
+		variant?: AlbumCardVisualVariant;
+		editorialIndex?: number | undefined;
+		noirStackCard?: boolean;
+	} = $props();
 
 	function readChildAlbumCount(a: unknown): number {
 		const x = a as Record<string, unknown> | null | undefined;
@@ -40,22 +58,19 @@
 		return Math.max(0, Math.floor(n));
 	}
 
-	$: effectiveVariant = (noirStackCard ? 'bareSquare' : variant) as AlbumCardVisualVariant;
-
-	$: isSimpleRowLayout = effectiveVariant === 'roundedCard' && layout === 'row';
-
-	$: bodyFieldsRow = isSimpleRowLayout ? cardFieldOrder.filter((f) => f !== 'cover') : cardFieldOrder;
-	$: overlayFields = cardFieldOrder.filter((f) => f !== 'cover');
-
-	$: photoCountLabel = (() => {
+	const effectiveVariant = $derived((noirStackCard ? 'bareSquare' : variant) as AlbumCardVisualVariant);
+	const isSimpleRowLayout = $derived(effectiveVariant === 'roundedCard' && layout === 'row');
+	const bodyFieldsRow = $derived(isSimpleRowLayout ? cardFieldOrder.filter((f) => f !== 'cover') : cardFieldOrder);
+	const overlayFields = $derived(cardFieldOrder.filter((f) => f !== 'cover'));
+	const photoCountLabel = $derived((() => {
 		const n = Number(album?.photoCount) || 0;
 		return `${n} ${n === 1 ? 'photograph' : 'photographs'}`;
-	})();
-
-	$: thumbPhotoCount = Number(album?.photoCount) || 0;
-	$: thumbChildAlbumCount = readChildAlbumCount(album);
-	$: subAlbumsCountLabel =
-		thumbChildAlbumCount === 1 ? $t('albums.subAlbum') : $t('albums.subAlbums');
+	})());
+	const thumbPhotoCount = $derived(Number(album?.photoCount) || 0);
+	const thumbChildAlbumCount = $derived(readChildAlbumCount(album));
+	const subAlbumsCountLabel = $derived(
+		thumbChildAlbumCount === 1 ? $t('albums.subAlbum') : $t('albums.subAlbums')
+	);
 </script>
 
 {#snippet albumFields(fields: typeof cardFieldOrder, coverMb: boolean, showChildAlbumFooter: boolean)}

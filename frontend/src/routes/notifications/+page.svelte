@@ -14,10 +14,10 @@
 		createdAt: string;
 	}
 
-	let rows: Row[] = [];
-	let loading = true;
-	let error = '';
-	let markingAll = false;
+	let rows: Row[]  = $state([]);
+	let loading = $state(true);
+	let error = $state('');
+	let markingAll = $state(false);
 
 	onMount(async () => {
 		await loadSession();
@@ -103,7 +103,7 @@
 				type="button"
 				class="text-sm text-primary-600 hover:text-primary-700 disabled:opacity-50"
 				disabled={markingAll}
-				on:click={markAllRead}
+				onclick={markAllRead}
 			>
 				{markingAll ? '…' : $t('notifications.markAllRead')}
 			</button>
@@ -132,7 +132,7 @@
 							<button
 								type="button"
 								class="text-primary-600 hover:text-primary-700 shrink-0"
-								on:click={() => markRead(n._id)}
+								onclick={() => markRead(n._id)}
 							>
 								{$t('notifications.markRead')}
 							</button>

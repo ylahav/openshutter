@@ -118,6 +118,14 @@ export class StorageManager implements IStorageManager {
     return this.resolveService(providerId, ctx, false)
   }
 
+  /**
+   * Load provider for admin config test / tree preview without requiring isEnabled.
+   */
+  async getProviderForConfigTest(providerId: StorageProviderId): Promise<IStorageService> {
+    const config = await storageConfigService.getConfig(providerId)
+    return this.createService(providerId, config.config)
+  }
+
   async getProviderForServe(providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<IStorageService> {
     return this.resolveService(providerId, ctx, true)
   }

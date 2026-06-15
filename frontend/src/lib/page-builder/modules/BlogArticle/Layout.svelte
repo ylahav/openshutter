@@ -6,31 +6,33 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import type { BlogArticleLayoutConfig } from './types';
 
-	export let config: BlogArticleLayoutConfig = {};
+	let { config = {} }: { config?: BlogArticleLayoutConfig } = $props();
 
 	type ArticleRow = Record<string, unknown>;
 
-	let loading = true;
-	let errorMessage: string | null = null;
-	let articles: ArticleRow[] = [];
-	let singleArticle: ArticleRow | null = null;
+	let loading = $state(true);
+	let errorMessage = $state<string | null>(null);
+	let articles = $state<ArticleRow[]>([]);
+	let singleArticle = $state<ArticleRow | null>(null);
 
-	$: mode = config.mode === 'single' ? 'single' : 'list';
-	$: urlCategory = $page.url.searchParams.get('category')?.trim() ?? '';
-	$: effectiveCategory =
+	const mode = $derived(config.mode === 'single' ? 'single' : 'list');
+	const urlCategory = $derived($page.url.searchParams.get('category')?.trim() ?? '');
+	const effectiveCategory = $derived(
 		(config.categoryAlias && config.categoryAlias.trim()) ||
-		(config.syncCategoryFromPageUrl !== false ? urlCategory : '') ||
-		'';
-	$: limit = Math.min(50, Math.max(1, Number(config.limit) || 10));
-	$: showImage = config.showImage !== false;
-	$: showExcerpt = config.showExcerpt !== false;
-	$: showMeta = config.showMeta !== false;
-	$: pathPrefix = (config.articlePathPrefix ?? '/blog').replace(/\/$/, '') || '/blog';
+			(config.syncCategoryFromPageUrl !== false ? urlCategory : '') ||
+			''
+	);
+	const limit = $derived(Math.min(50, Math.max(1, Number(config.limit) || 10)));
+	const showImage = $derived(config.showImage !== false);
+	const showExcerpt = $derived(config.showExcerpt !== false);
+	const showMeta = $derived(config.showMeta !== false);
+	const pathPrefix = $derived((config.articlePathPrefix ?? '/blog').replace(/\/$/, '') || '/blog');
 
-	$: sectionTitle =
+	const sectionTitle = $derived(
 		config.title !== undefined && config.title !== null
 			? MultiLangUtils.getTextValue(config.title, $currentLanguage)
-			: '';
+			: ''
+	);
 
 	function titleOf(a: ArticleRow): string {
 		return MultiLangUtils.getTextValue(a.title as string | Record<string, string>, $currentLanguage) || '';

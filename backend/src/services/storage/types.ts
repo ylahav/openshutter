@@ -148,6 +148,7 @@ export interface IStorageService {
 export interface IStorageManager {
   // Provider Management
   getProvider(providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<IStorageService>
+  getProviderForConfigTest(providerId: StorageProviderId): Promise<IStorageService>
   getActiveProviders(): Promise<StorageProviderId[]>
   validateProvider(providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<boolean>
   

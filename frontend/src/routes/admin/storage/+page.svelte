@@ -1,5 +1,8 @@
 <script lang="ts">
 	import OwnerStorageView from '$lib/components/OwnerStorageView.svelte';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>
@@ -8,6 +11,11 @@
 
 <div class="py-8">
 	<div class="max-w-6xl mx-auto px-4">
-		<OwnerStorageView isSiteAdmin={true} backHref="/admin" />
+		<OwnerStorageView
+			isSiteAdmin={data.isSiteAdmin === true}
+			backHref={data.isSiteAdmin ? '/admin' : '/owner'}
+			initialStorageConfigs={data.storageConfigs}
+			initialStorageLoadError={data.storageLoadError}
+		/>
 	</div>
 </div>

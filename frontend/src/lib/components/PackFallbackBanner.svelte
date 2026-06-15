@@ -5,16 +5,17 @@
 	import { isKnownTemplatePack } from '$lib/template/packs/ids';
 	import { t } from '$stores/i18n';
 
-	let dismissed = false;
+	let dismissed = $state(false);
 
-	$: isAdmin = $page.url.pathname.startsWith('/admin');
-	$: rawName = String($activeTemplate ?? '').trim();
-	$: unknown =
+	const isAdmin = $derived($page.url.pathname.startsWith('/admin'));
+	const rawName = $derived(String($activeTemplate ?? '').trim());
+	const unknown = $derived(
 		browser &&
-		!isAdmin &&
-		rawName.length > 0 &&
-		!isKnownTemplatePack(rawName);
-	$: show = unknown && !dismissed;
+			!isAdmin &&
+			rawName.length > 0 &&
+			!isKnownTemplatePack(rawName)
+	);
+	const show = $derived(unknown && !dismissed);
 </script>
 
 {#if show}
@@ -28,7 +29,7 @@
 		<button
 			type="button"
 			class="shrink-0 px-2 py-1 rounded border border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-xs font-medium"
-			on:click={() => (dismissed = true)}
+			onclick={() => (dismissed = true)}
 		>
 			{$t('templatePack.dismiss')}
 		</button>

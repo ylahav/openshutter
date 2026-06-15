@@ -15,16 +15,22 @@
 
 	Chart.register(PieController, ArcElement, CategoryScale, LinearScale, Title, Tooltip, Legend);
 
-	export let data: Array<{ label: string; value: number }>;
-	export let height: number = 300;
-	export let colors: string[] = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+	let {
+		data,
+		height = 300,
+		colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+	}: {
+		data: Array<{ label: string; value: number }>;
+		height?: number;
+		colors?: string[];
+	} = $props();
 
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | null = null;
 
-	$: if (canvas && data) {
+$effect(() => { if (canvas && data) {
 		updateChart();
-	}
+	} });
 
 	function updateChart() {
 		if (!canvas) return;

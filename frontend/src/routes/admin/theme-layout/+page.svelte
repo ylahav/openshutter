@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { invalidate } from '$app/navigation';
 	import type { SiteConfig } from '$lib/types/site-config';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -12,6 +12,9 @@
 	import { t } from '$stores/i18n';
 	import { TEMPLATE_PACK_IDS } from '$lib/template-packs/ids';
 	import { packClassPrefixFor } from '$lib/template/packs/class-prefix';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	interface TemplateListRow {
 		templateName: string;
@@ -29,26 +32,26 @@
 		promotion: boolean;
 	}
 
-	let loading = true;
-	let saving = false;
+	let loading = $state(false);
+	let saving = $state(false);
 	/** Effective public-site template key (matches backend merge rules). */
-	let activeTemplate = 'noir';
-	let templateSectionSnapshot: SiteConfig['template'] | undefined = undefined;
-	let localVisibility: TemplateComponentVisibility = {
+	let activeTemplate = $state('noir');
+	let templateSectionSnapshot: SiteConfig['template'] | undefined = $state(undefined);
+	let localVisibility: TemplateComponentVisibility = $state({
 		hero: true,
 		languageSelector: true,
 		authButtons: true,
 		footerMenu: true,
 		statistics: true,
 		promotion: true
-	};
+	});
 
-	let templatesList: TemplateListRow[] = [];
-	let localPageAliasPrefixes: Record<string, string> = {
+	let templatesList: TemplateListRow[] = $state([]);
+	let localPageAliasPrefixes: Record<string, string> = $state({
 		noir: 'n',
 		studio: 's',
 		atelier: 'a'
-	};
+	});
 
 	const PREFIX_SAVE = /^[a-z0-9]{1,12}$/;
 
@@ -90,7 +93,7 @@
 			footerMenu: v?.footerMenu ?? true,
 			statistics: v?.statistics ?? true,
 			promotion: v?.promotion ?? true
-		};
+	};
 	}
 
 	function mergeVisibility(
@@ -106,80 +109,55 @@
 			footerMenu: overrides.footerMenu !== undefined ? overrides.footerMenu : defaults.footerMenu,
 			statistics: overrides.statistics !== undefined ? overrides.statistics : defaults.statistics,
 			promotion: overrides.promotion !== undefined ? overrides.promotion : defaults.promotion
-		};
+	};
 	}
 
 	/** Flat `admin.templateConfig*` keys — reactive so language switches update labels. */
-	$: componentLabels = {
+const componentLabels = $derived({
 		hero: $t('admin.templateConfigHeroLabel'),
 		languageSelector: $t('admin.templateConfigLanguageSelectorLabel'),
 		authButtons: $t('admin.templateConfigAuthButtonsLabel'),
 		footerMenu: $t('admin.templateConfigFooterMenuLabel'),
 		statistics: $t('admin.templateConfigStatisticsLabel'),
 		promotion: $t('admin.templateConfigPromotionLabel')
-	};
+	});
 
-	$: componentDescriptions = {
+const componentDescriptions = $derived({
 		hero: $t('admin.templateConfigHeroDescription'),
 		languageSelector: $t('admin.templateConfigLanguageSelectorDescription'),
 		authButtons: $t('admin.templateConfigAuthButtonsDescription'),
 		footerMenu: $t('admin.templateConfigFooterMenuDescription'),
 		statistics: $t('admin.templateConfigStatisticsDescription'),
 		promotion: $t('admin.templateConfigPromotionDescription')
-	};
-
-	onMount(async () => {
-		await loadConfig();
 	});
 
-	async function loadConfig() {
-		try {
-			loading = true;
-			const [cfgRes, tplRes] = await Promise.all([
-				fetch('/api/admin/site-config'),
-				fetch('/api/admin/templates', { cache: 'no-store' })
-			]);
-			if (!cfgRes.ok) {
-				adminToast.error({ title: 'Failed to load site configuration' });
-				return;
-			}
-			const result = await cfgRes.json();
-			if (!result.success || !result.data) {
-				adminToast.error({
-					title: result.error || 'Failed to load site configuration'
-				});
-				return;
-			}
-			const config = result.data as SiteConfig;
-			templateSectionSnapshot = config.template ? { ...config.template } : undefined;
-			activeTemplate =
-				config.template?.frontendTemplate || config.template?.activeTemplate || 'noir';
+	function applyThemeLayoutData(config: SiteConfig, templates: TemplateListRow[]) {
+		templateSectionSnapshot = config.template ? { ...config.template } : undefined;
+		activeTemplate =
+			config.template?.frontendTemplate || config.template?.activeTemplate || 'noir';
+		templatesList = templates;
+		localPageAliasPrefixes = mergeDisplayPrefixes(config.template?.pageAliasPrefixes, templates);
+		const base = templates.find((t) => t.templateName === activeTemplate);
+		const defaults = defaultsFromTemplateVisibility(base?.visibility);
+		localVisibility = mergeVisibility(defaults, config.template?.componentVisibility);
+	}
 
-			let templates: TemplateListRow[] = [];
-			if (tplRes.ok) {
-				const tplJson = await tplRes.json();
-				if (tplJson?.success && Array.isArray(tplJson.data)) {
-					templates = tplJson.data as TemplateListRow[];
-				}
-			}
-			templatesList = templates;
-			localPageAliasPrefixes = mergeDisplayPrefixes(config.template?.pageAliasPrefixes, templates);
-			const base = templates.find((t) => t.templateName === activeTemplate);
-			const defaults = defaultsFromTemplateVisibility(base?.visibility);
-			localVisibility = mergeVisibility(defaults, config.template?.componentVisibility);
-		} catch (err) {
-			logger.error('Failed to load config:', err);
-			adminToast.error({ title: handleError(err, 'Failed to load template configuration') });
-		} finally {
-			loading = false;
-		}
+	let hydratedSiteConfig: SiteConfig | null = $state(null);
+
+$effect(() => { if (data.siteConfig && data.siteConfig !== hydratedSiteConfig) {
+		hydratedSiteConfig = data.siteConfig as SiteConfig;
+		applyThemeLayoutData(hydratedSiteConfig, (data.templatesList ?? []) as TemplateListRow[]);
+	} });
+
+	async function refreshThemeLayout() {
+		await invalidate('admin:theme-layout');
 	}
 
 	function handleVisibilityChange(component: keyof TemplateComponentVisibility, value: boolean) {
 		localVisibility = {
 			...localVisibility,
 			[component]: value
-		};
+	};
 	}
 
 	function handlePageAliasPrefixChange(packId: (typeof TEMPLATE_PACK_IDS)[number], value: string) {
@@ -200,7 +178,7 @@
 			activeTemplate: ac,
 			componentVisibility: visibility,
 			pageAliasPrefixes: normalizedPageAliasPrefixesForSave(prefixSource)
-		};
+	};
 	}
 
 	async function handleSave() {
@@ -247,7 +225,7 @@
 			saving = true;
 
 			const tplRes = await fetch('/api/admin/templates', { cache: 'no-store' });
-			let templates: TemplateListRow[] = [];
+			let templates: TemplateListRow[] = $state([]);
 			if (tplRes.ok) {
 				const tplJson = await tplRes.json();
 				if (tplJson?.success && Array.isArray(tplJson.data)) {
@@ -259,9 +237,7 @@
 
 			const response = await fetch('/api/admin/site-config', {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					template: buildTemplatePayload(resetVisibility, { pageAliasPrefixesForSave: {} })
 				})
@@ -296,7 +272,15 @@
 	<title>{$t('admin.sidebarNavTemplateLayout')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-{#if loading}
+{#if data.loadError}
+	<div class="py-8">
+		<div class="max-w-4xl mx-auto px-4">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 text-center">
+				<p class="text-red-600">{data.loadError}</p>
+			</div>
+		</div>
+	</div>
+{:else if loading}
 	<div class="py-8">
 		<div class="max-w-4xl mx-auto px-4">
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
@@ -345,7 +329,7 @@
 										type="checkbox"
 										id={component}
 										checked={localVisibility[component as keyof TemplateComponentVisibility]}
-										on:change={(e) =>
+										onchange={(e) =>
 											handleVisibilityChange(
 												component as keyof TemplateComponentVisibility,
 												e.currentTarget.checked
@@ -400,7 +384,7 @@
 											autocomplete="off"
 											class="max-w-xs font-mono text-sm px-3 py-2 border border-surface-300-700 rounded-md bg-(--color-surface-50-950) text-(--color-surface-950-50) focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 											value={localPageAliasPrefixes[packId] ?? ''}
-											on:input={(e) =>
+											oninput={(e) =>
 												handlePageAliasPrefixChange(packId, e.currentTarget.value)}
 										/>
 										<p class="text-xs text-(--color-surface-600-400) sm:flex-1">
@@ -415,7 +399,7 @@
 					<!-- Action Buttons -->
 					<div class="mt-8 flex items-center justify-between">
 						<button
-							on:click={handleReset}
+							onclick={handleReset}
 							disabled={saving}
 							class="{adminBtnSecondary} disabled:opacity-50 disabled:cursor-not-allowed"
 						>
@@ -423,7 +407,7 @@
 						</button>
 
 						<button
-							on:click={handleSave}
+							onclick={handleSave}
 							disabled={saving}
 							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 						>

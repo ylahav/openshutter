@@ -1292,7 +1292,7 @@
     "importSync": "ייבוא ​​וסנכרון",
     "migrationToolsPageTitle": "כלי הגירה",
     "importSyncDescription": "ייבא תוכן מספקי אחסון חיצוניים",
-    "migrationAlbumsPhotosDbSubtitle": "ייבוא נתוני אלבום ותמונה בלי קבצים",
+    "migrationAlbumsPhotosDbSubtitle": "שחזור רשומות DB מאחסון קיים (Google Drive, Wasabi, S3, מקומי וכו')",
     "migrationAlbumsPhotosDbComingSoon": "אפשרות זו עדיין לא זמינה. כשתושק, תוכל לעדכן רשומות אלבום ותמונה במסד הנתונים בלי להעתיק קבצי תמונה.",
     "migrationTabStorageMigrationTooltip": "בחר למעלה באפשרות «אחסון → הגירת אחסון» כדי להשתמש בהגירת אחסון.",
     "googleDriveImport": "ייבוא ​​Google Drive",

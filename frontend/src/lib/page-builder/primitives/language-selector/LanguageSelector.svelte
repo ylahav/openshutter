@@ -6,29 +6,42 @@
 	import { logger } from '$lib/utils/logger';
 
 	/** `dropdown` — button + menu. `flags` — row of flag (or code) buttons using the same palette tokens. */
-	export let variant: 'dropdown' | 'flags' = 'dropdown';
-	export let className = '';
-	export let showFlags = true;
-	export let showNativeNames = true;
-	export let compact = false;
+	let {
+		variant = 'dropdown',
+		className = $bindable(''),
+		showFlags = $bindable(true),
+		showNativeNames = $bindable(true),
+		compact = $bindable(false)
+	}: {
+		variant?: 'dropdown' | 'flags';
+		className?: unknown;
+		showFlags?: unknown;
+		showNativeNames?: unknown;
+		compact?: unknown;
+	} = $props();
 
 	let isOpen = false;
 	let buttonElement: HTMLButtonElement | null = null;
-	let dropdownStyle = '';
+	let dropdownStyle = $state('');
 
-	$: config = $siteConfigData;
-	$: activeLanguages = config?.languages?.activeLanguages ?? ['en', 'he'];
-	$: availableLanguages = SUPPORTED_LANGUAGES.filter((lang) => activeLanguages.includes(lang.code));
+	const config = $derived($siteConfigData);
+	const activeLanguages = $derived(config?.languages?.activeLanguages ?? ['en', 'he']);
+	const availableLanguages = $derived(
+		SUPPORTED_LANGUAGES.filter((lang) => activeLanguages.includes(lang.code))
+	);
 
-	$: if (typeof window !== 'undefined' && window.location.search.includes('debug=lang')) {
-		logger.debug('LanguageSelector - config:', config);
-		logger.debug('LanguageSelector - activeLanguages:', activeLanguages);
-		logger.debug('LanguageSelector - availableLanguages:', availableLanguages.map((l) => l.code));
-	}
+	$effect(() => {
+		if (typeof window !== 'undefined' && window.location.search.includes('debug=lang')) {
+			logger.debug('LanguageSelector - config:', config);
+			logger.debug('LanguageSelector - activeLanguages:', activeLanguages);
+			logger.debug('LanguageSelector - availableLanguages:', availableLanguages.map((l) => l.code));
+		}
+	});
 
-	$: lang = $currentLanguage;
-	$: currentLangConfig =
-		availableLanguages.find((l) => l.code === lang) ?? SUPPORTED_LANGUAGES.find((l) => l.code === lang);
+	const lang = $derived($currentLanguage);
+	const currentLangConfig = $derived(
+		availableLanguages.find((l) => l.code === lang) ?? SUPPORTED_LANGUAGES.find((l) => l.code === lang)
+	);
 
 	function labelFor(language: (typeof SUPPORTED_LANGUAGES)[number], viewerLang: string): string {
 		if (viewerLang === 'he') return language.name;
@@ -67,9 +80,11 @@
 		dropdownStyle = `position: fixed; top: ${top}px; right: ${right}px; width: ${dropdownWidth}px; z-index: 9999;`;
 	}
 
-	$: if (isOpen && variant === 'dropdown') {
-		updateDropdownPosition();
-	}
+	$effect(() => {
+		if (isOpen && variant === 'dropdown') {
+			updateDropdownPosition();
+		}
+	});
 
 	let resizeHandler: (() => void) | null = null;
 
@@ -126,7 +141,7 @@
 				aria-pressed={selected}
 				title={labelFor(language, lang)}
 				aria-label={labelFor(language, lang)}
-				on:click={() => handleLanguageSelect(language.code as LanguageCode)}
+				onclick={() => handleLanguageSelect(language.code as LanguageCode)}
 			>
 				{#if showFlags}
 					<span class="pb-languageSelector__flag" aria-hidden="true">{language.flag}</span>
@@ -142,7 +157,7 @@
 		<button
 			bind:this={buttonElement}
 			type="button"
-			on:click={toggle}
+			onclick={toggle}
 			class={triggerClass()}
 			aria-haspopup="listbox"
 			aria-expanded={isOpen}
@@ -176,8 +191,8 @@
 				style="z-index: 9998;"
 				role="button"
 				tabindex="-1"
-				on:click={close}
-				on:keydown={(e) => e.key === 'Escape' && close()}
+				onclick={close}
+				onkeydown={(e) => e.key === 'Escape' && close()}
 			></div>
 
 			<div
@@ -194,7 +209,7 @@
 								type="button"
 								role="option"
 								aria-selected={isSelected}
-								on:click={() => handleLanguageSelect(language.code as LanguageCode)}
+								onclick={() => handleLanguageSelect(language.code as LanguageCode)}
 								class={dropdownOptionClass(isSelected)}
 							>
 								{#if showFlags}

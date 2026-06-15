@@ -4,19 +4,19 @@
 	import { productName } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 
-	let loading = true;
-	let showLandingPage = false;
-	let error: string | null = null;
-	let submitting = false;
+	let loading = $state(true);
+	let showLandingPage = $state(false);
+	let error: string | null  = $state(null);
+	let submitting = $state(false);
 
 	// Form data
-	let username = 'admin@openshutter.org';
-	let password = '';
-	let confirmPassword = '';
-	let siteTitle = '';
-	let siteDescription = '';
-	let logoFile: File | null = null;
-	let logoPreview: string | null = null;
+	let username = $state('admin@openshutter.org');
+	let password = $state('');
+	let confirmPassword = $state('');
+	let siteTitle = $state('');
+	let siteDescription = $state('');
+	let logoFile: File | null  = $state(null);
+	let logoPreview: string | null  = $state(null);
 
 	onMount(async () => {
 		try {
@@ -157,7 +157,7 @@
 				</p>
 			</div>
 
-			<form on:submit|preventDefault={handleSubmit} class="bg-white shadow-md rounded-lg p-8 space-y-6">
+			<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="bg-white shadow-md rounded-lg p-8 space-y-6">
 				{#if error}
 					<div class="bg-red-50 border-l-4 border-red-400 p-4">
 						<p class="text-sm text-red-700">{error}</p>
@@ -268,7 +268,7 @@
 										<img src={logoPreview} alt="Logo preview" class="h-20 w-auto border border-gray-300 rounded" />
 										<button
 											type="button"
-											on:click={removeLogo}
+											onclick={removeLogo}
 											class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
 										>
 											×
@@ -279,7 +279,7 @@
 									id="logo"
 									type="file"
 									accept="image/*"
-									on:change={handleLogoChange}
+									onchange={handleLogoChange}
 									class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
 								/>
 								<p class="text-xs text-gray-500">Recommended: PNG or JPG, max 5MB</p>

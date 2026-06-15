@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { useCrudLoader } from '$lib/composables/useCrudLoader';
+	import { goto, invalidate } from '$app/navigation';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
-	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -19,8 +18,7 @@
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
-	// svelte-ignore export_let_unused - Required by SvelteKit page component
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	const ROLES = ROLE_OPTIONS;
 
@@ -33,16 +31,27 @@
 	];
 
 	// Use CRUD composables for users
-	const crudLoader = useCrudLoader<User>('/api/admin/users', {
-		searchParam: 'search',
-		searchValue: () => searchTerm,
-		filterParams: {
-			role: () => roleFilter,
-			blocked: () => blockedFilter
-		}
-	});
 	/** Payload sent to create/update user API (User fields + optional password). */
 	type UserPayload = Partial<Omit<User, '_id' | 'createdAt' | 'updatedAt'>> & { password?: string };
+
+	async function refreshUsers() {
+		await invalidate('admin:users');
+	}
+
+	async function applyFilters() {
+		const params = new URLSearchParams();
+		if (searchTerm.trim()) params.set('search', searchTerm.trim());
+		if (roleFilter !== 'all') params.set('role', roleFilter);
+		if (blockedFilter !== 'all') params.set('blocked', blockedFilter);
+		const query = params.toString();
+		await goto(query ? `/admin/users?${query}` : '/admin/users', {
+			keepFocus: true,
+			noScroll: true,
+			invalidateAll: true
+		});
+	}
+
+	const users = $derived((data.users ?? []) as User[]);
 
 	const crudOps = useCrudOperations<User>('/api/admin/users', {
 		createSuccessMessage: get(t)('admin.userCreatedSuccessfully'),
@@ -61,89 +70,69 @@
 			}
 			return payload as UserPayload;
 		},
-		onCreateSuccess: (newUser) => {
-			crudLoader.items.update((items) => [...items, newUser]);
+		onCreateSuccess: async (newUser) => {
+			await refreshUsers();
 			if (newUser.role === 'owner') {
-				crudOps.message.set(get(t)('admin.ownerCreatedNextSteps'));
+				crudMessage.set(get(t)('admin.ownerCreatedNextSteps'));
 				openEditDialog(newUser);
 			} else {
-				dialogs.closeAll();
+				closeAllDialogs();
 				resetForm();
 			}
 		},
-		onUpdateSuccess: (updatedUser) => {
-			const currentEditingUser = editingUser;
-			if (currentEditingUser) {
-				crudLoader.items.update(items => 
-					items.map(u => u._id === currentEditingUser._id ? updatedUser : u)
-				);
-			}
-			dialogs.closeAll();
+		onUpdateSuccess: async () => {
+			closeAllDialogs();
 			editingUser = null;
 			resetForm();
+			await refreshUsers();
 		},
-		onDeleteSuccess: () => {
-			const currentUserToDelete = userToDelete;
-			if (currentUserToDelete) {
-				crudLoader.items.update(items => 
-					items.filter(u => u._id !== currentUserToDelete._id)
-				);
-			}
-			dialogs.closeAll();
+		onDeleteSuccess: async () => {
+			closeAllDialogs();
 			userToDelete = null;
+			await refreshUsers();
 		}
 	});
-	const dialogs = useDialogManager();
+	const crudSaving = crudOps.saving;
+	const crudError = crudOps.error;
+	const crudMessage = crudOps.message;
+	// Reactive state
+	let groups: Group[] = $state([]);
+	let loadingGroups = $state(false);
+	let loadingOwnerDomains = $state(false);
+	let error = $state('');
+	let searchTerm = $state(data.filters?.search ?? '');
+	let roleFilter = $state(data.filters?.role ?? 'all');
+	let blockedFilter = $state(data.filters?.blocked ?? 'all');
+	let editingUser: User | null = $state(null);
+	let userToDelete: User | null = $state(null);
+	let showCreateDialog = $state(false);
+	let showEditDialog = $state(false);
+	let showDeleteDialog = $state(false);
 
-	// Reactive stores from composables
-	let users: User[] = [];
-	let groups: Group[] = [];
-	let loading = false;
-	let loadingGroups = false;
-	let loadingOwnerDomains = false;
-	let saving = false;
-	let message = '';
-	let error = '';
-	let searchTerm = '';
-	let roleFilter = 'all';
-	let blockedFilter = 'all';
-	let showCreateDialog = false;
-	let showEditDialog = false;
-	let showDeleteDialog = false;
-	let editingUser: User | null = null;
-	let userToDelete: User | null = null;
+	function closeAllDialogs() {
+		showCreateDialog = false;
+		showEditDialog = false;
+		showDeleteDialog = false;
+	}
 
-	let ownerDomains: OwnerDomain[] = [];
-	let ownerDomainsError = '';
-	let newOwnerDomainHostname = '';
+	let ownerDomains: OwnerDomain[] = $state([]);
+	let ownerDomainsError = $state('');
+	let newOwnerDomainHostname = $state('');
 
 	let removeOwnerDomainDialog: {
 		isOpen: boolean;
 		domain: OwnerDomain | null;
 		isDeleting: boolean;
-	} = {
+	} = $state({
 		isOpen: false,
 		domain: null,
 		isDeleting: false,
-	};
+	});
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => users = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.saving.subscribe(value => saving = value);
-	crudOps.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.message.subscribe(value => message = value);
-	dialogs.showCreate.subscribe(value => showCreateDialog = value);
-	dialogs.showEdit.subscribe(value => showEditDialog = value);
-	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
+$effect(() => { if ($crudError) error = $crudError; });
 
 	// Form state
-	let formData: UserFormData = {
+	let formData: UserFormData = $state({
 		name: { en: '', he: '' },
 		username: '',
 		password: '',
@@ -155,12 +144,15 @@
 		allowedStorageProviders: ['local'],
 		useDedicatedStorage: false,
 		storageUseAdminConfig: true
-	};
+	});
 
-	let showPassword = false;
+	let showPassword = $state(false);
 
 	onMount(async () => {
-		await Promise.all([crudLoader.loadItems(), loadGroups()]);
+		searchTerm = data.filters?.search ?? '';
+		roleFilter = data.filters?.role ?? 'all';
+		blockedFilter = data.filters?.blocked ?? 'all';
+		await loadGroups();
 	});
 
 	async function loadGroups() {
@@ -192,7 +184,7 @@
 			allowedStorageProviders: ['local'],
 			useDedicatedStorage: false,
 			storageUseAdminConfig: true
-		};
+	};
 		showPassword = false;
 		ownerDomains = [];
 		ownerDomainsError = '';
@@ -201,8 +193,10 @@
 
 	function openCreateDialog() {
 		resetForm();
-		dialogs.openCreate();
-		crudOps.error.set('');
+		showCreateDialog = true;
+		showEditDialog = false;
+		showDeleteDialog = false;
+		crudError.set('');
 	}
 
 	function openEditDialog(user: User) {
@@ -223,7 +217,7 @@
 			allowedStorageProviders: user.allowedStorageProviders || ['local'],
 			useDedicatedStorage: user.useDedicatedStorage === true,
 			storageUseAdminConfig: storage.useAdminConfig !== false
-		};
+	};
 		showPassword = false;
 		ownerDomains = [];
 		ownerDomainsError = '';
@@ -234,8 +228,10 @@
 				logger.error('Failed to load owner domains', err);
 			});
 		}
-		dialogs.openEdit();
-		crudOps.error.set('');
+		showEditDialog = true;
+		showCreateDialog = false;
+		showDeleteDialog = false;
+		crudError.set('');
 	}
 
 	async function loadOwnerDomains(ownerId: string) {
@@ -337,8 +333,10 @@
 
 	function openDeleteDialog(user: User) {
 		userToDelete = user;
-		dialogs.openDelete();
-		crudOps.error.set('');
+		showDeleteDialog = true;
+		showCreateDialog = false;
+		showEditDialog = false;
+		crudError.set('');
 	}
 
 	function getUserName(user: User): string {
@@ -386,7 +384,7 @@
 						? undefined
 						: (currentEditingUser.storageConfig?.googleDrive ?? undefined),
 			},
-		};
+	};
 		const updatedUser = await crudOps.update(currentEditingUser._id, payload);
 		if (updatedUser) {
 			// Success handled by onUpdateSuccess callback
@@ -415,8 +413,8 @@
 				<p class="text-(--color-surface-600-400) mt-2">{$t('admin.manageUsersRoles')}</p>
 			</div>
 
-			{#if message}
-				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700">{message}</div>
+			{#if $crudMessage}
+				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700">{$crudMessage}</div>
 			{/if}
 
 			{#if error}
@@ -429,15 +427,14 @@
 				bind:roleFilter
 				bind:blockedFilter
 				roles={ROLES}
-				onFilterChange={() => crudLoader.loadItems()}
+				onFilterChange={() => applyFilters()}
 				onAddUser={openCreateDialog}
 			/>
 
 			<!-- Users List -->
-			{#if loading}
+			{#if data.usersLoadError}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
-					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingUsers')}</p>
+					<p class="text-red-600">{data.usersLoadError}</p>
 				</div>
 			{:else if users.length === 0}
 				<div class="text-center py-8">
@@ -495,8 +492,8 @@
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							resetForm();
 						}}
 						class="{adminBtnSecondary} {adminRingPrimary}"
@@ -505,11 +502,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleCreate}
-						disabled={saving || !formData.username.trim()}
+						onclick={handleCreate}
+						disabled={$crudSaving || !formData.username.trim()}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							{$t('admin.creatingUser')}
 						{:else}
 							{$t('admin.createUser')}
@@ -551,23 +548,24 @@
 						}
 					}}
 				>
-					<OwnerDomainsSection
-						slot="extra"
-						role={formData.role}
-						ownerDomains={ownerDomains}
-						loadingOwnerDomains={loadingOwnerDomains}
-						ownerDomainsError={ownerDomainsError}
-						bind:newOwnerDomainHostname
-						onAddDomain={addOwnerDomain}
-						onUpdateDomain={updateOwnerDomain}
-						onDeleteDomain={openRemoveOwnerDomainDialog}
-					/>
+					{#snippet extra()}
+						<OwnerDomainsSection
+							role={formData.role}
+							ownerDomains={ownerDomains}
+							loadingOwnerDomains={loadingOwnerDomains}
+							ownerDomainsError={ownerDomainsError}
+							bind:newOwnerDomainHostname
+							onAddDomain={addOwnerDomain}
+							onUpdateDomain={updateOwnerDomain}
+							onDeleteDomain={openRemoveOwnerDomainDialog}
+						/>
+					{/snippet}
 				</UserForm>
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							editingUser = null;
 							resetForm();
 						}}
@@ -578,11 +576,11 @@
 					<button
 						type="button"
 						data-testid="admin-users-save-edit"
-						on:click={handleEdit}
-						disabled={saving}
+						onclick={handleEdit}
+						disabled={$crudSaving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							{$t('admin.updatingUser')}
 						{:else}
 							{$t('admin.updateUser')}
@@ -620,8 +618,8 @@
 				<div class="flex justify-end space-x-2">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							userToDelete = null;
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
@@ -630,11 +628,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleDelete}
-						disabled={saving}
+						onclick={handleDelete}
+						disabled={$crudSaving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							{$t('admin.deletingUser')}
 						{:else}
 							{$t('admin.deleteUser')}

@@ -5,7 +5,6 @@
 	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
 	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';
-	import AdminAppChrome from '$lib/components/AdminAppChrome.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 	import ThemeColorApplier from '$lib/components/ThemeColorApplier.svelte';
 	import TokenRenewalNotification from '$lib/components/TokenRenewalNotification.svelte';
@@ -13,7 +12,7 @@
 	import { logger } from '$lib/utils/logger';
 	import { canonicalUrlFromPageUrl, pathShouldNoindex } from '$lib/utils/canonical-url';
 
-	export let data: LayoutData;
+	let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
 
 	/**
 	 * Seed site config on SSR and on navigation before child routes render.
@@ -21,9 +20,11 @@
 	 * fell back as if the pack were unset and `PageRenderer` could pick Atelier’s hero override
 	 * while the real pack (e.g. studio) came from `data.visitorTemplatePack`.
 	 */
-	$: if (data.visitorSiteConfig) {
-		siteConfig.hydrateFromServer(data.visitorSiteConfig);
-	}
+	$effect(() => {
+		if (data.visitorSiteConfig) {
+			siteConfig.hydrateFromServer(data.visitorSiteConfig);
+		}
+	});
 
 	/** Inline fallback when site config has no favicon yet (avoids undefined href on SSR). */
 	const DEFAULT_FAVICON =
@@ -32,17 +33,18 @@
 			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#4f46e5"/></svg>',
 		);
 
-	$: canonicalHref = canonicalUrlFromPageUrl($page.url);
-	$: noindexPanel = pathShouldNoindex($page.url.pathname);
-	$: faviconFromConfig =
+	const canonicalHref = $derived(canonicalUrlFromPageUrl($page.url));
+	const noindexPanel = $derived(pathShouldNoindex($page.url.pathname));
+	const faviconFromConfig = $derived(
 		$publicSiteFavicon != null && String($publicSiteFavicon).trim() !== ''
 			? String($publicSiteFavicon).trim()
-			: '';
-	$: faviconHref = faviconFromConfig || DEFAULT_FAVICON;
-	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
-	$: publicShellPromise = isAdminRoute
-		? null
-		: import('$lib/components/BodyTemplateWrapper.svelte');
+			: ''
+	);
+	const faviconHref = $derived(faviconFromConfig || DEFAULT_FAVICON);
+	const isAdminRoute = $derived($page.url.pathname.startsWith('/admin'));
+	const publicShellPromise = $derived(
+		isAdminRoute ? null : import('$lib/components/BodyTemplateWrapper.svelte')
+	);
 
 	// Client refresh + auth (site config already hydrated from layout `data` above)
 	onMount(() => {
@@ -81,11 +83,9 @@
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
 	{#if isAdminRoute}
-		<!-- Admin: static shell — visitor templating: docs/guides/TEMPLATING_USER_GUIDE.md -->
+		<!-- Admin shell lives in routes/admin/+layout.svelte -->
 		<TokenRenewalNotification />
-		<AdminAppChrome>
-			<slot />
-		</AdminAppChrome>
+		{@render children?.()}
 	{:else}
 		<PhotoCopyProtection />
 		<ThemeColorApplier initialSiteConfig={data.visitorSiteConfig ?? null} />
@@ -94,7 +94,7 @@
 		{#if publicShellPromise}
 			{#await publicShellPromise then mod}
 				<svelte:component this={mod.default}>
-					<slot />
+					{@render children?.()}
 				</svelte:component>
 			{/await}
 		{/if}

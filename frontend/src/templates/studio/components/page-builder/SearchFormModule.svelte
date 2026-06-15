@@ -1,9 +1,15 @@
 <script lang="ts">
 	import BaseSearchFormModule from '$lib/page-builder/modules/SearchFormModule.svelte';
 
-	export let placeholder = '';
-	export let showFiltersButton = true;
-	export let filterWrapClass = '';
+	let {
+		placeholder = $bindable(''),
+		showFiltersButton = $bindable(true),
+		filterWrapClass = $bindable('')
+	}: {
+		placeholder?: unknown;
+		showFiltersButton?: unknown;
+		filterWrapClass?: unknown;
+	} = $props();
 </script>
 
 <BaseSearchFormModule {placeholder} {showFiltersButton} {filterWrapClass} />

@@ -21,13 +21,13 @@
 		createdAt: string;
 	};
 
-	let loading = true;
-	let items: ContactSubmission[] = [];
-	let page = 1;
-	let limit = 20;
-	let total = 0;
-	let pages = 1;
-	let search = '';
+	let loading = $state(true);
+	let items: ContactSubmission[] = $state([]);
+	let page = $state(1);
+	let limit = $state(20);
+	let total = $state(0);
+	let pages = $state(1);
+	let search = $state('');
 
 	async function load() {
 		loading = true;
@@ -90,7 +90,7 @@
 			<p class="text-(--color-surface-600-400) mt-2">{$t('admin.contactSubmissionsDescription')}</p>
 		</div>
 
-		<form on:submit={handleSearchSubmit} class="flex flex-wrap items-center gap-2">
+		<form onsubmit={handleSearchSubmit} class="flex flex-wrap items-center gap-2">
 			<input
 				type="text"
 				bind:value={search}
@@ -166,7 +166,7 @@
 					<button
 						type="button"
 						disabled={page <= 1 || loading}
-						on:click={async () => {
+						onclick={async () => {
 							if (page <= 1) return;
 							page -= 1;
 							await load();
@@ -183,7 +183,7 @@
 					<button
 						type="button"
 						disabled={page >= pages || loading}
-						on:click={async () => {
+						onclick={async () => {
 							if (page >= pages) return;
 							page += 1;
 							await load();

@@ -40,7 +40,7 @@ All storage providers are configured through the admin dashboard at `/admin/stor
 **Admin dashboard (`/admin/storage`) behavior**
 
 - **Enable / disable**: Each provider tab shows whether it is enabled for the site (**Enabled** / **Inactive**) and includes a toggle to turn the provider on or off without re-entering credentials.
-- **Site-wide JSON**: Providers that do not use the shared Google Drive / Wasabi / Local forms (for example **Amazon S3**, **Backblaze B2**) are configured as **JSON** on this page by global admins—the same credentials apply site-wide for tenants using main-site storage.
+- **Structured forms**: **Google Drive**, **Local**, **Wasabi**, **Amazon S3**, and **Backblaze B2** each have dedicated form fields on this page (bucket, region, keys, etc.). Only providers without a bespoke UI fall back to **JSON** editing.
 - **Browser → API**: The UI calls `/api/admin/storage/*`. In production these paths are handled by **SvelteKit server routes** (`frontend/src/routes/api/admin/storage/...`) which forward the request (and session cookies) to the Nest backend (`BACKEND_URL`). Ensure your reverse proxy forwards `/api` to the Node process that runs the built frontend so these handlers run; alternatively, routing `/api/admin/storage/*` directly to the Nest server also works if paths match the backend’s `/api` prefix.
 - **View tree**: Folder browsing is only available for providers that implement tree listing (notably **Google Drive**). The provider must be **enabled**; errors from the API are shown in the dialog.
 

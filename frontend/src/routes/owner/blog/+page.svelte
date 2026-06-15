@@ -8,7 +8,7 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface BlogArticle {
 		_id: string;
@@ -134,7 +134,7 @@ import { t } from '$stores/i18n';
 				</div>
 				<div class="flex space-x-3">
 					<button
-						on:click={() => goto('/owner/blog/new')}
+						onclick={() => goto('/owner/blog/new')}
 						class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
 					>
 						<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +148,7 @@ import { t } from '$stores/i18n';
 						{$t('owner.createNewArticle')}
 					</button>
 					<button
-						on:click={() => goto('/owner')}
+						onclick={() => goto('/owner')}
 						class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 					>
 						<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,7 +211,7 @@ import { t } from '$stores/i18n';
 				</div>
 				<div class="mt-4">
 					<button
-						on:click={fetchArticles}
+						onclick={fetchArticles}
 						class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 					>
 						<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,7 +257,7 @@ import { t } from '$stores/i18n';
 						</p>
 						<div class="mt-6">
 							<button
-								on:click={() => goto('/owner/blog/new')}
+								onclick={() => goto('/owner/blog/new')}
 								class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
 							>
 								<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,7 +361,7 @@ import { t } from '$stores/i18n';
 										<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
 											<div class="flex justify-end space-x-2">
 												<button
-													on:click={() => handleTogglePublish(article)}
+													onclick={() => handleTogglePublish(article)}
 													class="{article.isPublished
 														? 'text-yellow-600 hover:text-yellow-900'
 														: 'text-green-600 hover:text-green-900'}"
@@ -369,7 +369,7 @@ import { t } from '$stores/i18n';
 													{article.isPublished ? 'Unpublish' : 'Publish'}
 												</button>
 												<button
-													on:click={() => handleDelete(article._id)}
+													onclick={() => handleDelete(article._id)}
 													class="text-red-600 hover:text-red-900"
 												>
 													Delete

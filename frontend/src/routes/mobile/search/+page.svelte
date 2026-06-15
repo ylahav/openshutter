@@ -18,12 +18,12 @@
 		description?: string;
 	}
 
-	let query = $page.url.searchParams.get('q') || '';
+	let query = $state($page.url.searchParams.get('q') || '');
 	let type: 'all' | 'photos' | 'albums' | 'people' | 'locations' =
 		($page.url.searchParams.get('type') as 'all' | 'photos' | 'albums' | 'people' | 'locations') || 'all';
-	let results: SearchResult[] = [];
-	let loading = false;
-	let error: string | null = null;
+	let results: SearchResult[]  = $state([]);
+	let loading = $state(false);
+	let error: string | null  = $state(null);
 
 	onMount(() => {
 		if (query) {
@@ -31,12 +31,12 @@
 		}
 	});
 
-	$: if ($page.url.searchParams.get('q') !== query) {
+$effect(() => { if ($page.url.searchParams.get('q') !== query) {
 		query = $page.url.searchParams.get('q') || '';
 		if (query) {
 			performSearch();
 		}
-	}
+	} });
 
 	async function performSearch() {
 		if (!query.trim()) {
@@ -112,7 +112,7 @@
 			<div class="flex items-center justify-between mb-4">
 				<h1 class="text-xl font-bold text-gray-900">Search</h1>
 				<button
-					on:click={() => goto('/')}
+					onclick={() => goto('/')}
 					class="text-blue-600 hover:text-blue-700 text-sm font-medium"
 				>
 					Close
@@ -124,14 +124,14 @@
 				<input
 					type="text"
 					bind:value={query}
-					on:keydown={(e) => {
+					onkeydown={(e) => {
 						if (e.key === 'Enter') performSearch();
 					}}
 					placeholder="Search photos, albums, people..."
 					class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 				/>
 				<button
-					on:click={performSearch}
+					onclick={performSearch}
 					class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
 				>
 					Search
@@ -141,7 +141,7 @@
 			<!-- Type Filter -->
 			<div class="mt-3 flex gap-2 overflow-x-auto">
 				<button
-					on:click={() => {
+					onclick={() => {
 						type = 'all';
 						if (query) performSearch();
 					}}
@@ -152,7 +152,7 @@
 					All
 				</button>
 				<button
-					on:click={() => {
+					onclick={() => {
 						type = 'photos';
 						if (query) performSearch();
 					}}
@@ -163,7 +163,7 @@
 					Photos
 				</button>
 				<button
-					on:click={() => {
+					onclick={() => {
 						type = 'albums';
 						if (query) performSearch();
 					}}
@@ -174,7 +174,7 @@
 					Albums
 				</button>
 				<button
-					on:click={() => {
+					onclick={() => {
 						type = 'people';
 						if (query) performSearch();
 					}}
@@ -185,7 +185,7 @@
 					People
 				</button>
 				<button
-					on:click={() => {
+					onclick={() => {
 						type = 'locations';
 						if (query) performSearch();
 					}}
@@ -216,7 +216,7 @@
 			<div class="grid grid-cols-2 gap-4 p-4">
 				{#each results as item}
 					<button
-						on:click={() => {
+						onclick={() => {
 							if (item.type === 'album') {
 								goto(`/albums/${item.alias || item._id}`);
 							} else if (item.type === 'photo') {

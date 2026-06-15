@@ -3,11 +3,15 @@
 	import { getTemplatePack } from '$lib/template/packs/registry';
 	import type { PackSearchPageProps } from '$lib/template-packs/pack-page-props';
 
-	export let initialQuery = '';
-	export let variant: NonNullable<PackSearchPageProps['variant']> = 'default';
+	let {
+		initialQuery = $bindable(''),
+		variant = 'default'
+	}: {
+		initialQuery?: unknown;
+		variant?: NonNullable<PackSearchPageProps['variant']>;
+	} = $props();
 
-	$: packPromise = getTemplatePack($activeTemplate);
-</script>
+const packPromise = $derived(getTemplatePack($activeTemplate));</script>
 
 {#await packPromise then pack}
 	<svelte:component this={pack.pages.Search} {initialQuery} {variant} />

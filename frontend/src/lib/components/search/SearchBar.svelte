@@ -1,30 +1,37 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { t } from '$stores/i18n';
 
-	export let query = '';
-	export let loading = false;
-	export let placeholder = '';
-	
-	$: displayPlaceholder = placeholder || $t('search.placeholder');
+	let {
+		query = '',
+		loading = false,
+		placeholder = '',
+		onsearch = undefined
+	}: {
+		query?: string;
+		loading?: boolean;
+		placeholder?: string;
+		onsearch?: (value: string) => void;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
+	const displayPlaceholder = $derived(placeholder || $t('search.placeholder'));
 
-	let inputValue = query;
-	let isFocused = false;
+	let inputValue = $state(query);
+	let isFocused = $state(false);
 
-	$: if (query !== inputValue && !isFocused) {
-		inputValue = query;
-	}
+	$effect(() => {
+		if (query !== inputValue && !isFocused) {
+			inputValue = query;
+		}
+	});
 
 	function handleSubmit(e: Event) {
 		e.preventDefault();
-		dispatch('search', inputValue.trim());
+		onsearch?.(inputValue.trim());
 	}
 
 	function handleClear() {
 		inputValue = '';
-		dispatch('search', '');
+		onsearch?.('');
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
@@ -34,7 +41,7 @@
 	}
 </script>
 
-<form on:submit={handleSubmit} class="relative">
+<form onsubmit={handleSubmit} class="relative">
 	<div class="relative">
 		<div class="absolute inset-y-0 left-0 pl-[22px] flex items-center pointer-events-none">
 			<svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,9 +52,9 @@
 		<input
 			type="text"
 			bind:value={inputValue}
-			on:focus={() => (isFocused = true)}
-			on:blur={() => (isFocused = false)}
-			on:keydown={handleKeyDown}
+			onfocus={() => (isFocused = true)}
+			onblur={() => (isFocused = false)}
+			onkeydown={handleKeyDown}
 			placeholder={displayPlaceholder}
 			disabled={loading}
 			class="block w-full pl-[50px] pr-10 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:opacity-50"
@@ -57,7 +64,7 @@
 			<div class="absolute inset-y-0 right-0 pr-3 flex items-center">
 				<button
 					type="button"
-					on:click={handleClear}
+					onclick={handleClear}
 					class="text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600"
 					disabled={loading}
 					aria-label={$t('search.clearQuery')}

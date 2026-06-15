@@ -4,7 +4,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	let currentPassword = '';
 	let newPassword = '';
@@ -101,7 +101,7 @@
 				</div>
 			{/if}
 
-			<form on:submit={handleSubmit} class="space-y-6">
+			<form onsubmit={handleSubmit} class="space-y-6">
 				<div>
 					<label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-2">
 						Current Password

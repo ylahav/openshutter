@@ -11,10 +11,17 @@
 	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
 	/** `albums` = root album listing (e.g. /albums); `photos` = global photo grid (legacy pack default). */
-	export let mode: 'photos' | 'albums' = 'photos';
-	export let albums: PackGalleryAlbumListItem[] = [];
-	export let loading = false;
-	export let error: string | null = null;
+	let {
+		mode = 'photos',
+		albums = [],
+		loading = $bindable(false),
+		error = null
+	}: {
+		mode?: 'photos' | 'albums';
+		albums?: PackGalleryAlbumListItem[];
+		loading?: unknown;
+		error?: string | null;
+	} = $props();
 
 	let photos: any[] = [];
 	let photosLoading = true;
@@ -127,7 +134,7 @@
 					{#each photos as photo, index}
 						<button
 							type="button"
-							on:click={() => openLightbox(index)}
+							onclick={() => openLightbox(index)}
 							class="group text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-(--tp-fg-muted) rounded-sm"
 						>
 							<div class="overflow-hidden rounded-sm mb-2.5">
@@ -158,6 +165,6 @@
 	</div>
 
 	{#if lightboxOpen && photos.length > 0}
-		<PhotoLightbox photos={photos} initialIndex={lightboxIndex} on:close={() => (lightboxOpen = false)} />
+		<PhotoLightbox photos={photos} initialIndex={lightboxIndex} onclose={() => (lightboxOpen = false)} />
 	{/if}
 {/if}

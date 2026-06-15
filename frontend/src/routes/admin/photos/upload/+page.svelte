@@ -18,7 +18,7 @@
 		};
 	}
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	interface UploadProgress {
 		file: File;
@@ -30,24 +30,24 @@
 		progress100Timestamp?: number; // Timestamp when progress reached 100%
 	}
 
-	let albumId: string | null = null;
-	let returnTo: string | null = null;
-	let albumName = '';
-	let uploads: UploadProgress[] = [];
-	let isUploading = false;
-	let error: string | null = null;
-	let isDragActive = false;
+	let albumId: string | null = $state(null);
+	let returnTo: string | null = $state(null);
+	let albumName = $state('');
+	let uploads: UploadProgress[] = $state([]);
+	let isUploading = $state(false);
+	let error: string | null = $state(null);
+	let isDragActive = $state(false);
 	let fileInput: HTMLInputElement | null = null;
-	let fileUploadReport: UploadReport | null = null;
-	let replaceIfExists = false; // Option to replace existing files
+	let fileUploadReport: UploadReport | null = $state(null);
+	let replaceIfExists = $state(false); // Option to replace existing files
 	
 	// Folder upload state
-	let uploadMode: 'files' | 'folder' = 'files';
+	let uploadMode: 'files' | 'folder' = $state('files');
 	let folderInput: HTMLInputElement | null = null;
-	let selectedFolderName = '';
-	let folderUploadReport: UploadReport | null = null;
-	let isUploadingFolder = false;
-	let folderError: string | null = null;
+	let selectedFolderName = $state('');
+	let folderUploadReport: UploadReport | null = $state(null);
+	let isUploadingFolder = $state(false);
+	let folderError: string | null = $state(null);
 
 	onMount(() => {
 		albumId = $page.url.searchParams.get('albumId');
@@ -143,8 +143,8 @@
 
 		try {
 			const xhr = new XMLHttpRequest();
-			let completionTimeout: ReturnType<typeof setTimeout> | null = null;
-			let hasCompleted = false;
+			let completionTimeout: ReturnType<typeof setTimeout> | null = $state(null);
+			let hasCompleted = $state(false);
 
 			// Track upload progress
 			xhr.upload.addEventListener('progress', (event) => {
@@ -444,7 +444,7 @@
 
 			// Backup: Handle readystatechange as fallback (in case load event doesn't fire)
 			// Note: This should only run if load event doesn't fire within a reasonable time
-			let readystatechangeProcessed = false;
+			let readystatechangeProcessed = $state(false);
 			xhr.addEventListener('readystatechange', () => {
 				if (xhr.readyState === 4 && !hasCompleted && !readystatechangeProcessed) {
 					// Wait a bit to see if load event fires first
@@ -548,7 +548,7 @@
 		
 		// Check for stuck uploads (100% progress but still 'uploading' status for > 10 seconds)
 		const now = Date.now();
-		let hasStuckUploads = false;
+		let hasStuckUploads = $state(false);
 		uploads = uploads.map((upload) => {
 			if (upload.status === 'uploading' && upload.progress >= 100 && upload.progress100Timestamp) {
 				const stuckDuration = now - upload.progress100Timestamp;
@@ -778,7 +778,7 @@
 			<div class="flex space-x-3">
 				<button
 					type="button"
-					on:click={() => {
+					onclick={() => {
 						if (returnTo) goto(returnTo);
 						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
 						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
@@ -795,7 +795,7 @@
 			<div class="flex space-x-1">
 				<button
 					type="button"
-					on:click={() => (uploadMode = 'files')}
+					onclick={() => (uploadMode = 'files')}
 					class="flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors {uploadMode === 'files'
 						? `${adminBtnPrimarySm} ${adminRingPrimary}`
 						: `${adminBtnSecondary} ${adminRingPrimary}`}"
@@ -804,7 +804,7 @@
 				</button>
 				<button
 					type="button"
-					on:click={() => (uploadMode = 'folder')}
+					onclick={() => (uploadMode = 'folder')}
 					class="flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors {uploadMode === 'folder'
 						? `${adminBtnPrimarySm} ${adminRingPrimary}`
 						: `${adminBtnSecondary} ${adminRingPrimary}`}"
@@ -852,11 +852,11 @@
 							accept="image/*"
 							class="hidden"
 							use:setWebkitDirectory
-							on:change={(e) => handleFolderSelected((e.currentTarget as HTMLInputElement).files)}
+							onchange={(e) => handleFolderSelected((e.currentTarget as HTMLInputElement).files)}
 						/>
 						<button
 							type="button"
-							on:click={() => folderInput?.click()}
+							onclick={() => folderInput?.click()}
 							disabled={isUploadingFolder || !albumId}
 							class="{adminBtnPrimarySm} {adminRingPrimary} w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
@@ -1035,11 +1035,11 @@
 				class="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors {isDragActive
 					? 'border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)]'
 					: 'border-surface-300-700 hover:border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)] hover:bg-(--color-surface-50-950)'}"
-				on:dragover={handleDragOver}
-				on:dragleave={handleDragLeave}
-				on:drop={handleDrop}
-				on:click={() => fileInput?.click()}
-				on:keydown={(e) => {
+				ondragover={handleDragOver}
+				ondragleave={handleDragLeave}
+				ondrop={handleDrop}
+				onclick={() => fileInput?.click()}
+				onkeydown={(e) => {
 					if (e.key === 'Enter' || e.key === ' ') {
 						e.preventDefault();
 						fileInput?.click();
@@ -1052,7 +1052,7 @@
 					accept="image/*"
 					multiple
 					class="hidden"
-					on:change={(e) => handleFilesSelected((e.currentTarget as HTMLInputElement).files)}
+					onchange={(e) => handleFilesSelected((e.currentTarget as HTMLInputElement).files)}
 				/>
 
 				<div class="space-y-4">
@@ -1237,7 +1237,7 @@
 			<div class="mt-8 flex justify-end space-x-3">
 				<button
 					type="button"
-					on:click={() => {
+					onclick={() => {
 						if (returnTo) goto(returnTo);
 						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
 						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
@@ -1246,7 +1246,7 @@
 				>
 					{albumId ? 'Back to Album' : 'Upload More Photos'}
 				</button>
-				<button type="button" on:click={handleFinish} class="{adminBtnPrimarySm} {adminRingPrimary}">
+				<button type="button" onclick={handleFinish} class="{adminBtnPrimarySm} {adminRingPrimary}">
 					{albumId ? 'Go to Album' : 'Go to Photos'}
 				</button>
 			</div>

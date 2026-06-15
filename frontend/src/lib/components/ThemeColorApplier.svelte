@@ -12,30 +12,35 @@
 		visitorThemeGoogleFontFamilies
 	} from '$lib/theme/build-visitor-theme-css';
 
-	export let initialSiteConfig: SiteConfig | null = null;
+	let {
+		initialSiteConfig = null
+	}: {
+		initialSiteConfig?: SiteConfig | null;
+	} = $props();
 
 	let styleElement: HTMLStyleElement | null = null;
 	let googleFontsLink: HTMLLinkElement | null = null;
 
-	$: effectiveConfig = $siteConfigData ?? initialSiteConfig;
+	const effectiveConfig = $derived($siteConfigData ?? initialSiteConfig);
 
-	$: ssrCss =
+	const ssrCss = $derived(
 		!browser && effectiveConfig
 			? buildVisitorThemeStylesheet(effectiveConfig, $page.url.pathname, $page.data)
-			: '';
+			: ''
+	);
 
-	$: ssrFontsHref =
+	const ssrFontsHref = $derived(
 		!browser && effectiveConfig
 			? buildGoogleFontsUrl(
 					visitorThemeGoogleFontFamilies(effectiveConfig, $page.url.pathname, $page.data)
 				)
-			: '';
+			: ''
+	);
 
 	/** Avoid literal `<style>` in this file — Svelte preprocess treats it as scoped CSS. */
-	$: ssrThemeDataHref =
-		!browser && ssrCss
-			? `data:text/css;charset=utf-8,${encodeURIComponent(ssrCss)}`
-			: '';
+	const ssrThemeDataHref = $derived(
+		!browser && ssrCss ? `data:text/css;charset=utf-8,${encodeURIComponent(ssrCss)}` : ''
+	);
 
 	function applyGoogleFontsLink(fontFamilies: string[]) {
 		if (!browser || !document.head) return;
@@ -75,13 +80,13 @@
 		styleElement.textContent = buildVisitorThemeStylesheet(config, $page.url.pathname, $page.data);
 	}
 
-	$: if (browser && effectiveConfig) {
+$effect(() => { if (browser && effectiveConfig) {
 		applyCustomColors();
-	}
+	} });
 
-	$: if (browser && $resolvedTheme) {
+$effect(() => { if (browser && $resolvedTheme) {
 		if (effectiveConfig) applyCustomColors();
-	}
+	} });
 
 	onMount(() => {
 		if (browser) {

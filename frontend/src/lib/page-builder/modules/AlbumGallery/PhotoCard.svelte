@@ -1,27 +1,33 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { getPhotoUrl } from '$lib/utils/photoUrl';
 
-	const dispatch = createEventDispatcher<{ open: undefined }>();
-
-	export let photo: any;
-	export let coverAspectClass: string = 'pb-albumGallery__aspect pb-albumGallery__aspect--video';
-	export let cardFieldOrder: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'> = [
-		'cover',
-		'title',
-		'description',
-		'photoCount',
-		'featuredBadge',
-	];
-	export let showTitle = true;
-	export let showCover = true;
-	export let showDescription = true;
-	export let descriptionLines = 2;
-	export let showFeaturedBadge = true;
-	/** `tile` = cropped cell; `masonry` = natural image height; `full` = titled card. */
-	export let presentation: 'full' | 'tile' | 'masonry' = 'full';
+	let {
+		photo,
+		coverAspectClass = 'pb-albumGallery__aspect pb-albumGallery__aspect--video',
+		cardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'] as Array<
+			'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'
+		>,
+		showTitle = true,
+		showCover = true,
+		showDescription = true,
+		descriptionLines = 2,
+		showFeaturedBadge = true,
+		presentation = 'full' as 'full' | 'tile' | 'masonry',
+		onopen
+	}: {
+		photo: any;
+		coverAspectClass?: string;
+		cardFieldOrder?: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>;
+		showTitle?: boolean;
+		showCover?: boolean;
+		showDescription?: boolean;
+		descriptionLines?: number;
+		showFeaturedBadge?: boolean;
+		presentation?: 'full' | 'tile' | 'masonry';
+		onopen?: () => void;
+	} = $props();
 
 	function resolveTitle(v: unknown): string {
 		if (typeof v === 'string') return v;
@@ -30,26 +36,32 @@
 		return '';
 	}
 
-	$: photoTitle =
+	const photoTitle = $derived(
 		resolveTitle(photo?.title) ||
-		resolveTitle(photo?.name) ||
-		(typeof photo?.originalName === 'string' ? photo.originalName : '') ||
-		(typeof photo?.filename === 'string' ? photo.filename : '') ||
-		'Photo';
+			resolveTitle(photo?.name) ||
+			(typeof photo?.originalName === 'string' ? photo.originalName : '') ||
+			(typeof photo?.filename === 'string' ? photo.filename : '') ||
+			'Photo'
+	);
 
-	$: photoUrl =
+	const photoUrl = $derived(
 		(typeof photo?.coverUrl === 'string' && photo.coverUrl) ||
-		(typeof photo?.thumbnailUrl === 'string' && photo.thumbnailUrl) ||
-		(typeof photo?.previewUrl === 'string' && photo.previewUrl) ||
-		(typeof photo?.url === 'string' && photo.url) ||
-		(typeof photo?.imageUrl === 'string' && photo.imageUrl) ||
-		getPhotoUrl(photo ?? {}, { preferThumbnail: true, fallback: '' });
+			(typeof photo?.thumbnailUrl === 'string' && photo.thumbnailUrl) ||
+			(typeof photo?.previewUrl === 'string' && photo.previewUrl) ||
+			(typeof photo?.url === 'string' && photo.url) ||
+			(typeof photo?.imageUrl === 'string' && photo.imageUrl) ||
+			getPhotoUrl(photo ?? {}, { preferThumbnail: true, fallback: '' })
+	);
+
+	function handleOpen() {
+		onopen?.();
+	}
 </script>
 
 {#if presentation === 'tile'}
 	<button
 		type="button"
-		on:click={() => dispatch('open')}
+		onclick={handleOpen}
 		class="pb-photoCard pb-photoCard--tile"
 		aria-label={photoTitle}
 	>
@@ -64,7 +76,7 @@
 {:else if presentation === 'masonry'}
 	<button
 		type="button"
-		on:click={() => dispatch('open')}
+		onclick={handleOpen}
 		class="pb-photoCard pb-photoCard--masonry"
 		aria-label={photoTitle}
 	>
@@ -75,7 +87,7 @@
 		{/if}
 	</button>
 {:else}
-	<button type="button" on:click={() => dispatch('open')} class="pb-photoCard">
+	<button type="button" onclick={handleOpen} class="pb-photoCard">
 		<div class="pb-photoCard__body">
 			{#each cardFieldOrder as field}
 				{#if field === 'title' && showTitle}

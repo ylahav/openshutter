@@ -5,9 +5,9 @@
 	import { t } from '$stores/i18n';
 
 	let oauthWindow: Window | null = null;
-	let renewing = false;
+	let renewing = $state(false);
 
-	$: notification = $tokenRenewalNotification;
+	const notification = $derived($tokenRenewalNotification);
 
 	async function handleRenew() {
 		if (renewing) return;
@@ -59,7 +59,7 @@
 				<div class="ml-4 flex items-center space-x-3">
 					<button
 						type="button"
-						on:click={handleRenew}
+						onclick={handleRenew}
 						disabled={renewing}
 						class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white disabled:opacity-50"
 					>
@@ -90,7 +90,7 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleDismiss}
+						onclick={handleDismiss}
 						class="text-white hover:text-red-200 focus:outline-none"
 						aria-label={$t('templatePack.dismiss')}
 						title={$t('templatePack.dismiss')}

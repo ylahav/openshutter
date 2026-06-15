@@ -22,12 +22,10 @@
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
-	// svelte-ignore export_let_unused - Required by SvelteKit page component
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
 	// Safe translation function for script usage (avoid calling before $t is ready).
-	let translate: (key: string, fallback?: string) => string = (key, fallback) => fallback || key;
-	$: translate = $t;
+	const translate = $derived($t);
 
 	interface Location {
 		_id: string;
@@ -200,43 +198,37 @@
 		}
 	});
 	const dialogs = useDialogManager();
+	const showCreateDialog = dialogs.showCreate;
+	const showEditDialog = dialogs.showEdit;
+	const showDeleteDialog = dialogs.showDelete;
+	const loaderItems = crudLoader.items;
+	const loaderLoading = crudLoader.loading;
+	const loaderError = crudLoader.error;
+	const crudSaving = crudOps.saving;
+	const crudError = crudOps.error;
+	const crudMessage = crudOps.message;
 
-	// Reactive stores from composables
-	let locations: Location[] = [];
-	let loading = false;
-	let saving = false;
-	let error = '';
-	let searchTerm = '';
-	let categoryFilter = 'all';
-	let showCreateDialog = false;
-	let showEditDialog = false;
-	let showDeleteDialog = false;
-	let editingLocation: Location | null = null;
-	let locationToDelete: Location | null = null;
-	let importExportBusy = false;
-	let geocodeBusy = false;
-	let geocodeFlash = '';
+	let error = $state('');
+	let searchTerm = $state('');
+	let categoryFilter = $state('all');
+	let editingLocation = $state<Location | null>(null);
+	let locationToDelete = $state<Location | null>(null);
+	let importExportBusy = $state(false);
+	let geocodeBusy = $state(false);
+	let geocodeFlash = $state('');
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => locations = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
+	$effect(() => {
+		if ($loaderError) error = $loaderError;
 	});
-	crudOps.saving.subscribe(value => saving = value);
-	crudOps.error.subscribe(value => {
-		if (value) error = value;
+	$effect(() => {
+		if ($crudError) error = $crudError;
 	});
-	crudOps.message.subscribe((value) => {
-		if (!value) return;
-		adminToast.success({ title: value });
+	$effect(() => {
+		if ($crudMessage) adminToast.success({ title: $crudMessage });
 	});
-	dialogs.showCreate.subscribe(value => showCreateDialog = value);
-	dialogs.showEdit.subscribe(value => showEditDialog = value);
-	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
 
 	// Form state
-	let formData = {
+	let formData = $state({
 		name: { en: '', he: '' } as { en: string; he: string },
 		description: { en: '', he: '' } as { en: string; he: string },
 		address: '',
@@ -250,7 +242,7 @@
 		isActive: true,
 		locationKind: 'place' as 'place' | 'area',
 		areaBounds: null as { south: number; north: number; west: number; east: number } | null
-	};
+	});
 
 	onMount(async () => {
 		await crudLoader.loadItems();
@@ -634,7 +626,7 @@
 							type="text"
 							placeholder={$t('admin.searchLocationsPlaceholder')}
 							bind:value={searchTerm}
-							on:input={() => crudLoader.loadItems()}
+							oninput={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 						/>
 						<svg
@@ -654,7 +646,7 @@
 
 					<select
 						bind:value={categoryFilter}
-						on:change={() => crudLoader.loadItems()}
+						onchange={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					>
 						<option value="all">{$t('admin.allCategories')}</option>
@@ -674,7 +666,7 @@
 					/>
 					<button
 						type="button"
-						on:click={openCreateDialog}
+						onclick={openCreateDialog}
 						class="{adminBtnPrimarySm} {adminRingPrimary} flex items-center gap-2"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -691,12 +683,12 @@
 			</div>
 
 			<!-- Locations List -->
-			{#if loading}
+			{#if $loaderLoading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingLocations')}</p>
 				</div>
-			{:else if locations.length === 0}
+			{:else if $loaderItems.length === 0}
 				<div class="text-center py-8">
 					<svg
 						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
@@ -722,7 +714,7 @@
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{#each locations as location}
+					{#each $loaderItems as location}
 						{@const kind = effectiveLocationKind(location)}
 						{@const areaLine = formatCityCountryLine(location)}
 						{@const areaOsmUrl = kind === 'area' ? areaQueryStaticMapUrl(location) : null}
@@ -835,7 +827,7 @@
 									<div class="flex shrink-0 space-x-1">
 										<button
 											type="button"
-											on:click={() => openEditDialog(location)}
+											onclick={() => openEditDialog(location)}
 											class="p-1 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 											aria-label={$t('admin.editLocationAria')}
 										>
@@ -850,7 +842,7 @@
 										</button>
 										<button
 											type="button"
-											on:click={() => openDeleteDialog(location)}
+											onclick={() => openDeleteDialog(location)}
 											class="p-1 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 rounded"
 											aria-label={$t('admin.deleteLocationAria')}
 										>
@@ -898,7 +890,7 @@
 </div>
 
 <!-- Create Dialog -->
-{#if showCreateDialog}
+{#if $showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.locationAddNewTitle')}</h2>
@@ -915,7 +907,7 @@
 					<div class="inline-flex flex-wrap rounded-lg border border-surface-300-700 p-0.5 gap-0.5 bg-(--color-surface-100-900)">
 						<button
 							type="button"
-							on:click={() => setFormKind('place')}
+							onclick={() => setFormKind('place')}
 							class="px-3 py-2 text-sm rounded-md transition-colors {formData.locationKind === 'place'
 								? 'bg-(--color-primary-600) text-white shadow-sm'
 								: 'text-(--color-surface-700-300) hover:bg-(--color-surface-200-800)'}"
@@ -924,7 +916,7 @@
 						</button>
 						<button
 							type="button"
-							on:click={() => setFormKind('area')}
+							onclick={() => setFormKind('area')}
 							class="px-3 py-2 text-sm rounded-md transition-colors {formData.locationKind === 'area'
 								? 'bg-(--color-primary-600) text-white shadow-sm'
 								: 'text-(--color-surface-700-300) hover:bg-(--color-surface-200-800)'}"
@@ -1021,7 +1013,7 @@
 				<div class="flex flex-wrap items-center gap-3">
 					<button
 						type="button"
-						on:click={findOnMap}
+						onclick={findOnMap}
 						disabled={geocodeBusy || saving}
 						class="px-3 py-2 text-sm font-medium rounded-md border border-(--color-primary-600) text-(--color-primary-700) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] disabled:opacity-50"
 					>
@@ -1120,7 +1112,7 @@
 				<div class="flex flex-wrap items-center gap-3">
 					<button
 						type="button"
-						on:click={findOnMap}
+						onclick={findOnMap}
 						disabled={geocodeBusy || saving}
 						class="px-3 py-2 text-sm font-medium rounded-md border border-(--color-primary-600) text-(--color-primary-700) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] disabled:opacity-50"
 					>
@@ -1153,7 +1145,7 @@
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
+						onclick={() => {
 							dialogs.closeAll();
 							resetForm();
 						}}
@@ -1163,8 +1155,8 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleCreate}
-						disabled={saving}
+						onclick={handleCreate}
+						disabled={$crudSaving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
@@ -1180,7 +1172,7 @@
 {/if}
 
 <!-- Edit Dialog -->
-{#if showEditDialog && editingLocation}
+{#if $showEditDialog && editingLocation}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.locationEditTitle')}</h2>
@@ -1197,7 +1189,7 @@
 					<div class="inline-flex flex-wrap rounded-lg border border-surface-300-700 p-0.5 gap-0.5 bg-(--color-surface-100-900)">
 						<button
 							type="button"
-							on:click={() => setFormKind('place')}
+							onclick={() => setFormKind('place')}
 							class="px-3 py-2 text-sm rounded-md transition-colors {formData.locationKind === 'place'
 								? 'bg-(--color-primary-600) text-white shadow-sm'
 								: 'text-(--color-surface-700-300) hover:bg-(--color-surface-200-800)'}"
@@ -1206,7 +1198,7 @@
 						</button>
 						<button
 							type="button"
-							on:click={() => setFormKind('area')}
+							onclick={() => setFormKind('area')}
 							class="px-3 py-2 text-sm rounded-md transition-colors {formData.locationKind === 'area'
 								? 'bg-(--color-primary-600) text-white shadow-sm'
 								: 'text-(--color-surface-700-300) hover:bg-(--color-surface-200-800)'}"
@@ -1303,7 +1295,7 @@
 				<div class="flex flex-wrap items-center gap-3">
 					<button
 						type="button"
-						on:click={findOnMap}
+						onclick={findOnMap}
 						disabled={geocodeBusy || saving}
 						class="px-3 py-2 text-sm font-medium rounded-md border border-(--color-primary-600) text-(--color-primary-700) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] disabled:opacity-50"
 					>
@@ -1402,7 +1394,7 @@
 				<div class="flex flex-wrap items-center gap-3">
 					<button
 						type="button"
-						on:click={findOnMap}
+						onclick={findOnMap}
 						disabled={geocodeBusy || saving}
 						class="px-3 py-2 text-sm font-medium rounded-md border border-(--color-primary-600) text-(--color-primary-700) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] disabled:opacity-50"
 					>
@@ -1451,7 +1443,7 @@
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
+						onclick={() => {
 							dialogs.closeAll();
 							editingLocation = null;
 							resetForm();
@@ -1462,8 +1454,8 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleEdit}
-						disabled={saving}
+						onclick={handleEdit}
+						disabled={$crudSaving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
@@ -1479,7 +1471,7 @@
 {/if}
 
 <!-- Delete Dialog -->
-{#if showDeleteDialog && locationToDelete}
+{#if $showDeleteDialog && locationToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.locationDeleteTitle')}</h2>
@@ -1506,7 +1498,7 @@
 				<div class="flex justify-end space-x-2">
 					<button
 						type="button"
-						on:click={() => {
+						onclick={() => {
 							dialogs.closeAll();
 							locationToDelete = null;
 						}}
@@ -1516,8 +1508,8 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleDelete}
-						disabled={saving}
+						onclick={handleDelete}
+						disabled={$crudSaving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}

@@ -7,6 +7,9 @@ Operator UI under `/admin` uses **Skeleton (Cerberus)** scoped in `AdminAppChrom
 | [`admin-cerberus.ts`](./admin-cerberus.ts) | Tailwind / Skeleton class fragments (buttons, inputs, text colors). |
 | [`toaster.ts`](./toaster.ts) + [`adminToast.ts`](./adminToast.ts) | Global toast region (`AdminToastRegion`) and `adminToast.success` / `.error` / `.info`. |
 | [`form-errors.ts`](./form-errors.ts) | Helpers to turn thrown API errors into user-visible strings (and optional field hints). |
+| [`routePageData.ts`](./routePageData.ts) | `derived(page, …)` helper so admin routes react to `invalidate()` / navigation when using Svelte 5 `$props().data`. |
+| [`adminNavigation.ts`](./adminNavigation.ts) | `adminNavigate(href)` — full document navigation for admin when SPA routing shows stale content. |
+| [`../../hooks.client.ts`](../../hooks.client.ts) | Admin link click fallback (`/admin` hard navigation) and `data-open-dialog` for native `<dialog>`. |
 | [`ADMIN_INTERACTION_PATTERNS.md`](./ADMIN_INTERACTION_PATTERNS.md) | **Forms, loading, toasts, confirms, drawers** — patterns to follow in admin routes. |
 | [`ADMIN_TOAST_CONFIRM_AUDIT.md`](./ADMIN_TOAST_CONFIRM_AUDIT.md) | Snapshot of which admin pages use toasts vs inline banners vs confirm dialogs (update when migrating). |
 | [`../components/admin/AdminConfirmDialog.svelte`](../components/admin/AdminConfirmDialog.svelte) | Destructive / high-friction confirmations. |

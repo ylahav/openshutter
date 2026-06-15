@@ -62,6 +62,9 @@ Ensure MongoDB is already running before starting the backend.
 | Home page: “Could not reach the gallery server” | Same: frontend cannot proxy to Nest (backend down, wrong port, or firewall) |
 | Nest logs: Mongo connection / timeout errors | MongoDB not started or `MONGODB_URI` wrong |
 | Only UI running | Start backend (`pnpm dev:backend` or use root `pnpm dev`) |
+| Homepage stuck on “Loading galleries…” | Check browser console for `effect_update_depth_exceeded` or `ReferenceError` (common after Svelte 5 migration: broken `$props()` destructuring like `packId: string` instead of `packId`, or `$effect` loops that write reactive state). Rebuild frontend after fixes (`pnpm --filter openshutter build`) |
+| Admin page URL changes but content does not | Svelte 5 client routing can leave stale views; admin uses `data-sveltekit-reload` on sidebar links and `frontend/src/hooks.client.ts` full-navigation fallback for `/admin` anchors. Programmatic navigation: `adminNavigate()` from `$lib/admin/adminNavigation` |
+| Admin list pages empty after navigation | Prefer SSR `+page.server.ts` load data and `$derived(data.*)` (or `routePageData()` from `$lib/admin/routePageData`) instead of copying load data into `$state` inside `$effect` |
 
 Verify MongoDB:
 

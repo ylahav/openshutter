@@ -1,9 +1,8 @@
 <script lang="ts">
 	/** Visitor pack id — wireframe suggests layout feel (not literal screenshots). */
-	export let packId: string;
+	let { packId }: { packId: string } = $props();
 
-	$: id = String(packId || 'noir').toLowerCase();
-</script>
+	const id = $derived(String(packId || 'noir').toLowerCase());</script>
 
 <div
 	class="relative h-28 w-full overflow-hidden rounded-t-lg border-b border-surface-200-800 bg-(--color-surface-100-900)"

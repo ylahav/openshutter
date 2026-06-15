@@ -39,18 +39,18 @@
 		totalPages: number;
 	}
 
-	let logs: Log[] = [];
-	let pagination: Pagination | null = null;
-	let loading = true;
-	let loadErrored = false;
-	let exportBusy = false;
+	let logs: Log[] = $state([]);
+	let pagination: Pagination | null = $state(null);
+	let loading = $state(true);
+	let loadErrored = $state(false);
+	let exportBusy = $state(false);
 
-	let userChoices: { id: string; label: string }[] = [];
+	let userChoices: { id: string; label: string }[] = $state([]);
 
-	let draftSince = '';
-	let draftUntil = '';
-	let draftUserId = '';
-	let draftAction = '';
+	let draftSince = $state('');
+	let draftUntil = $state('');
+	let draftUserId = $state('');
+	let draftAction = $state('');
 
 	function syncFiltersFromUrl(url: URL) {
 		const qs = url.searchParams;
@@ -246,7 +246,7 @@
 		}
 	});
 
-	$: rangeText = (() => {
+const rangeText = $derived.by(() => {
 		if (!pagination || pagination.total === 0) return '';
 		const from = (pagination.page - 1) * pagination.limit + 1;
 		const to = Math.min(pagination.page * pagination.limit, pagination.total);
@@ -254,11 +254,11 @@
 			.replace('{from}', String(from))
 			.replace('{to}', String(to))
 			.replace('{total}', String(pagination.total));
-	})();
+	});
 
-	$: q = $page.url.searchParams;
-	$: pageLimit = Math.min(100, Math.max(1, parseInt(q.get('limit') || '25', 10) || 25));
-	$: currentPage = Math.max(1, parseInt(q.get('page') || '1', 10) || 1);
+	const q = $derived($page.url.searchParams);
+	const pageLimit = $derived(Math.min(100, Math.max(1, parseInt(q.get('limit') || '25', 10) || 25)));
+	const currentPage = $derived(Math.max(1, parseInt(q.get('page') || '1', 10) || 1));
 </script>
 
 <svelte:head>
@@ -277,7 +277,7 @@
 					type="button"
 					class="{adminBtnSecondary}"
 					disabled={exportBusy || logs.length === 0}
-					on:click={downloadCsv}
+					onclick={downloadCsv}
 				>
 					{exportBusy ? '…' : $t('admin.auditLogsDownloadCsv')}
 				</button>
@@ -338,11 +338,11 @@
 				<button
 					type="button"
 					class="{adminBtnPrimarySm} {adminRingPrimary}"
-					on:click={applyFilters}
+					onclick={applyFilters}
 				>
 					{$t('admin.auditLogsApplyFilters')}
 				</button>
-				<button type="button" class="{adminBtnSecondary}" on:click={clearFilters}>
+				<button type="button" class="{adminBtnSecondary}" onclick={clearFilters}>
 					{$t('admin.auditLogsClearFilters')}
 				</button>
 				<div class="flex items-center gap-2 ml-auto">
@@ -353,7 +353,7 @@
 						id="audit-limit"
 						class="select w-auto!"
 						value={String(pageLimit)}
-						on:change={(e) => setLimit(parseInt(e.currentTarget.value, 10) || 25)}
+						onchange={(e) => setLimit(parseInt(e.currentTarget.value, 10) || 25)}
 					>
 						<option value="25">25</option>
 						<option value="50">50</option>
@@ -373,7 +373,7 @@
 				class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 text-center space-y-3"
 			>
 				<p class="text-(--color-surface-800-200)">{$t('admin.auditLogsLoadFailed')}</p>
-				<button type="button" class="{adminBtnPrimarySm} {adminRingPrimary}" on:click={loadLogs}>
+				<button type="button" class="{adminBtnPrimarySm} {adminRingPrimary}" onclick={loadLogs}>
 					{$t('admin.auditLogsRetry')}
 				</button>
 			</div>
@@ -460,7 +460,7 @@
 						type="button"
 						class="{adminBtnSecondary}"
 						disabled={currentPage <= 1}
-						on:click={() => goPage(currentPage - 1)}
+						onclick={() => goPage(currentPage - 1)}
 					>
 						{$t('pagination.previous')}
 					</button>
@@ -473,7 +473,7 @@
 						type="button"
 						class="{adminBtnSecondary}"
 						disabled={currentPage >= pagination.totalPages}
-						on:click={() => goPage(currentPage + 1)}
+						onclick={() => goPage(currentPage + 1)}
 					>
 						{$t('pagination.next')}
 					</button>

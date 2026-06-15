@@ -6,38 +6,37 @@
 	import { getProductName } from '$lib/utils/productName';
 	import './_styles.scss';
 
-	export let config: any = {};
+	let { config = {} }: { config?: Record<string, unknown> } = $props();
 
 	const templateLogoStyleLoaders = import.meta.glob('/src/templates/*/styles/_logo.scss');
 	const loadedTemplateLogoStyles = new Set<string>();
 
-	$: logo = $publicSiteLogo;
-	$: title = getProductName($siteConfigData ?? null, $currentLanguage);
-	$: size = config?.size ?? 'md';
-	$: showFallback = config?.fallbackIcon !== false;
-	$: linkToHome = config?.linkToHome !== false;
-	$: showSiteTitle = config?.showSiteTitle === true;
-	$: titlePosition =
+	const logo = $derived($publicSiteLogo);
+	const title = $derived(getProductName($siteConfigData ?? null, $currentLanguage));
+	const size = $derived((config?.size as string) ?? 'md');
+	const showFallback = $derived(config?.fallbackIcon !== false);
+	const linkToHome = $derived(config?.linkToHome !== false);
+	const showSiteTitle = $derived(config?.showSiteTitle === true);
+	const titlePosition = $derived(
 		config?.titlePosition === 'above' ||
-		config?.titlePosition === 'below' ||
-		config?.titlePosition === 'left' ||
-		config?.titlePosition === 'right'
-			? config.titlePosition
-			: 'right';
+			config?.titlePosition === 'below' ||
+			config?.titlePosition === 'left' ||
+			config?.titlePosition === 'right'
+			? (config.titlePosition as 'above' | 'below' | 'left' | 'right')
+			: 'right'
+	);
 
-	$: sizeClass =
-		size === 'sm'
-			? 'pb-logo__media--sm'
-			: size === 'lg'
-				? 'pb-logo__media--lg'
-				: 'pb-logo__media--md';
+	const sizeClass = $derived(
+		size === 'sm' ? 'pb-logo__media--sm' : size === 'lg' ? 'pb-logo__media--lg' : 'pb-logo__media--md'
+	);
 
-	$: brandInlineStyle =
-		titlePosition === 'above' || titlePosition === 'below'
-			? 'display:inline-flex;align-items:center;flex-wrap:nowrap;gap:0.5rem;flex-direction:column;'
-			: 'display:inline-flex;align-items:center;flex-wrap:nowrap;gap:0.5rem;flex-direction:row;';
+	const flexDir = $derived(titlePosition === 'above' || titlePosition === 'below' ? 'column' : 'row');
+	const brandInlineStyle = $derived(
+		`display:inline-flex;align-items:center;flex-wrap:nowrap;gap:0.5rem;flex-${'direction'}:${flexDir};`
+	);
 
-	$: if (browser) {
+	$effect(() => {
+		if (!browser) return;
 		const templateId = String($activeTemplate || '').trim().toLowerCase();
 		const stylePath = `/src/templates/${templateId}/styles/_logo.scss`;
 		if (templateId && !loadedTemplateLogoStyles.has(stylePath)) {
@@ -47,7 +46,7 @@
 				loadedTemplateLogoStyles.add(stylePath);
 			}
 		}
-	}
+	});
 </script>
 
 <div class={`pb-logo pb-logo--title-${titlePosition}`.trim()}>

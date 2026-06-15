@@ -4,7 +4,11 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import type { PageData } from '$lib/types/page-builder';
 
-	export let page: PageData | null = null;
+	let {
+		page = null
+	}: {
+		page?: PageData | null;
+	} = $props();
 </script>
 
 <div

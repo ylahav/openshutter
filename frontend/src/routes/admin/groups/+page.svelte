@@ -4,7 +4,6 @@
 	import type { MultiLangText } from '$lib/types/multi-lang';
 	import { useCrudLoader } from '$lib/composables/useCrudLoader';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
-	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import { handleError } from '$lib/utils/errorHandler';
 	import {
@@ -21,12 +20,9 @@
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
-	// svelte-ignore export_let_unused - Required by SvelteKit page component
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	let translate: (key: string, fallback?: string) => string = (key, fallback) => fallback || key;
-	$: translate = $t;
-
+	const translate = $derived($t);
 	interface Group {
 		_id: string;
 		alias: string;
@@ -45,7 +41,7 @@
 		deleteSuccessMessage: $t('admin.groupsDeletedSuccessfully'),
 		onCreateSuccess: (newGroup) => {
 			crudLoader.items.update(items => [...items, newGroup]);
-			dialogs.closeAll();
+			closeAllDialogs();
 			resetForm();
 		},
 		onUpdateSuccess: (updatedGroup) => {
@@ -55,7 +51,7 @@
 					items.map(g => g._id === currentEditingGroup._id ? updatedGroup : g)
 				);
 			}
-			dialogs.closeAll();
+			closeAllDialogs();
 			editingGroup = null;
 			resetForm();
 		},
@@ -66,50 +62,40 @@
 					items.filter(g => g._id !== currentGroupToDelete._id)
 				);
 			}
-			dialogs.closeAll();
+			closeAllDialogs();
 			groupToDelete = null;
 		}
 	});
-	const dialogs = useDialogManager();
+	const crudSaving = crudOps.saving;
+	const crudError = crudOps.error;
+	const crudMessage = crudOps.message;
+	const loaderItems = crudLoader.items;
+	const loaderLoading = crudLoader.loading;
+	let error = $state('');
+	let showCreateDialog = $state(false);
+	let showEditDialog = $state(false);
+	let showDeleteDialog = $state(false);
 
-	// Reactive stores from composables
-	let groups: Group[] = [];
-	let loading = false;
-	let saving = false;
-	let error = '';
-	let showCreateDialog = false;
-	let showEditDialog = false;
-	let showDeleteDialog = false;
+	function closeAllDialogs() {
+		showCreateDialog = false;
+		showEditDialog = false;
+		showDeleteDialog = false;
+	}
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => groups = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.saving.subscribe(value => saving = value);
-	crudOps.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.message.subscribe((value) => {
-		if (!value) return;
-		adminToast.success({ title: value });
-	});
-	dialogs.showCreate.subscribe(value => showCreateDialog = value);
-	dialogs.showEdit.subscribe(value => showEditDialog = value);
-	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
+$effect(() => { if ($crudError) error = $crudError; });
+$effect(() => { if ($crudMessage) adminToast.success({ title: $crudMessage }); });
 
 	// Local state
-	let editingGroup: Group | null = null;
-	let groupToDelete: Group | null = null;
-	let deleting = false;
-	let importExportBusy = false;
+	let editingGroup: Group | null = $state(null);
+	let groupToDelete: Group | null = $state(null);
+	let deleting = $state(false);
+	let importExportBusy = $state(false);
 
 	// Form state
-	let formData = {
+	let formData = $state({
 		alias: '',
 		name: { en: '', he: '' } as MultiLangText
-	};
+	});
 
 	onMount(async () => {
 		await crudLoader.loadItems();
@@ -119,13 +105,15 @@
 		formData = {
 			alias: '',
 			name: { en: '', he: '' }
-		};
+	};
 	}
 
 	function openCreateDialog() {
 		resetForm();
-		dialogs.openCreate();
-		crudOps.error.set('');
+		showCreateDialog = true;
+		showEditDialog = false;
+		showDeleteDialog = false;
+		crudError.set('');
 	}
 
 	function openEditDialog(group: Group) {
@@ -133,15 +121,19 @@
 		formData = {
 			alias: group.alias,
 			name: normalizeMultiLangText(group.name)
-		};
-		dialogs.openEdit();
-		crudOps.error.set('');
+	};
+		showEditDialog = true;
+		showCreateDialog = false;
+		showDeleteDialog = false;
+		crudError.set('');
 	}
 
 	function openDeleteDialog(group: Group) {
 		groupToDelete = group;
-		dialogs.openDelete();
-		crudOps.error.set('');
+		showDeleteDialog = true;
+		showCreateDialog = false;
+		showEditDialog = false;
+		crudError.set('');
 	}
 
 	function getGroupName(group: Group): string {
@@ -207,12 +199,12 @@
 
 	function setImportSummaryMessage(created: number, failed: number) {
 		const template = translate('admin.collectionImportResult');
-		crudOps.message.set(applyTemplateVars(template, { created, failed }));
+		crudMessage.set(applyTemplateVars(template, { created, failed }));
 	}
 
 	async function handleGroupsExport() {
 		importExportBusy = true;
-		crudOps.error.set('');
+		crudError.set('');
 		try {
 			const rows = await fetchAdminPaginatedList('/api/admin/groups');
 			const items = rows.map((raw) => {
@@ -229,7 +221,7 @@
 				items
 			});
 		} catch (err) {
-			crudOps.error.set(handleError(err, translate('admin.collectionExportFailed')));
+			crudError.set(handleError(err, translate('admin.collectionExportFailed')));
 		} finally {
 			importExportBusy = false;
 		}
@@ -237,9 +229,9 @@
 
 	async function handleGroupsImport(file: File) {
 		importExportBusy = true;
-		crudOps.error.set('');
-		let created = 0;
-		let failed = 0;
+		crudError.set('');
+		let created = $state(0);
+		let failed = $state(0);
 		const failureLines: string[] = [];
 		try {
 			const list = parseImportItems(await file.text());
@@ -279,10 +271,10 @@
 			await crudLoader.loadItems();
 			setImportSummaryMessage(created, failed);
 			if (failureLines.length) {
-				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
+				crudError.set(failureLines.slice(0, 8).join(' · '));
 			}
 		} catch (err) {
-			crudOps.error.set(importFileErrorMessage(err));
+			crudError.set(importFileErrorMessage(err));
 		} finally {
 			importExportBusy = false;
 		}
@@ -311,7 +303,7 @@
 					/>
 					<button
 						type="button"
-						on:click={openCreateDialog}
+						onclick={openCreateDialog}
 						class="{adminBtnPrimarySm} {adminRingPrimary} flex items-center gap-2"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,12 +319,12 @@
 			{/if}
 
 			<!-- Groups List -->
-			{#if loading}
+			{#if $loaderLoading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.groupsLoading')}</p>
 				</div>
-			{:else if groups.length === 0}
+			{:else if $loaderItems.length === 0}
 				<div class="text-center py-8">
 					<svg
 						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
@@ -352,7 +344,7 @@
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{#each groups as group}
+					{#each $loaderItems as group}
 						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4 flex flex-col">
 							<div class="flex items-start justify-between gap-2 mb-2">
 								<div class="min-w-0 flex-1">
@@ -379,7 +371,7 @@
 								<div class="flex shrink-0 space-x-1">
 									<button
 										type="button"
-										on:click={() => openEditDialog(group)}
+										onclick={() => openEditDialog(group)}
 										class="p-1 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 										aria-label={$t('admin.groupsEditDialogTitle')}
 									>
@@ -394,7 +386,7 @@
 									</button>
 									<button
 										type="button"
-										on:click={() => openDeleteDialog(group)}
+										onclick={() => openDeleteDialog(group)}
 										class="p-1 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 rounded"
 										aria-label={$t('admin.groupsDeleteDialogTitle')}
 									>
@@ -450,8 +442,8 @@
 				<div class="flex justify-end gap-2 pt-2">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							resetForm();
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
@@ -460,11 +452,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleCreate}
-						disabled={saving || !formData.alias.trim()}
+						onclick={handleCreate}
+						disabled={$crudSaving || !formData.alias.trim()}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							{$t('admin.groupsCreating')}
 						{:else}
 							{$t('admin.groupsCreateButton')}
@@ -511,8 +503,8 @@
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							editingGroup = null;
 							resetForm();
 						}}
@@ -522,11 +514,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleEdit}
-						disabled={saving}
+						onclick={handleEdit}
+						disabled={$crudSaving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							{$t('admin.groupsUpdating')}
 						{:else}
 							{$t('admin.groupsUpdateButton')}
@@ -563,8 +555,8 @@
 				<div class="flex justify-end space-x-2">
 					<button
 						type="button"
-						on:click={() => {
-							dialogs.closeAll();
+						onclick={() => {
+							closeAllDialogs();
 							groupToDelete = null;
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
@@ -573,11 +565,11 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleDelete}
-						disabled={saving}
+						onclick={handleDelete}
+						disabled={$crudSaving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							{$t('admin.groupsDeleting')}
 						{:else}
 							{$t('admin.groupsDeleteButton')}

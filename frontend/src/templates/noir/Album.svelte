@@ -41,27 +41,25 @@
 		};
 	}
 
-	$: alias = albumSlugFromRouteParams($page.params) ?? '';
-	let albumData: AlbumData | null = null;
-	let loading = true;
-	let error: string | null = null;
-	let lightboxOpen = false;
-	let lightboxIndex = 0;
-	let loadingMore = false;
-	let isInitialLoad = true;
+	let alias = $state(albumSlugFromRouteParams($page.params) ?? '');
+	let albumData: AlbumData | null  = $state(null);
+	let loading = $state(true);
+	let error: string | null  = $state(null);
+	let lightboxOpen = $state(false);
+	let lightboxIndex = $state(0);
+	let loadingMore = $state(false);
+	let isInitialLoad = $state(true);
 	let photoLoaded: Record<string, boolean> = {};
 
-	$: collabVis = resolveCollaborationVisibility($siteConfigData?.features);
-	$: isAuthed = $auth.authenticated && !!$auth.user;
-	$: canModerateAlbum =
-		isAuthed &&
+const collabVis = $derived(resolveCollaborationVisibility($siteConfigData?.features));
+	const isAuthed = $derived($auth.authenticated && !!$auth.user);
+const canModerateAlbum = $derived(isAuthed &&
 		$auth.user &&
 		albumData &&
-		($auth.user.role === 'admin' || $auth.user.id === albumData.album.createdBy);
-	$: showCollabPanel =
-		!!albumData && anyCollaborationSectionVisible(collabVis, isAuthed, !!canModerateAlbum);
-	let subAlbumCoverImages: Record<string, string> = {};
-	let albumHeroCover: string | null = null;
+		($auth.user.role === 'admin' || $auth.user.id === albumData.album.createdBy));
+const showCollabPanel = $derived(!!albumData && anyCollaborationSectionVisible(collabVis, isAuthed, !!canModerateAlbum));
+	let subAlbumCoverImages: Record<string, string>  = $state({});
+	let albumHeroCover: string | null  = $state(null);
 
 	// React to route parameter changes
 	afterNavigate(({ to, from }) => {
@@ -186,7 +184,7 @@
 					...albumData,
 					photos: [...albumData.photos, ...newPhotos],
 					pagination: nextPagination,
-				};
+	};
 			}
 		} finally {
 			loadingMore = false;
@@ -214,13 +212,13 @@
 	}
 
 	// Photo URL function is now imported from shared utility
-	$: showAlbumShare = $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false;
-	$: hasMorePhotos = albumData?.photos && (
+const showAlbumShare = $derived($siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false);
+const hasMorePhotos = $derived(albumData?.photos && (
 		(albumData.pagination && albumData.pagination.page < albumData.pagination.pages) ||
 		((albumData.pagination?.total ?? albumData.album?.photoCount ?? albumData.photos.length) > albumData.photos.length)
-	);
-	$: totalPhotoCount = albumData?.pagination?.total ?? albumData?.album?.photoCount ?? albumData?.photos?.length ?? 0;
-	$: remainingCount = albumData?.photos ? Math.max(0, totalPhotoCount - albumData.photos.length) : 0;
+	));
+const totalPhotoCount = $derived(albumData?.pagination?.total ?? albumData?.album?.photoCount ?? albumData?.photos?.length ?? 0);
+	const remainingCount = $derived(albumData?.photos ? Math.max(0, totalPhotoCount - albumData.photos.length) : 0);
 </script>
 
 {#if loading}
@@ -357,7 +355,7 @@
 				</div>
 				<div class="photo-grid">
 					{#each albumData.photos as photo, index}
-						<button type="button" on:click={() => openLightbox(index)} class="ph-card group">
+						<button type="button" onclick={() => openLightbox(index)} class="ph-card group">
 							{#if !photoLoaded[photo._id]}
 								<div
 									class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10"
@@ -373,8 +371,8 @@
 								src={getPhotoUrl(photo)}
 								alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
 								style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
-								on:load={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
-								on:error={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
+								onload={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
+								onerror={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
 							/>
 						</button>
 					{/each}
@@ -382,7 +380,7 @@
 				{#if hasMorePhotos}
 					<div class="text-center mt-10">
 						<button
-							on:click={loadMorePhotos}
+							onclick={loadMorePhotos}
 							disabled={loadingMore}
 							class="px-6 py-3 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-[10px] uppercase tracking-[0.18em] bg-(--tp-fg) text-(--tp-canvas) hover:opacity-90 [font-family:var(--os-font-body)]"
 						>
@@ -423,7 +421,7 @@
 						albumAlias: albumData.album.alias,
 					}
 				: undefined}
-			on:close={() => (lightboxOpen = false)}
+			onclose={() => (lightboxOpen = false)}
 		/>
 	{/if}
 {/if}
