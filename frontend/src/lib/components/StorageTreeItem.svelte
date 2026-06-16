@@ -1,10 +1,23 @@
 <script lang="ts">
+	import StorageTreeItem from './StorageTreeItem.svelte';
+
+	export type StorageTreeNode = {
+		path?: string;
+		folderId?: string | null;
+		folders?: StorageTreeNode[];
+		files?: Array<{ name?: string; size?: number }>;
+		totalFolders?: number;
+		totalFiles?: number;
+		filesTruncated?: boolean;
+		filesShown?: number;
+	};
+
 	let {
-		node: any,
-		depth = $bindable(0)
+		node,
+		depth = 0,
 	}: {
-		node: any;
-		depth?: unknown;
+		node: StorageTreeNode;
+		depth?: number;
 	} = $props();
 
 	function formatSize(bytes: number): string {
@@ -31,11 +44,20 @@
 					<span class="text-xs text-gray-400">({formatSize(file.size || 0)})</span>
 				</div>
 			{/each}
+			{#if node.filesTruncated && (node.totalFiles ?? 0) > (node.filesShown ?? node.files.length)}
+				<div class="py-0.5 text-xs text-gray-500 italic" style="margin-left: {(depth + 1) * 16}px;">
+					… {(node.totalFiles ?? 0) - (node.filesShown ?? node.files.length)} more files not shown
+				</div>
+			{/if}
+		{:else if (node.totalFiles ?? 0) > 0}
+			<div class="py-0.5 text-xs text-gray-500" style="margin-left: {(depth + 1) * 16}px;">
+				📄 {node.totalFiles} file{(node.totalFiles ?? 0) === 1 ? '' : 's'} (listing omitted)
+			</div>
 		{/if}
 		{#if node.folders && Array.isArray(node.folders) && node.folders.length > 0}
 			{#each node.folders as folder}
 				{#if folder}
-					<svelte:self node={folder} depth={depth + 1} />
+					<StorageTreeItem node={folder} depth={depth + 1} />
 				{/if}
 			{/each}
 		{/if}

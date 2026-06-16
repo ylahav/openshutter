@@ -6,7 +6,13 @@ export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancel
 
 export interface JobState {
   jobId: string;
-  type: 'export' | 'import' | 'storage-migration' | 'storage-restore-scan';
+  type:
+    | 'export'
+    | 'import'
+    | 'storage-migration'
+    | 'storage-restore-scan'
+    | 'storage-restore-photo-scan'
+    | 'storage-tree-scan';
   status: JobStatus;
   progress: number;
   total: number;

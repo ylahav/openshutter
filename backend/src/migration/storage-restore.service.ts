@@ -43,6 +43,7 @@ export interface StorageRestorePhotoScanItem {
   albumStoragePath: string;
   albumId?: string;
   albumName?: string;
+  albumInDb: boolean;
   status: StorageRestoreItemStatus;
   existingPhotoId?: string;
   size: number;
@@ -146,6 +147,46 @@ export class StorageRestoreService {
     );
   }
 
+  private async getCachedPhotoScan(
+    providerId: StorageProviderId,
+    rootPrefix?: string,
+  ): Promise<{ report: StorageRestorePhotoScanReport; cachedAt: Date } | null> {
+    const cacheKey = this.scanCacheKey(providerId, 'photos', rootPrefix);
+    const row = await this.scanCacheModel
+      .findOne({ cacheKey, expiresAt: { $gt: new Date() } })
+      .lean()
+      .exec();
+    if (!row?.report) return null;
+    return {
+      report: row.report as unknown as StorageRestorePhotoScanReport,
+      cachedAt: row.createdAt ?? new Date(),
+    };
+  }
+
+  private async savePhotoScanCache(
+    providerId: StorageProviderId,
+    rootPrefix: string | undefined,
+    report: StorageRestorePhotoScanReport,
+  ): Promise<void> {
+    const cacheKey = this.scanCacheKey(providerId, 'photos', rootPrefix);
+    const expiresAt = new Date(Date.now() + SCAN_CACHE_TTL_MS);
+    await this.scanCacheModel.updateOne(
+      { cacheKey },
+      {
+        $set: {
+          cacheKey,
+          providerId,
+          stage: 'photos',
+          rootPrefix: normalizeStoragePath(rootPrefix ?? ''),
+          report,
+          createdAt: new Date(),
+          expiresAt,
+        },
+      },
+      { upsert: true },
+    );
+  }
+
   private async getCachedFolderTree(
     providerId: StorageProviderId,
     rootPrefix?: string,
@@ -168,7 +209,6 @@ export class StorageRestoreService {
   ): Promise<
     | { fromCache: true; cachedAt: string; report: StorageRestoreAlbumScanReport }
     | { jobId: string }
-    | StorageRestoreAlbumScanReport
   > {
     const useCache = options?.useCache !== false;
     const forceRefresh = options?.forceRefresh === true;
@@ -184,23 +224,19 @@ export class StorageRestoreService {
       }
     }
 
-    if (providerId === 'google-drive') {
-      const jobId = randomUUID();
-      setJob({
-        jobId,
-        type: 'storage-restore-scan',
-        status: 'pending',
-        progress: 0,
-        total: 100,
-        current: 'Starting Google Drive scan…',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      void this.runAlbumScanJob(jobId, providerId, rootPrefix);
-      return { jobId };
-    }
-
-    return this.scanAlbums(providerId, rootPrefix, { useCache: false, saveCache: true });
+    const jobId = randomUUID();
+    setJob({
+      jobId,
+      type: 'storage-restore-scan',
+      status: 'pending',
+      progress: 0,
+      total: 100,
+      current: 'Starting storage scan…',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    void this.runAlbumScanJob(jobId, providerId, rootPrefix);
+    return { jobId };
   }
 
   getAlbumScanJobStatus(jobId: string) {
@@ -226,7 +262,7 @@ export class StorageRestoreService {
     providerId: StorageProviderId,
     rootPrefix?: string,
   ): Promise<void> {
-    updateJob(jobId, { status: 'running', progress: 5, current: 'Connecting to Google Drive…' });
+    updateJob(jobId, { status: 'running', progress: 5, current: 'Connecting to storage…' });
     try {
       const report = await this.scanAlbums(providerId, rootPrefix, {
         useCache: false,
@@ -313,10 +349,15 @@ export class StorageRestoreService {
   async executeAlbums(
     providerId: StorageProviderId,
     userId: string,
-    options?: { rootPrefix?: string; itemIds?: string[] },
+    options?: { rootPrefix?: string; itemIds?: string[]; createAll?: boolean },
   ): Promise<StorageRestoreExecuteResult> {
     const report = await this.scanAlbums(providerId, options?.rootPrefix, { useCache: true });
-    const idSet = options?.itemIds?.length ? new Set(options.itemIds) : null;
+    const idSet =
+      options?.createAll === true
+        ? null
+        : options?.itemIds?.length
+          ? new Set(options.itemIds)
+          : null;
     const toCreate = report.items.filter(
       (i) => i.status === 'create' && (!idSet || idSet.has(i.id)),
     );
@@ -405,20 +446,129 @@ export class StorageRestoreService {
     return result;
   }
 
+  /**
+   * Photo scan entry: returns cached report instantly or starts an async background job.
+   */
+  async scanPhotosStart(
+    providerId: StorageProviderId,
+    rootPrefix?: string,
+    options?: { useCache?: boolean; forceRefresh?: boolean },
+  ): Promise<
+    | { fromCache: true; cachedAt: string; report: StorageRestorePhotoScanReport }
+    | { jobId: string }
+  > {
+    const useCache = options?.useCache !== false;
+    const forceRefresh = options?.forceRefresh === true;
+
+    if (useCache && !forceRefresh) {
+      const cached = await this.getCachedPhotoScan(providerId, rootPrefix);
+      if (cached) {
+        return {
+          fromCache: true,
+          cachedAt: cached.cachedAt.toISOString(),
+          report: cached.report,
+        };
+      }
+    }
+
+    const jobId = randomUUID();
+    setJob({
+      jobId,
+      type: 'storage-restore-photo-scan',
+      status: 'pending',
+      progress: 0,
+      total: 100,
+      current: 'Starting photo scan…',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    void this.runPhotoScanJob(jobId, providerId, rootPrefix);
+    return { jobId };
+  }
+
+  getPhotoScanJobStatus(jobId: string) {
+    const job = getJob(jobId);
+    if (!job || job.type !== 'storage-restore-photo-scan') {
+      throw new BadRequestException('Photo scan job not found');
+    }
+    return {
+      jobId: job.jobId,
+      status: job.status,
+      progress: job.progress,
+      total: job.total,
+      current: job.current,
+      error: job.error,
+      report: job.result as StorageRestorePhotoScanReport | undefined,
+      fromCache: (job.result as { fromCache?: boolean })?.fromCache,
+      cachedAt: (job.result as { cachedAt?: string })?.cachedAt,
+    };
+  }
+
+  private async runPhotoScanJob(
+    jobId: string,
+    providerId: StorageProviderId,
+    rootPrefix?: string,
+  ): Promise<void> {
+    updateJob(jobId, { status: 'running', progress: 5, current: 'Connecting to storage…' });
+    try {
+      const report = await this.scanPhotos(providerId, rootPrefix, {
+        useCache: false,
+        saveCache: true,
+        useFolderTreeCache: true,
+        onProgress: (message, progress) => {
+          updateJob(jobId, { current: message, progress: Math.min(95, progress) });
+        },
+      });
+      updateJob(jobId, {
+        status: 'completed',
+        progress: 100,
+        current: 'Scan complete',
+        result: report as unknown as Record<string, unknown>,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Photo scan job ${jobId} failed: ${message}`);
+      updateJob(jobId, { status: 'failed', error: message, current: 'Scan failed' });
+    }
+  }
+
   async scanPhotos(
     providerId: StorageProviderId,
     rootPrefix?: string,
-    options?: { useCache?: boolean },
+    options?: {
+      useCache?: boolean;
+      saveCache?: boolean;
+      forceRefresh?: boolean;
+      /** Reuse folder tree from a recent album scan when available. */
+      useFolderTreeCache?: boolean;
+      onProgress?: (message: string, progress: number) => void;
+    },
   ): Promise<StorageRestorePhotoScanReport> {
+    if (options?.useCache !== false && options?.forceRefresh !== true) {
+      const cached = await this.getCachedPhotoScan(providerId, rootPrefix);
+      if (cached) return cached.report;
+    }
+
+    options?.onProgress?.('Loading folder structure from storage…', 15);
     const service = await this.getStorageService(providerId);
-    const tree = await this.loadFolderTree(service, rootPrefix, undefined, options?.useCache !== false);
+    const useFolderTreeCache = options?.useFolderTreeCache !== false;
+    const tree = await this.loadFolderTree(
+      service,
+      rootPrefix,
+      options?.onProgress,
+      useFolderTreeCache,
+    );
+    options?.onProgress?.('Loading database indexes…', 55);
     const albumFolders = this.collectAlbumFolders(tree);
     const albumsByPath = await this.buildAlbumPathIndex(providerId);
     const photoPaths = await this.buildPhotoPathIndex(providerId);
 
     const items: StorageRestorePhotoScanItem[] = [];
+    const folderTotal = albumFolders.length || 1;
+    let folderIndex = 0;
 
     for (const album of albumFolders) {
+      folderIndex++;
       const node = this.findTreeNode(tree, album.storagePath);
       if (!node) continue;
       const albumKey = normalizeStoragePath(album.storagePath);
@@ -439,7 +589,8 @@ export class StorageRestoreService {
           originalFilename: stripTimestampPrefix(file.name),
           albumStoragePath: albumKey,
           albumId: albumDoc?._id?.toString(),
-          albumName: albumDoc ? displayAlbumName(albumDoc) : album.folderName,
+          albumName: albumDoc ? displayAlbumName(albumDoc) : humanizeFolderName(album.folderName),
+          albumInDb: !!albumDoc,
           status,
           existingPhotoId: existingPhoto?._id?.toString(),
           size: file.size ?? 0,
@@ -448,12 +599,17 @@ export class StorageRestoreService {
             : guessMimeType(file.name),
         });
       }
+
+      if (folderIndex % 25 === 0 || folderIndex === folderTotal) {
+        const pct = 60 + Math.round((folderIndex / folderTotal) * 30);
+        options?.onProgress?.(`Scanning photo files (${folderIndex}/${folderTotal} albums)…`, pct);
+      }
     }
 
     items.sort((a, b) => a.storagePath.localeCompare(b.storagePath));
     const existing = items.filter((i) => i.status === 'exists').length;
     const orphan = items.filter((i) => i.status === 'orphan').length;
-    return {
+    const report: StorageRestorePhotoScanReport = {
       providerId,
       rootPrefix: normalizeStoragePath(rootPrefix ?? ''),
       summary: {
@@ -464,16 +620,27 @@ export class StorageRestoreService {
       },
       items,
     };
+
+    if (options?.saveCache !== false) {
+      await this.savePhotoScanCache(providerId, rootPrefix, report);
+    }
+
+    return report;
   }
 
   async executePhotos(
     providerId: StorageProviderId,
     userId: string,
-    options?: { rootPrefix?: string; itemIds?: string[] },
+    options?: { rootPrefix?: string; itemIds?: string[]; createAll?: boolean },
   ): Promise<StorageRestoreExecuteResult> {
     const service = await this.getStorageService(providerId);
     const report = await this.scanPhotos(providerId, options?.rootPrefix);
-    const idSet = options?.itemIds?.length ? new Set(options.itemIds) : null;
+    const idSet =
+      options?.createAll === true
+        ? null
+        : options?.itemIds?.length
+          ? new Set(options.itemIds)
+          : null;
     const toCreate = report.items.filter(
       (i) => i.status === 'create' && i.albumId && (!idSet || idSet.has(i.id)),
     );
@@ -491,8 +658,9 @@ export class StorageRestoreService {
         }
 
         const albumPath = normalizeStoragePath((album as any).storagePath ?? item.albumStoragePath);
+        const normalizedPath = normalizeStoragePath(item.storagePath);
         const thumbnails = await this.resolveThumbnails(service, tree, albumPath, item.filename, providerId);
-        const serveUrl = `/api/storage/serve/${providerId}/${encodeURIComponent(item.storagePath)}`;
+        const serveUrl = this.buildStorageServeUrl(providerId, normalizedPath);
         const mediumThumb =
           thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0] || serveUrl;
 
@@ -676,6 +844,12 @@ export class StorageRestoreService {
     return alias;
   }
 
+  private buildStorageServeUrl(providerId: StorageProviderId, storagePath: string): string {
+    const norm = normalizeStoragePath(storagePath);
+    const segments = norm.split('/').filter(Boolean).map((seg) => encodeURIComponent(seg)).join('/');
+    return `/api/storage/serve/${providerId}/${segments}`;
+  }
+
   private async resolveThumbnails(
     service: IStorageService,
     tree: FolderTreeNode,
@@ -709,7 +883,7 @@ export class StorageRestoreService {
         }
       }
       if (exists) {
-        thumbnails[sizeName] = `/api/storage/serve/${providerId}/${encodeURIComponent(normalized)}`;
+        thumbnails[sizeName] = this.buildStorageServeUrl(providerId, normalized);
       }
     }
     return thumbnails;

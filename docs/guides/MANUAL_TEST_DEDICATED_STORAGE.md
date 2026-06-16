@@ -93,6 +93,21 @@ Details: [`e2e/README.md`](../e2e/README.md).
 
 ---
 
+## Scenario E — Google Drive View Tree (site admin)
+
+**Goal:** **View Tree** on **Admin → Storage → Google Drive** completes without **502** and shows folder structure for a configured drive.
+
+| Step | Action | Expected |
+|------|--------|----------|
+| E1 | As **admin**, open `{BASE}/admin/storage`, **Google Drive** tab. Provider **enabled** and connection test passes. | Tab loads. |
+| E2 | Click **View Tree**. | Dialog opens; spinner + progress text (folder path) updates every few seconds. |
+| E3 | Wait for scan to finish (large drives may take minutes). | Loading line disappears; expandable folder tree appears (variant subfolders like `medium` / `micro` omitted). |
+| E4 | (DevTools) Network tab during E2–E3. | **`POST .../tree/start`** then repeated **`GET .../tree/status/...`**; no single long **`GET .../tree`** required. |
+
+**Pass:** E3 succeeds without **HTTP 502**. On failure, note backend log lines and whether start/status routes return JSON.
+
+---
+
 ## Optional: API sanity check
 
 With owner session cookies (e.g. from browser devtools or same-origin fetch while logged in):

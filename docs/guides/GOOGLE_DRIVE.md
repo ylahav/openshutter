@@ -96,6 +96,26 @@ Manual options (browser console or cURL) are documented in the repo history; the
 
 ---
 
+## View folder tree (Admin → Storage)
+
+**View Tree** lists folders under your configured **Folder ID** without downloading file contents.
+
+- **Large galleries:** Scan runs as a **background job** so nginx/proxy timeouts do not return **502** while Drive is still listing folders. The dialog polls every few seconds and shows the folder currently being scanned; when the job finishes, the loading message is removed and the tree appears.
+- **Variant folders:** Subfolders named `hero`, `large`, `medium`, `small`, `micro`, `thumb`, or `thumbnails` are skipped during the scan so the tree focuses on album structure, not every resized derivative.
+- **File listing:** Preview mode shows at most a few file names per folder; busy folders display a file count instead of every name.
+
+**API (admin, authenticated):**
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/admin/storage/google-drive/tree/start?maxDepth=3` | Start scan; returns `{ jobId }` |
+| `GET` | `/api/admin/storage/google-drive/tree/status/:jobId` | Progress (`current`, `status`) and final `tree` when `status === 'completed'` |
+| `GET` | `/api/admin/storage/google-drive/tree` | Legacy synchronous tree (avoid for large drives) |
+
+Details: [`STORAGE.md`](./STORAGE.md) — **Google Drive folder tree**.
+
+---
+
 ## Summary
 
 | Method | User sees files? | Best for |

@@ -254,40 +254,54 @@ export class MigrationController {
 
   @Post('storage-restore/execute-albums')
   async storageRestoreExecuteAlbums(
-    @Body() body: { providerId: StorageProviderId; rootPrefix?: string; itemIds?: string[] },
+    @Body() body: { providerId: StorageProviderId; rootPrefix?: string; itemIds?: string[]; createAll?: boolean },
     @Req() req: any,
   ) {
-    const { providerId, rootPrefix, itemIds } = body ?? {};
+    const { providerId, rootPrefix, itemIds, createAll } = body ?? {};
     if (!providerId || typeof providerId !== 'string') {
       throw new BadRequestException('providerId is required');
     }
     const userId = req?.user?.id ?? req?.user?._id;
     if (!userId) throw new BadRequestException('User context required');
-    return this.storageRestoreService.executeAlbums(providerId, userId, { rootPrefix, itemIds });
+    return this.storageRestoreService.executeAlbums(providerId, userId, { rootPrefix, itemIds, createAll });
   }
 
   @Post('storage-restore/scan-photos')
   async storageRestoreScanPhotos(
-    @Body() body: { providerId: StorageProviderId; rootPrefix?: string },
+    @Body()
+    body: {
+      providerId: StorageProviderId;
+      rootPrefix?: string;
+      useCache?: boolean;
+      forceRefresh?: boolean;
+    },
   ) {
-    const { providerId, rootPrefix } = body ?? {};
+    const { providerId, rootPrefix, useCache, forceRefresh } = body ?? {};
     if (!providerId || typeof providerId !== 'string') {
       throw new BadRequestException('providerId is required');
     }
-    return this.storageRestoreService.scanPhotos(providerId, rootPrefix);
+    return this.storageRestoreService.scanPhotosStart(providerId, rootPrefix, {
+      useCache,
+      forceRefresh,
+    });
+  }
+
+  @Get('storage-restore/scan-photos/status/:jobId')
+  async storageRestoreScanPhotosStatus(@Param('jobId') jobId: string) {
+    return this.storageRestoreService.getPhotoScanJobStatus(jobId);
   }
 
   @Post('storage-restore/execute-photos')
   async storageRestoreExecutePhotos(
-    @Body() body: { providerId: StorageProviderId; rootPrefix?: string; itemIds?: string[] },
+    @Body() body: { providerId: StorageProviderId; rootPrefix?: string; itemIds?: string[]; createAll?: boolean },
     @Req() req: any,
   ) {
-    const { providerId, rootPrefix, itemIds } = body ?? {};
+    const { providerId, rootPrefix, itemIds, createAll } = body ?? {};
     if (!providerId || typeof providerId !== 'string') {
       throw new BadRequestException('providerId is required');
     }
     const userId = req?.user?.id ?? req?.user?._id;
     if (!userId) throw new BadRequestException('User context required');
-    return this.storageRestoreService.executePhotos(providerId, userId, { rootPrefix, itemIds });
+    return this.storageRestoreService.executePhotos(providerId, userId, { rootPrefix, itemIds, createAll });
   }
 }

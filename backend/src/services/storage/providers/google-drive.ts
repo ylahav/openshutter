@@ -1257,10 +1257,57 @@ export class GoogleDriveService implements IStorageService {
   }
 
   /**
+   * Resolve Drive aliases (root, appDataFolder) to concrete folder IDs for API queries.
+   */
+  private async resolveDriveFolderId(folderId: string): Promise<string> {
+    if (folderId !== 'root' && folderId !== 'appDataFolder') {
+      return folderId
+    }
+    try {
+      const res = await this.drive.files.get({
+        fileId: folderId,
+        fields: 'id',
+      })
+      return res.data?.id || folderId
+    } catch (error) {
+      this.logger.warn(
+        `GoogleDriveService: Could not resolve folder alias "${folderId}": ${error instanceof Error ? error.message : String(error)}`,
+      )
+      return folderId
+    }
+  }
+
+  /**
    * Get a recursive tree structure of folders and files from Google Drive
    * This method lists everything directly from Google Drive without using database data
    */
-  async getFolderTree(parentPath?: string, maxDepth: number = 10): Promise<any> {
+  async getFolderTree(
+    parentPath?: string,
+    maxDepth: number = 10,
+    options?: {
+      onProgress?: (progress: {
+        foldersScanned: number;
+        filesScanned: number;
+        currentPath: string;
+      }) => void;
+      skipVariantFolders?: boolean;
+      previewMode?: boolean;
+    },
+  ): Promise<any> {
+    const isVariantFolderName = (name: string): boolean => {
+      const lower = name.toLowerCase();
+      return ['hero', 'large', 'medium', 'small', 'micro', 'thumb', 'thumbnails'].includes(lower);
+    };
+
+    const scanStats = { foldersScanned: 0, filesScanned: 0 };
+    const reportProgress = (currentPath: string) => {
+      options?.onProgress?.({
+        foldersScanned: scanStats.foldersScanned,
+        filesScanned: scanStats.filesScanned,
+        currentPath,
+      });
+    };
+
     try {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
@@ -1280,6 +1327,8 @@ export class GoogleDriveService implements IStorageService {
         parentFolderId = rootFolderId
         this.logger.debug(`GoogleDriveService: No parentPath provided, using root folder ID: ${parentFolderId}`)
       }
+
+      parentFolderId = await this.resolveDriveFolderId(parentFolderId)
       
       this.logger.debug(`GoogleDriveService: Building folder tree`, {
         parentPath: parentPath || 'root',
@@ -1296,7 +1345,15 @@ export class GoogleDriveService implements IStorageService {
           return null // Prevent infinite recursion
         }
 
-        this.logger.debug(`GoogleDriveService: Building tree for folder ID: ${folderId}, path: ${folderPath}, depth: ${depth}`)
+        scanStats.foldersScanned += 1;
+        reportProgress(folderPath || '/');
+
+        const verboseLog = !options?.onProgress;
+        if (verboseLog) {
+          this.logger.debug(
+            `GoogleDriveService: Building tree for folder ID: ${folderId}, path: ${folderPath}, depth: ${depth}`,
+          );
+        }
 
         // List all items in this folder (both files and subfolders)
         let hasMore = true
@@ -1321,23 +1378,30 @@ export class GoogleDriveService implements IStorageService {
             listParams.pageToken = pageToken
           }
 
-          this.logger.debug(`GoogleDriveService: Listing files in folder ${folderId}`, {
-            query: listParams.q,
-            hasSpaces: !!listParams.spaces,
-            isAppData: this.isAppDataStorage(),
-            storageType: this.config.storageType || 'appdata',
-            pageToken: pageToken || 'none',
-            folderId: folderId,
-            folderPath: folderPath
-          })
+          if (verboseLog) {
+            this.logger.debug(`GoogleDriveService: Listing files in folder ${folderId}`, {
+              query: listParams.q,
+              hasSpaces: !!listParams.spaces,
+              isAppData: this.isAppDataStorage(),
+              storageType: this.config.storageType || 'appdata',
+              pageToken: pageToken || 'none',
+              folderId: folderId,
+              folderPath: folderPath,
+            });
+          }
 
-          const listResponse = await this.drive.files.list(listParams)
-          
-          this.logger.debug(`GoogleDriveService: List response`, {
-            fileCount: listResponse.data.files?.length || 0,
-            hasNextPage: !!listResponse.data.nextPageToken,
-            files: listResponse.data.files?.slice(0, 5).map((f: any) => ({ id: f.id, name: f.name, mimeType: f.mimeType })) || []
-          })
+          const listResponse = await this.drive.files.list(listParams);
+
+          if (verboseLog) {
+            this.logger.debug(`GoogleDriveService: List response`, {
+              fileCount: listResponse.data.files?.length || 0,
+              hasNextPage: !!listResponse.data.nextPageToken,
+              files:
+                listResponse.data.files
+                  ?.slice(0, 5)
+                  .map((f: any) => ({ id: f.id, name: f.name, mimeType: f.mimeType })) || [],
+            });
+          }
           
           if (listResponse.data.files && listResponse.data.files.length > 0) {
             items.push(...listResponse.data.files)
@@ -1347,47 +1411,76 @@ export class GoogleDriveService implements IStorageService {
           hasMore = !!pageToken
         }
         
-        this.logger.debug(`GoogleDriveService: Collected ${items.length} items from folder ${folderId}`, {
-          folders: items.filter(item => item.mimeType === 'application/vnd.google-apps.folder').length,
-          files: items.filter(item => item.mimeType !== 'application/vnd.google-apps.folder').length
-        })
+        if (verboseLog) {
+          this.logger.debug(`GoogleDriveService: Collected ${items.length} items from folder ${folderId}`, {
+            folders: items.filter((item) => item.mimeType === 'application/vnd.google-apps.folder').length,
+            files: items.filter((item) => item.mimeType !== 'application/vnd.google-apps.folder').length,
+          });
+        }
 
         // Separate folders and files
-        const folders = items.filter(item => item.mimeType === 'application/vnd.google-apps.folder')
-        const files = items.filter(item => item.mimeType !== 'application/vnd.google-apps.folder')
+        let folders = items.filter((item) => item.mimeType === 'application/vnd.google-apps.folder');
+        const files = items.filter((item) => item.mimeType !== 'application/vnd.google-apps.folder');
+
+        if (options?.skipVariantFolders) {
+          folders = folders.filter((folder) => !isVariantFolderName(folder.name || ''));
+        }
+
+        scanStats.filesScanned += files.length;
+        reportProgress(folderPath || '/');
+
+        const previewMode = options?.previewMode === true;
+        const maxPreviewFiles = 25;
 
         // Build tree structure
         const tree: any = {
           path: folderPath || '/',
           folderId: folderId,
           folders: [],
-          files: files.map((file: any) => ({
-            id: file.id,
-            name: file.name,
-            path: `${folderPath || ''}/${file.name}`.replace(/^\//, ''),
-            size: parseInt(file.size || '0'),
-            mimeType: file.mimeType,
-            createdAt: file.createdTime ? file.createdTime : null,
-            updatedAt: file.modifiedTime ? file.modifiedTime : null,
-          })),
+          files: previewMode
+            ? files.slice(0, maxPreviewFiles).map((file: any) => ({
+                id: file.id,
+                name: file.name,
+                path: `${folderPath || ''}/${file.name}`.replace(/^\//, ''),
+                size: parseInt(file.size || '0'),
+                mimeType: file.mimeType,
+                createdAt: file.createdTime ? file.createdTime : null,
+                updatedAt: file.modifiedTime ? file.modifiedTime : null,
+              }))
+            : files.map((file: any) => ({
+                id: file.id,
+                name: file.name,
+                path: `${folderPath || ''}/${file.name}`.replace(/^\//, ''),
+                size: parseInt(file.size || '0'),
+                mimeType: file.mimeType,
+                createdAt: file.createdTime ? file.createdTime : null,
+                updatedAt: file.modifiedTime ? file.modifiedTime : null,
+              })),
           totalFiles: files.length,
-          totalFolders: folders.length
+          totalFolders: folders.length,
+        };
+
+        if (previewMode && files.length > maxPreviewFiles) {
+          tree.filesTruncated = true;
+          tree.filesShown = maxPreviewFiles;
         }
         
-        // Log tree structure for debugging
-        this.logger.debug(`GoogleDriveService: Tree structure built`, {
-          path: tree.path,
-          folderId: tree.folderId,
-          foldersCount: tree.folders.length,
-          filesCount: tree.files.length,
-          totalFolders: tree.totalFolders,
-          totalFiles: tree.totalFiles
-        })
+        if (verboseLog) {
+          this.logger.debug(`GoogleDriveService: Tree structure built`, {
+            path: tree.path,
+            folderId: tree.folderId,
+            foldersCount: tree.folders.length,
+            filesCount: tree.files.length,
+            totalFolders: tree.totalFolders,
+            totalFiles: tree.totalFiles,
+          });
+        }
 
         // Recursively build subfolder trees
         for (const folder of folders) {
           const subFolderPath = `${folderPath || ''}/${folder.name}`.replace(/^\//, '')
-          const subTree = await buildTree(folder.id, subFolderPath, depth + 1)
+          const resolvedChildId = await this.resolveDriveFolderId(folder.id)
+          const subTree = await buildTree(resolvedChildId, subFolderPath, depth + 1)
           if (subTree) {
             tree.folders.push(subTree)
             tree.totalFiles += subTree.totalFiles

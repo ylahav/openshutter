@@ -72,10 +72,19 @@ function constructStorageUrl(path: string, provider: string = 'local', storageOw
 		return `${url}${sep}storageOwnerId=${encodeURIComponent(owner)}`;
 	};
 
+	const appendVersion = (url: string): string => {
+		if (url.includes('v=')) return url;
+		const sep = url.includes('?') ? '&' : '?';
+		return `${url}${sep}${param}`;
+	};
+
 	if (path.startsWith('/api/storage/serve/') || path.startsWith('http')) {
-		const sep = path.includes('?') ? '&' : '?';
-		const withV = `${path}${sep}${param}`;
-		if (path.startsWith('/api/storage/serve/')) {
+		const sameOrigin = path.startsWith('http') ? toSameOriginStorageServeUrl(path) : null;
+		const servePath = sameOrigin ?? path;
+		const normalized =
+			servePath.startsWith('/api/storage/serve/') ? normalizeServeStorageUrl(servePath) : servePath;
+		const withV = appendVersion(normalized);
+		if (servePath.startsWith('/api/storage/serve/')) {
 			return appendOwner(withV);
 		}
 		return withV;
@@ -85,8 +94,41 @@ function constructStorageUrl(path: string, provider: string = 'local', storageOw
 	if (!cleanPath.trim()) {
 		return '';
 	}
-	const base = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}?${param}`;
+	const base = `/api/storage/serve/${provider}/${encodeStoragePathSegments(cleanPath)}?${param}`;
 	return appendOwner(base);
+}
+
+/** Encode each path segment for `/api/storage/serve/{provider}/...` (slashes stay as separators). */
+function encodeStoragePathSegments(filePath: string): string {
+	return filePath
+		.split('/')
+		.filter((seg) => seg.length > 0)
+		.map((seg) => encodeURIComponent(seg))
+		.join('/');
+}
+
+/** Decode over-encoded serve URLs stored in DB (e.g. `%2F` in a single segment). */
+function normalizeServeStorageUrl(url: string): string {
+	const qIndex = url.indexOf('?');
+	const pathPart = qIndex >= 0 ? url.slice(0, qIndex) : url;
+	const query = qIndex >= 0 ? url.slice(qIndex) : '';
+	const prefix = '/api/storage/serve/';
+	if (!pathPart.startsWith(prefix)) return url;
+	const rest = pathPart.slice(prefix.length);
+	const slash = rest.indexOf('/');
+	if (slash <= 0) return url;
+	const provider = rest.slice(0, slash);
+	let filePath = rest.slice(slash + 1);
+	try {
+		while (filePath.includes('%')) {
+			const decoded = decodeURIComponent(filePath);
+			if (decoded === filePath) break;
+			filePath = decoded;
+		}
+	} catch {
+		// keep original
+	}
+	return `${prefix}${provider}/${encodeStoragePathSegments(filePath)}${query}`;
 }
 
 function resolveStorageOwnerId(storage: PhotoStorage | undefined): string | undefined {
@@ -95,9 +137,55 @@ function resolveStorageOwnerId(storage: PhotoStorage | undefined): string | unde
 	return s || undefined;
 }
 
+/** Extract the storage file path from a serve URL or raw path (for thumbnail detection). */
+function extractStorageFilePath(pathOrUrl: string): string {
+	const withoutQuery = pathOrUrl.split('?')[0] ?? pathOrUrl;
+	const prefix = '/api/storage/serve/';
+	if (withoutQuery.startsWith(prefix)) {
+		const rest = withoutQuery.slice(prefix.length);
+		const slash = rest.indexOf('/');
+		if (slash > 0) {
+			let filePath = rest.slice(slash + 1);
+			try {
+				while (filePath.includes('%')) {
+					const decoded = decodeURIComponent(filePath);
+					if (decoded === filePath) break;
+					filePath = decoded;
+				}
+			} catch {
+				// keep as-is
+			}
+			return filePath;
+		}
+	}
+	if (withoutQuery.startsWith('http://') || withoutQuery.startsWith('https://')) {
+		try {
+			const u = new URL(withoutQuery);
+			if (u.pathname.startsWith(prefix)) {
+				return extractStorageFilePath(u.pathname);
+			}
+		} catch {
+			// ignore
+		}
+	}
+	return withoutQuery.startsWith('/') ? withoutQuery.slice(1) : withoutQuery;
+}
+
+/** Rewrite absolute backend serve URLs to same-origin relative paths for the SvelteKit proxy. */
+function toSameOriginStorageServeUrl(url: string): string | null {
+	try {
+		const u = new URL(url);
+		if (!u.pathname.startsWith('/api/storage/serve/')) return null;
+		return `${u.pathname}${u.search}`;
+	} catch {
+		return null;
+	}
+}
+
 /** True when a storage path/URL points at a variant rendition folder or prefixed file. */
 function isThumbnailPath(path: string): boolean {
-	const lower = path.toLowerCase();
+	const filePath = extractStorageFilePath(path);
+	const lower = filePath.toLowerCase();
 	return (
 		lower.includes('/hero/') ||
 		lower.includes('/large/') ||
@@ -105,7 +193,7 @@ function isThumbnailPath(path: string): boolean {
 		lower.includes('/small/') ||
 		lower.includes('/micro/') ||
 		lower.includes('/thumb/') ||
-		/(?:^|\/)(hero|large|medium|small|micro)-\d{13}-/i.test(path)
+		/(?:^|\/)(hero|large|medium|small|micro)-\d{13}-/i.test(filePath)
 	);
 }
 
@@ -221,9 +309,19 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
  * Best URL for album grids / pickers: thumbnail when available, else full image.
  */
 export function getPhotoGridUrl(photo: PhotoLike, fallback: string = ''): string {
+	const full = getPhotoFullUrl(photo, '');
 	const thumb = getPhotoUrl(photo, { preferThumbnail: true, fallback: '' });
-	if (thumb) return thumb;
-	return getPhotoFullUrl(photo, fallback);
+	// Local storage: variant thumbnails are often missing — prefer the main file.
+	const provider = photo.storage?.provider || 'local';
+	if (provider === 'local' && full) {
+		return full;
+	}
+	if (!thumb) return full || fallback;
+	// Variant thumbnails are often missing on restored remote repos — prefer the main file.
+	if (full && full !== thumb && isThumbnailPath(thumb)) {
+		return full;
+	}
+	return thumb;
 }
 
 /**

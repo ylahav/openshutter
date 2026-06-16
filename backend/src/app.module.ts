@@ -8,6 +8,7 @@ import { HealthController } from './health/health.controller';
 import { SiteConfigController } from './site-config/site-config.controller';
 import { StorageController } from './storage/storage.controller';
 import { StorageAdminController } from './storage/storage-admin.controller';
+import { StorageTreeService } from './storage/storage-tree.service';
 import { TemplatesController } from './templates/templates.controller';
 import { ThemesController } from './themes/themes.controller';
 import { ThemesPublicController } from './themes/themes-public.controller';
@@ -99,7 +100,7 @@ import { AuditLogsController } from './audit-logs/audit-logs.controller';
     AIProvidersHealthController,
     AuditLogsController,
   ],
-  providers: [AdminGuard, AdminOrOwnerGuard],
+  providers: [AdminGuard, AdminOrOwnerGuard, StorageTreeService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -42,7 +42,7 @@ All storage providers are configured through the admin dashboard at `/admin/stor
 - **Enable / disable**: Each provider tab shows whether it is enabled for the site (**Enabled** / **Inactive**) and includes a toggle to turn the provider on or off without re-entering credentials.
 - **Structured forms**: **Google Drive**, **Local**, **Wasabi**, **Amazon S3**, and **Backblaze B2** each have dedicated form fields on this page (bucket, region, keys, etc.). Only providers without a bespoke UI fall back to **JSON** editing.
 - **Browser → API**: The UI calls `/api/admin/storage/*`. In production these paths are handled by **SvelteKit server routes** (`frontend/src/routes/api/admin/storage/...`) which forward the request (and session cookies) to the Nest backend (`BACKEND_URL`). Ensure your reverse proxy forwards `/api` to the Node process that runs the built frontend so these handlers run; alternatively, routing `/api/admin/storage/*` directly to the Nest server also works if paths match the backend’s `/api` prefix.
-- **View tree**: Folder browsing is only available for providers that implement tree listing (notably **Google Drive**). The provider must be **enabled**; errors from the API are shown in the dialog.
+- **View tree**: Folder browsing is only available for providers that implement tree listing (notably **Google Drive**). The provider must be **enabled**. Large drives use a **background scan** (see below) with live progress in the dialog; errors from the API are shown when the job fails.
 
 #### Dedicated per-owner storage
 
@@ -58,11 +58,11 @@ The owner dashboard shows **Storage management** when dedicated storage is enabl
 3. **Select Provider**: Choose the storage provider tab you want to configure
 4. **Configure Settings**: Fill in the required credentials and settings
 5. **Test Connection**: Use the "Test Connection" button to verify settings
-6. **View Tree**: Where supported (e.g. Google Drive), use "View Tree" to browse the folder structure—the provider must be enabled
+6. **View Tree**: Where supported (e.g. Google Drive), use "View Tree" to browse the folder structure—the provider must be enabled. The UI starts an async scan, polls every few seconds, shows the current folder path while scanning, then renders the tree when complete.
 7. **Save Configuration**: Click "Save Configuration" to store the settings
 
 **Storage configurations are stored in MongoDB** and encrypted at rest. The admin dashboard provides:
-- Visual storage tree browsing for all providers (Google Drive, AWS S3, Backblaze B2, Wasabi, Local Storage)
+- Visual storage tree browsing for **Google Drive** (async scan; see **Google Drive folder tree** below)
 - Connection testing
 - Provider enable/disable toggles
 - Usage monitoring
@@ -99,6 +99,25 @@ Configure via admin dashboard at `/admin/storage`.
 6. Test the connection to verify everything works
 
 **Important**: When switching storage types **or** when the app’s requested scopes change (e.g. after an upgrade), generate a **new** refresh token. Scopes differ: **`drive.appdata`** (hidden) vs **`drive`** (visible).
+
+#### Google Drive folder tree (View Tree)
+
+**Admin → Storage → Google Drive → View Tree** does not block on a single long HTTP request. That pattern caused **502** errors behind nginx when scans walked thousands of variant folders (`medium`, `micro`, etc.).
+
+**Flow:**
+
+1. UI calls **`POST /api/admin/storage/google-drive/tree/start?maxDepth=3`** (SvelteKit proxies to Nest).
+2. Backend runs a **`storage-tree-scan`** job in the background and returns **`jobId`**.
+3. UI polls **`GET /api/admin/storage/google-drive/tree/status/:jobId`** every ~2s until **`completed`** or **`failed`**.
+4. While running, the dialog shows progress text (e.g. current folder path). When complete, the loading line disappears and the tree renders.
+
+**Scan behavior (preview):**
+
+- Skips known **image variant** subfolders (`hero`, `large`, `medium`, `small`, `micro`, `thumb`, `thumbnails`) so album layout folders are listed without walking every derivative file.
+- **Preview mode**: file names are capped per folder; folders with many files show a count summary instead of listing every file.
+- Legacy synchronous **`GET .../tree`** remains for API compatibility; prefer the async start/status endpoints for large drives.
+
+See also [`GOOGLE_DRIVE.md`](./GOOGLE_DRIVE.md) and nginx notes in [`SERVER_DEPLOYMENT.md`](./SERVER_DEPLOYMENT.md).
 
 ### Automatic Token Renewal Detection
 
@@ -237,6 +256,13 @@ OpenShutter automatically detects when Google Drive tokens expire or become inva
 #### "Malformed Access Key Id" Error
 - **Cause**: Empty or incorrect Application Key ID
 - **Solution**: Verify the Application Key ID is exactly 24 characters
+
+#### Google Drive View Tree — HTTP 502 or endless loading
+
+- **Symptom:** Dialog shows **Could not load the folder tree** with **HTTP 502**, while server logs still list Drive API folder walks.
+- **Cause (older builds):** A synchronous tree request exceeded the reverse-proxy **`proxy_read_timeout`**.
+- **Fix (current):** Use a build with async **tree/start** + **tree/status** polling (see **Google Drive folder tree** above). After deploy, confirm the browser network tab shows **`POST .../tree/start`**, not only **`GET .../tree`**.
+- **If status polling still times out:** Raise nginx **`proxy_read_timeout`** on `/api/` (see [`SERVER_DEPLOYMENT.md`](./SERVER_DEPLOYMENT.md)).
 
 #### Connection Test Failures
 - **Check Credentials**: Verify all credentials are correct

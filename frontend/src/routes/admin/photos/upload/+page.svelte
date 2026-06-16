@@ -790,6 +790,36 @@
 			</div>
 		</div>
 
+		{#if isUploading && uploads.length > 0}
+			<div
+				class="mb-6 rounded-lg border border-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] p-4"
+				role="status"
+				aria-live="polite"
+			>
+				<div class="flex items-center gap-3">
+					<svg
+						class="h-6 w-6 shrink-0 animate-spin text-(--color-primary-600)"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+						/>
+					</svg>
+					<div class="min-w-0 flex-1">
+						<p class="text-sm font-medium text-(--color-surface-950-50)">
+							Upload in progress — {uploads.filter((u) => u.status === 'success' || u.status === 'skipped' || u.status === 'error').length} of {uploads.length} complete
+						</p>
+						<p class="text-xs text-(--color-surface-600-400)">Please keep this page open until uploads finish.</p>
+					</div>
+				</div>
+			</div>
+		{/if}
+
 		<!-- Upload Mode Tabs -->
 		<div class="mb-6 card preset-outlined-surface-200-800 bg-surface-50-950 p-1">
 			<div class="flex space-x-1">

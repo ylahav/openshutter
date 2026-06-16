@@ -4,6 +4,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
+	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 	import StorageRestoreAlbumsPreviewDialog from '$lib/components/admin/StorageRestoreAlbumsPreviewDialog.svelte';
 	// PageData is loaded via +page.server.ts; this component does not
 	// currently consume it directly, so we omit the prop to avoid unused-export warnings.
@@ -94,8 +95,11 @@
 	let restoreProviderId = $state('');
 	let restoreRootPrefix = $state('');
 	let restoreLoading = $state(false);
+	let restoreExecuteLoading = $state(false);
 	let restoreScanStatus = $state('');
+	let restoreScanProgress: { progress: number; total: number } | null = $state(null);
 	let restoreScanFromCache = $state(false);
+	let restorePhotoScanFromCache = $state(false);
 	let restoreAlbumReport: {
 		summary: { total: number; existing: number; toCreate: number };
 		items: Array<{
@@ -112,6 +116,9 @@
 			id: string;
 			filename: string;
 			albumName?: string;
+			albumStoragePath?: string;
+			albumId?: string;
+			albumInDb?: boolean;
 			status: string;
 			storagePath: string;
 		}>;
@@ -120,6 +127,12 @@
 	let restoreExecuteResult: { created: number; skipped: number; errors: Array<{ id: string; message: string }> } | null =
 		$state(null);
 	let restoreAlbumsPreviewOpen = $state(false);
+	let restoreConfirmOpen = $state(false);
+	let restoreConfirmCount = $state(0);
+	let restoreConfirmLabel: 'album' | 'photo' = $state('album');
+
+	/** Avoid 413 when thousands of storage paths are selected. */
+	const RESTORE_EXECUTE_ID_BATCH = 250;
 
 	async function selectImportDirectory() {
 		// Always use file input with webkitdirectory as it's more reliable
@@ -710,25 +723,48 @@ $effect(() => { if (activeTab === 'storage' && storageAlbums.length === 0) {
 		return (n / (1024 * 1024)).toFixed(1) + ' MB';
 	}
 
+	function parseStorageConfigList(body: unknown): Array<{ providerId: string; isEnabled?: boolean }> {
+		if (Array.isArray(body)) return body;
+		if (body && typeof body === 'object' && Array.isArray((body as { data?: unknown }).data)) {
+			return (body as { data: Array<{ providerId: string; isEnabled?: boolean }> }).data;
+		}
+		return [];
+	}
+
+	function enabledProviderIds(configs: Array<{ providerId?: string; isEnabled?: boolean }>): string[] {
+		return configs
+			.filter((c) => c.isEnabled === true && typeof c.providerId === 'string' && c.providerId.length > 0)
+			.map((c) => c.providerId as string);
+	}
+
+	function pickDefaultProviderId(ids: string[]): string {
+		if (ids.length === 0) return '';
+		if (ids.includes('wasabi')) return 'wasabi';
+		return ids[0];
+	}
+
 	async function loadRestoreProviders() {
 		try {
-			const res = await fetch('/api/admin/storage-restore/providers');
-			if (!res.ok) return;
-			const list = await res.json();
-			restoreProviders = Array.isArray(list) ? list : [];
-			if (restoreProviders.length && !restoreProviderId) {
-				restoreProviderId = restoreProviders.includes('wasabi')
-					? 'wasabi'
-					: restoreProviders[0];
+			const res = await fetch('/api/admin/storage');
+			if (!res.ok) await handleApiErrorResponse(res);
+			const body = await res.json();
+			restoreProviders = enabledProviderIds(parseStorageConfigList(body));
+			if (restoreProviders.length === 0) {
+				restoreProviderId = '';
+			} else if (!restoreProviderId || !restoreProviders.includes(restoreProviderId)) {
+				restoreProviderId = pickDefaultProviderId(restoreProviders);
 			}
 		} catch {
 			restoreProviders = [];
+			restoreProviderId = '';
 		}
 	}
 
-$effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.length === 0) {
-		loadRestoreProviders();
-	} });
+	$effect(() => {
+		if (migrationOption === 'albums-photos-db') {
+			void loadRestoreProviders();
+		}
+	});
 
 	function restoreCurrentReport() {
 		return restoreStage === 'albums' ? restoreAlbumReport : restorePhotoReport;
@@ -740,7 +776,30 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 		if (restoreStage === 'albums') {
 			return report.items.filter((i: { status: string }) => i.status === 'create');
 		}
-		return report.items.filter((i: { status: string }) => i.status === 'create');
+		return restoreSelectablePhotoItems();
+	}
+
+	function restoreSelectablePhotoItems() {
+		if (!restorePhotoReport?.items) return [];
+		return restorePhotoReport.items.filter(
+			(i) => i.status === 'create' && i.albumInDb !== false && !!i.albumId,
+		);
+	}
+
+	function selectAllPhotosInDbAlbums() {
+		restoreSelectedIds = new Set(restoreSelectablePhotoItems().map((i) => i.id));
+	}
+
+	function selectAllRestoreCreate() {
+		if (restoreStage === 'photos') {
+			selectAllPhotosInDbAlbums();
+			return;
+		}
+		const report = restoreCurrentReport();
+		if (!report?.items) return;
+		restoreSelectedIds = new Set(
+			report.items.filter((i: { status: string }) => i.status === 'create').map((i: { id: string }) => i.id),
+		);
 	}
 
 	function toggleRestoreItem(id: string) {
@@ -748,10 +807,6 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 		if (next.has(id)) next.delete(id);
 		else next.add(id);
 		restoreSelectedIds = next;
-	}
-
-	function selectAllRestoreCreate() {
-		restoreSelectedIds = new Set(restoreSelectableItems().map((i: { id: string }) => i.id));
 	}
 
 	function clearRestoreSelection() {
@@ -781,19 +836,65 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 		};
 	}
 
+	const restoreScanPercentValue = $derived.by(() => {
+		if (!restoreScanProgress || restoreScanProgress.total <= 0) return null;
+		return Math.min(
+			100,
+			Math.round((restoreScanProgress.progress / restoreScanProgress.total) * 100),
+		);
+	});
+
 	function applyAlbumScanReport(
 		report: ReturnType<typeof normalizeAlbumScanReport>,
-		opts?: { openPreview?: boolean; fromCache?: boolean },
+		opts?: { fromCache?: boolean },
 	) {
 		restoreAlbumReport = report;
 		restoreScanFromCache = opts?.fromCache === true;
 		selectAllRestoreCreate();
-		if (opts?.openPreview !== false) {
-			restoreAlbumsPreviewOpen = true;
-		}
 	}
 
-	async function pollAlbumScanJob(jobId: string, openPreview: boolean): Promise<void> {
+	function applyPhotoScanReport(
+		report: NonNullable<typeof restorePhotoReport>,
+		opts?: { fromCache?: boolean },
+	) {
+		restorePhotoReport = report;
+		restorePhotoScanFromCache = opts?.fromCache === true;
+		selectAllRestoreCreate();
+	}
+
+	async function pollPhotoScanJob(jobId: string): Promise<void> {
+		const maxAttempts = 600;
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const res = await fetch(`/api/admin/storage-restore/scan-photos/status/${encodeURIComponent(jobId)}`, {
+				credentials: 'include',
+			});
+			if (!res.ok) await handleApiErrorResponse(res);
+			const status = await res.json();
+			if (typeof status.progress === 'number') {
+				restoreScanProgress = {
+					progress: status.progress,
+					total: status.total > 0 ? status.total : 100,
+				};
+			}
+			if (status.current) {
+				restoreScanStatus = String(status.current);
+			}
+			if (status.status === 'completed' && status.report) {
+				applyPhotoScanReport(status.report);
+				return;
+			}
+			if (status.status === 'failed') {
+				throw new Error(status.error || 'Scan failed');
+			}
+			if (status.status === 'cancelled') {
+				throw new Error('Scan cancelled');
+			}
+			await new Promise((r) => setTimeout(r, 2000));
+		}
+		throw new Error('Scan timed out. Try again or use a narrower root prefix.');
+	}
+
+	async function pollAlbumScanJob(jobId: string): Promise<void> {
 		const maxAttempts = 600;
 		for (let attempt = 0; attempt < maxAttempts; attempt++) {
 			const res = await fetch(`/api/admin/storage-restore/scan-albums/status/${encodeURIComponent(jobId)}`, {
@@ -801,11 +902,17 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 			});
 			if (!res.ok) await handleApiErrorResponse(res);
 			const status = await res.json();
+			if (typeof status.progress === 'number') {
+				restoreScanProgress = {
+					progress: status.progress,
+					total: status.total > 0 ? status.total : 100,
+				};
+			}
 			if (status.current) {
 				restoreScanStatus = String(status.current);
 			}
 			if (status.status === 'completed' && status.report) {
-				applyAlbumScanReport(normalizeAlbumScanReport(status.report), { openPreview });
+				applyAlbumScanReport(normalizeAlbumScanReport(status.report));
 				return;
 			}
 			if (status.status === 'failed') {
@@ -820,10 +927,13 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 	}
 
 	async function restoreScan(options?: { openAlbumsPreview?: boolean; forceRefresh?: boolean }) {
+		const openAlbumPreview = options?.openAlbumsPreview !== false;
 		restoreLoading = true;
 		restoreExecuteResult = null;
 		restoreScanStatus = '';
+		restoreScanProgress = null;
 		restoreScanFromCache = false;
+		restorePhotoScanFromCache = false;
 		if (options?.openAlbumsPreview !== false) {
 			restoreSelectedIds = new Set();
 		}
@@ -844,30 +954,30 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 				const data = await res.json();
 
 				if (data.fromCache && data.report) {
-					applyAlbumScanReport(normalizeAlbumScanReport(data.report), {
-						openPreview: options?.openAlbumsPreview !== false,
-						fromCache: true,
-					});
+					applyAlbumScanReport(normalizeAlbumScanReport(data.report), { fromCache: true });
 					showMsg('Loaded cached scan (under 10 minutes old)');
 					return;
 				}
 
 				if (data.jobId) {
+					restoreScanProgress = { progress: 0, total: 100 };
 					restoreScanStatus =
 						restoreProviderId === 'google-drive'
 							? 'Scanning Google Drive folders…'
-							: 'Scanning storage…';
-					await pollAlbumScanJob(String(data.jobId), options?.openAlbumsPreview !== false);
+							: 'Scanning storage folders…';
+					await pollAlbumScanJob(String(data.jobId));
+					restoreScanProgress = { progress: 100, total: 100 };
 					showMsg('Scan complete');
 					return;
 				}
 
-				applyAlbumScanReport(normalizeAlbumScanReport(data), {
-					openPreview: options?.openAlbumsPreview !== false,
-				});
+				applyAlbumScanReport(normalizeAlbumScanReport(data));
 				showMsg('Scan complete');
 				return;
 			}
+
+			restoreScanStatus = 'Scanning photos in storage…';
+			restoreScanProgress = { progress: 0, total: 100 };
 
 			const res = await fetch('/api/admin/storage-restore/scan-photos', {
 				method: 'POST',
@@ -876,53 +986,148 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 				body: JSON.stringify({
 					providerId: restoreProviderId,
 					rootPrefix: restoreRootPrefix.trim() || undefined,
+					useCache: options?.forceRefresh ? false : true,
+					forceRefresh: options?.forceRefresh === true,
 				}),
 			});
 			if (!res.ok) await handleApiErrorResponse(res);
-			restorePhotoReport = await res.json();
-			selectAllRestoreCreate();
+			const data = await res.json();
+
+			if (data.fromCache && data.report) {
+				applyPhotoScanReport(data.report, { fromCache: true });
+				showMsg('Loaded cached photo scan (under 10 minutes old)');
+				return;
+			}
+
+			if (data.jobId) {
+				await pollPhotoScanJob(String(data.jobId));
+				restoreScanProgress = { progress: 100, total: 100 };
+				showMsg('Scan complete');
+				return;
+			}
+
+			applyPhotoScanReport(data);
 			showMsg('Scan complete');
 		} catch (e) {
 			showMsg(handleError(e, 'Scan failed'), 'error');
 		} finally {
 			restoreLoading = false;
 			restoreScanStatus = '';
+			restoreScanProgress = null;
+		}
+		if (openAlbumPreview && restoreStage === 'albums' && restoreAlbumReport) {
+			restoreAlbumsPreviewOpen = true;
 		}
 	}
 
-	async function restoreExecute(skipConfirm = false) {
-		const toRun = restoreSelectableItems().filter((i: { id: string }) => restoreSelectedIds.has(i.id));
-		if (!toRun.length) {
+	function restoreLinkablePhotoCount(): number {
+		return restoreSelectablePhotoItems().length;
+	}
+
+	/** All storage photos not yet in the DB (importable + orphans shown; already-imported hidden). */
+	const restorePhotoDisplayItems = $derived.by(() => {
+		if (!restorePhotoReport?.items) return [];
+		return restorePhotoReport.items.filter((i) => i.status !== 'exists');
+	});
+
+	function isRestorePhotoSelectable(item: {
+		status: string;
+		albumInDb?: boolean;
+		albumId?: string;
+	}): boolean {
+		return item.status === 'create' && item.albumInDb !== false && !!item.albumId;
+	}
+
+	function restoreSelectedPhotoCount(): number {
+		return restoreSelectablePhotoItems().filter((i) => restoreSelectedIds.has(i.id)).length;
+	}
+
+	function openRestoreConfirmDialog() {
+		const selectable = restoreSelectableItems();
+		let selectedIds = selectable
+			.filter((i: { id: string }) => restoreSelectedIds.has(i.id))
+			.map((i: { id: string }) => i.id);
+
+		if (restoreStage === 'photos' && selectedIds.length === 0 && restoreLinkablePhotoCount() > 0) {
+			selectedIds = restoreSelectablePhotoItems().map((i) => i.id);
+			restoreSelectedIds = new Set(selectedIds);
+		}
+
+		if (!selectedIds.length) {
+			showMsg(
+				restoreStage === 'photos'
+					? 'No photos to create. Scan storage first, or ensure parent albums exist in the database.'
+					: 'Select at least one item to create',
+				'error',
+			);
+			return;
+		}
+		restoreConfirmLabel = restoreStage === 'albums' ? 'album' : 'photo';
+		restoreConfirmCount = selectedIds.length;
+		restoreConfirmOpen = true;
+	}
+
+	type RestoreExecuteResult = {
+		created: number;
+		skipped: number;
+		errors: Array<{ id: string; message: string }>;
+	};
+
+	async function postRestoreExecute(body: Record<string, unknown>): Promise<RestoreExecuteResult> {
+		const endpoint =
+			restoreStage === 'albums'
+				? '/api/admin/storage-restore/execute-albums'
+				: '/api/admin/storage-restore/execute-photos';
+		const res = await fetch(endpoint, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		});
+		if (!res.ok) await handleApiErrorResponse(res);
+		return res.json();
+	}
+
+	async function runRestoreExecuteRequests(
+		selectedIds: string[],
+		allSelected: boolean,
+	): Promise<RestoreExecuteResult> {
+		const base: Record<string, unknown> = {
+			providerId: restoreProviderId,
+			rootPrefix: restoreRootPrefix.trim() || undefined,
+		};
+
+		if (allSelected) {
+			return postRestoreExecute({ ...base, createAll: true });
+		}
+
+		const aggregated: RestoreExecuteResult = { created: 0, skipped: 0, errors: [] };
+		for (let i = 0; i < selectedIds.length; i += RESTORE_EXECUTE_ID_BATCH) {
+			const chunk = selectedIds.slice(i, i + RESTORE_EXECUTE_ID_BATCH);
+			const result = await postRestoreExecute({ ...base, itemIds: chunk });
+			aggregated.created += result.created ?? 0;
+			aggregated.skipped += result.skipped ?? 0;
+			if (result.errors?.length) aggregated.errors.push(...result.errors);
+		}
+		return aggregated;
+	}
+
+	async function restoreExecute() {
+		const selectable = restoreSelectableItems();
+		const selectedIds = selectable
+			.filter((i: { id: string }) => restoreSelectedIds.has(i.id))
+			.map((i: { id: string }) => i.id);
+		if (!selectedIds.length) {
 			showMsg('Select at least one item to create', 'error');
 			return;
 		}
+		const allSelected = selectedIds.length === selectable.length && selectable.length > 0;
 		const label = restoreStage === 'albums' ? 'album' : 'photo';
-		if (
-			!skipConfirm &&
-			!confirm(
-				`Create ${toRun.length} ${label}${toRun.length === 1 ? '' : 's'} in the database? Existing records will be skipped.`
-			)
-		) {
-			return;
-		}
+
+		restoreExecuteLoading = true;
 		restoreLoading = true;
 		restoreExecuteResult = null;
 		try {
-			const endpoint =
-				restoreStage === 'albums'
-					? '/api/admin/storage-restore/execute-albums'
-					: '/api/admin/storage-restore/execute-photos';
-			const res = await fetch(endpoint, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					providerId: restoreProviderId,
-					rootPrefix: restoreRootPrefix.trim() || undefined,
-					itemIds: [...restoreSelectedIds]
-				})
-			});
-			if (!res.ok) await handleApiErrorResponse(res);
-			restoreExecuteResult = await res.json();
+			restoreExecuteResult = await runRestoreExecuteRequests(selectedIds, allSelected);
 			showMsg(`Created ${restoreExecuteResult?.created ?? 0} ${label}(s)`);
 			if (restoreStage === 'albums') {
 				restoreAlbumsPreviewOpen = false;
@@ -933,12 +1138,19 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 		} catch (e) {
 			showMsg(handleError(e, 'Restore failed'), 'error');
 		} finally {
+			restoreExecuteLoading = false;
 			restoreLoading = false;
 		}
 	}
 
-	async function restoreExecuteFromAlbumsModal() {
-		await restoreExecute(true);
+	async function confirmRestoreExecute() {
+		restoreConfirmOpen = false;
+		await restoreExecute();
+	}
+
+	function restoreExecuteFromAlbumsModal() {
+		restoreAlbumsPreviewOpen = false;
+		openRestoreConfirmDialog();
 	}
 
 	function restoreStatusLabel(status: string) {
@@ -1052,7 +1264,7 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 				<div class="grid gap-4 mb-4 md:grid-cols-2">
 					<div>
 						<label for="restore-provider" class="block font-medium text-(--color-surface-800-200) mb-1"
-							>Storage provider</label
+							>Storage provider <span class="text-xs font-normal text-(--color-surface-600-400)">(enabled only)</span></label
 						>
 						<select
 							id="restore-provider"
@@ -1081,14 +1293,42 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 						/>
 					</div>
 				</div>
-				{#if restoreScanStatus}
-					<p class="mb-3 text-sm text-(--color-surface-600-400)" role="status">
-						{restoreScanStatus}
-					</p>
+				{#if restoreLoading}
+					<div class="mb-4" role="status" aria-live="polite">
+						{#if restoreScanStatus}
+							<p class="mb-2 text-sm text-(--color-surface-600-400)">{restoreScanStatus}</p>
+						{/if}
+						<div
+							class="h-2.5 w-full overflow-hidden rounded-full bg-(--color-surface-200-700)"
+							role="progressbar"
+							aria-valuemin="0"
+							aria-valuemax="100"
+							aria-valuenow={restoreScanPercentValue ?? undefined}
+							aria-busy={restoreScanPercentValue == null ? true : undefined}
+							aria-label={restoreStage === 'photos' ? 'Photo scan progress' : 'Album scan progress'}
+						>
+							{#if restoreScanPercentValue != null}
+								<div
+									class="h-full rounded-full bg-(--color-primary-600) transition-[width] duration-300 ease-out"
+									style="width: {restoreScanPercentValue}%"
+								></div>
+							{:else}
+								<div class="restore-scan-progress-indeterminate h-full w-2/5 rounded-full bg-(--color-primary-600)"></div>
+							{/if}
+						</div>
+						{#if restoreScanPercentValue != null}
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">{restoreScanPercentValue}%</p>
+						{/if}
+					</div>
 				{/if}
 				{#if restoreScanFromCache && restoreAlbumReport}
 					<p class="mb-3 text-xs text-(--color-surface-600-400)">
-						Showing cached scan from the last 10 minutes. Use “Rescan storage” to refresh from Google Drive.
+						Showing cached album scan from the last 10 minutes. Use “Rescan storage” to refresh.
+					</p>
+				{/if}
+				{#if restorePhotoScanFromCache && restorePhotoReport}
+					<p class="mb-3 text-xs text-(--color-surface-600-400)">
+						Showing cached photo scan from the last 10 minutes. Scan again with a narrower prefix if needed.
 					</p>
 				{/if}
 				<div class="flex flex-wrap gap-2 mb-4">
@@ -1114,8 +1354,8 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 						<button
 							type="button"
 							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
-							disabled={restoreLoading || !restoreProviderId || restoreSelectedIds.size === 0}
-							onclick={() => restoreExecute()}
+							disabled={restoreLoading || !restoreProviderId || restoreLinkablePhotoCount() === 0}
+							onclick={() => openRestoreConfirmDialog()}
 						>
 							Confirm &amp; create selected
 						</button>
@@ -1123,9 +1363,9 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 							<button
 								type="button"
 								class="px-3 py-2 text-sm text-(--color-surface-700-300) hover:underline"
-								onclick={selectAllRestoreCreate}
+								onclick={selectAllPhotosInDbAlbums}
 							>
-								Select all to create
+								Select all in DB albums
 							</button>
 							<button
 								type="button"
@@ -1146,20 +1386,23 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 					{/if}
 				</div>
 
+				{#if restoreAlbumsPreviewOpen && restoreAlbumReport}
 				<StorageRestoreAlbumsPreviewDialog
-					open={restoreAlbumsPreviewOpen}
 					report={restoreAlbumReport}
 					selectedIds={restoreSelectedIds}
-					loading={restoreLoading}
-					onClose={() => (restoreAlbumsPreviewOpen = false)}
-					onToggleSelect={toggleRestoreItem}
-					onSelectAll={selectAllRestoreCreate}
-					onClearSelection={clearRestoreSelection}
-					onConfirm={restoreExecuteFromAlbumsModal}
+					executing={restoreExecuteLoading}
+					dismiss={() => (restoreAlbumsPreviewOpen = false)}
+					toggleSelect={toggleRestoreItem}
+					selectAll={selectAllRestoreCreate}
+					clearSelection={clearRestoreSelection}
+					confirmCreate={restoreExecuteFromAlbumsModal}
 				/>
+				{/if}
 				{#if restoreStage === 'photos'}
 					<p class="text-sm text-(--color-surface-600-400) mb-3">
-						Run the albums stage first so photos can be linked to album records.
+						All photos not yet in the database are listed. Only photos whose parent album already exists in
+						the DB can be selected for import. Rows marked <strong>Album not in DB</strong> show folders you
+						may want to create first via the Albums step.
 					</p>
 				{/if}
 				{#if restoreCurrentReport()?.summary}
@@ -1172,10 +1415,10 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 							</p>
 						{:else}
 							<p>
-								<strong>Total photos:</strong> {restorePhotoReport?.summary.total} ·
-								<strong>Already in DB:</strong> {restorePhotoReport?.summary.existing} ·
-								<strong>To create:</strong> {restorePhotoReport?.summary.toCreate} ·
-								<strong>No album:</strong> {restorePhotoReport?.summary.orphan}
+								<strong>Not in DB:</strong> {restorePhotoDisplayItems.length} ·
+								<strong>Can import now:</strong> {restoreLinkablePhotoCount()} ·
+								<strong>Need album in DB first:</strong> {restorePhotoReport?.summary.orphan ?? 0} ·
+								<strong>Already in DB:</strong> {restorePhotoReport?.summary.existing ?? 0}
 							</p>
 						{/if}
 					</div>
@@ -1195,21 +1438,22 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 						{/if}
 					</div>
 				{/if}
-				{#if restoreStage === 'photos' && restoreCurrentReport()?.items?.length}
+				{#if restoreStage === 'photos' && restorePhotoDisplayItems.length}
 					<div class="border border-surface-300-700 rounded max-h-80 overflow-y-auto">
 						<table class="w-full text-sm">
 							<thead class="sticky top-0 bg-(--color-surface-100-900)">
 								<tr>
 									<th class="p-2 text-left w-8"></th>
 									<th class="p-2 text-left">File</th>
+									<th class="p-2 text-left">Album</th>
 									<th class="p-2 text-left">Status</th>
 								</tr>
 							</thead>
 							<tbody>
-								{#each restorePhotoReport?.items ?? [] as item}
+								{#each restorePhotoDisplayItems as item (item.id)}
 									<tr class="border-t border-surface-200-800">
-										<td class="p-2">
-											{#if item.status === 'create'}
+										<td class="p-2 align-top">
+											{#if isRestorePhotoSelectable(item)}
 												<input
 													type="checkbox"
 													checked={restoreSelectedIds.has(item.id)}
@@ -1217,20 +1461,34 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 												/>
 											{/if}
 										</td>
-										<td class="p-2 font-mono text-xs break-all">
+										<td class="p-2 font-mono text-xs break-all align-top">
 											{item.filename}
-											{#if item.albumName}
-												<span class="block text-(--color-surface-600-400)">{item.albumName}</span>
+										</td>
+										<td class="p-2 align-top min-w-[10rem]">
+											<span class="font-medium text-(--color-surface-900-100)">
+												{item.albumName || item.albumStoragePath || '—'}
+											</span>
+											{#if item.albumStoragePath}
+												<span class="block font-mono text-xs text-(--color-surface-600-400) truncate max-w-[14rem]" title={item.albumStoragePath}>
+													{item.albumStoragePath}
+												</span>
+											{/if}
+											{#if item.status === 'orphan' || item.albumInDb === false}
+												<span class="mt-1 inline-block rounded px-1.5 py-0.5 text-xs font-medium bg-warning-500/15 text-warning-700 dark:text-warning-400">
+													Album not in DB
+												</span>
 											{/if}
 										</td>
-										<td class="p-2 whitespace-nowrap">{restoreStatusLabel(item.status)}</td>
+										<td class="p-2 whitespace-nowrap align-top">{restoreStatusLabel(item.status)}</td>
 									</tr>
 								{/each}
 							</tbody>
 						</table>
 					</div>
 				{:else if restoreStage === 'photos' && restoreCurrentReport()}
-					<p class="text-(--color-surface-600-400) text-sm">No items found under this prefix.</p>
+					<p class="text-(--color-surface-600-400) text-sm">
+						No new photos found under this prefix — all matching files are already in the database.
+					</p>
 				{/if}
 			</div>
 		{/if}
@@ -1649,3 +1907,31 @@ $effect(() => { if (migrationOption === 'albums-photos-db' && restoreProviders.l
 		{/if}
 	</div>
 </div>
+
+<AdminConfirmDialog
+	open={restoreConfirmOpen}
+	title={restoreConfirmLabel === 'album' ? 'Create albums in database?' : 'Create photos in database?'}
+	message={`Create ${restoreConfirmCount} ${restoreConfirmLabel}${restoreConfirmCount === 1 ? '' : 's'} in the database? Existing records will be skipped.`}
+	confirmText={restoreExecuteLoading ? 'Creating…' : 'Create'}
+	cancelText="Cancel"
+	confirmDisabled={restoreExecuteLoading}
+	onOpenChange={(isOpen) => {
+		if (!isOpen && !restoreExecuteLoading) restoreConfirmOpen = false;
+	}}
+	onConfirm={confirmRestoreExecute}
+/>
+
+<style>
+	@keyframes restore-scan-indeterminate {
+		0% {
+			transform: translateX(-120%);
+		}
+		100% {
+			transform: translateX(320%);
+		}
+	}
+
+	.restore-scan-progress-indeterminate {
+		animation: restore-scan-indeterminate 1.4s ease-in-out infinite;
+	}
+</style>

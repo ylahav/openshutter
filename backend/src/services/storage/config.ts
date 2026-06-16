@@ -54,7 +54,7 @@ export class StorageConfigService {
   async getActiveProviders(): Promise<StorageProviderId[]> {
     await this.refreshCacheIfNeeded()
     return Array.from(this.configCache.values())
-      .filter(config => config.isEnabled)
+      .filter(config => config.isEnabled === true)
       .map(config => config.providerId)
   }
 

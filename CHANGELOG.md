@@ -1,5 +1,19 @@
 ## [Unreleased]
 
+### Added
+- **Google Drive folder tree (async):** **`POST /api/admin/storage/:providerId/tree/start`** and **`GET .../tree/status/:jobId`** run a **`storage-tree-scan`** background job so large Drive scans do not block behind gateway timeouts. Scan skips image **variant** subfolders and uses **preview mode** (capped file names, counts for busy folders). SvelteKit proxies **`tree/start`** and **`tree/status`**. Admin **View Tree** polls every ~2s with live progress; loading clears when the job completes. Documented in **`docs/guides/STORAGE.md`**, **`GOOGLE_DRIVE.md`**, **`SERVER_DEPLOYMENT.md`**, **`MANUAL_TEST_DEDICATED_STORAGE.md`** (Scenario E).
+
+### Changed
+- **Admin albums tree:** Recursive accordion when manual reorder is off; **`AdminAlbumTreeRow`** extraction; expand/collapse and DnD interaction fixes.
+- **Admin albums / photos loading:** Loading states on albums list tree and album photo grid; upload page feedback.
+- **Admin storage restore / import-sync:** Expanded restore preview and async photo-scan status polling.
+
+### Fixed
+- **Admin Google Drive View Tree HTTP 502:** Replaced synchronous tree fetch with async job + polling (see **Added** above).
+- **Admin album tree accordion:** Chevron expand/collapse and row interaction when not in manual-sort mode.
+- **Admin photo thumbnails (local storage):** **`photoUrl`** and storage serve proxy path encoding for grid thumbnails on **`/admin/albums`**.
+- **`StorageTreeItem`:** Fixed broken **`node`** binding from invalid destructuring so trees render after load.
+
 ### Changed
 - **Svelte 5 runes migration (frontend):** Bulk conversion of visitor and admin `.svelte` files from `export let` / `$:` to `$props()`, `$state`, `$derived`, and `$effect`. Admin list routes increasingly use **`+page.server.ts`** preload plus **`routePageData()`** or **`$derived(data.*)`** instead of client-only fetch loops.
 - **Admin navigation:** Sidebar links use **`data-sveltekit-reload`**; **`hooks.client.ts`** and **`adminNavigate()`** force full navigation when client routing leaves stale admin content.

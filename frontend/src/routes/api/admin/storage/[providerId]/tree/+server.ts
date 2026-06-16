@@ -16,11 +16,11 @@ export const GET: RequestHandler = async ({ params, url, locals, cookies }) => {
 			{ cookies },
 		);
 		const text = await response.text();
-		let parsed: unknown = {};
+		let parsed: Record<string, unknown> = {};
 		try {
-			parsed = text ? JSON.parse(text) : {};
+			parsed = text ? (JSON.parse(text) as Record<string, unknown>) : {};
 		} catch {
-			parsed = { message: 'Invalid response from backend' };
+			parsed = { message: text?.trim() || 'Invalid response from backend' };
 		}
 
 		return json(parsed, { status: response.status });

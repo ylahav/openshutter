@@ -37,6 +37,7 @@ minimumReleaseAgeExclude:
   - tailwindcss@4.3.1
   - '@sveltejs/kit@2.65.1'
   - '@types/yauzl@3.4.0'
+  - nodemailer@9.0.0
 
 onlyBuiltDependencies:
   - '@nestjs/core'

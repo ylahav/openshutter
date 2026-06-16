@@ -501,7 +501,9 @@ sudo nano /etc/nginx/sites-available/openshutter
 
 ### Nginx Configuration
 
-Use a large enough **`client_max_body_size`** and **proxy timeouts** for photo uploads and slow admin calls (e.g. **Google Drive folder tree**). A full example is in [`docs/guides/nginx-openshutter.conf`](./nginx-openshutter.conf) (`client_max_body_size 100M`, `proxy_read_timeout 300s` on `/api/`). If the UI shows **502** while PM2 logs still list Drive folders, raise **`proxy_read_timeout`** (and friends) on the `location` that handles `/api/`.
+Use a large enough **`client_max_body_size`** and **proxy timeouts** for photo uploads and slow admin calls. A full example is in [`docs/guides/nginx-openshutter.conf`](./nginx-openshutter.conf) (`client_max_body_size 100M`, `proxy_read_timeout 300s` on `/api/`).
+
+**Google Drive View Tree:** Current admin UI uses **`POST .../tree/start`** plus short **`GET .../tree/status/:jobId`** polls instead of one long synchronous tree request, so **502** during folder scans is uncommon on up-to-date builds. If you still see **502** while logs show Drive listing, confirm the frontend and backend are deployed together, then raise **`proxy_read_timeout`** (and friends) on the `location` that handles `/api/`. See [`STORAGE.md`](./STORAGE.md) — **Google Drive folder tree**.
 
 ```nginx
 server {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -100,15 +100,60 @@
 	let googleDriveTreeLoading = $state(false);
 	let googleDriveTreeRoot = $state<any>(null);
 	let googleDriveTreeError = $state<string | null>(null);
+	let googleDriveTreeProgress = $state<string | null>(null);
+	let googleDriveTreePollTimer: ReturnType<typeof setInterval> | null = null;
+
+	function stopGoogleDriveTreePolling() {
+		if (googleDriveTreePollTimer) {
+			clearInterval(googleDriveTreePollTimer);
+			googleDriveTreePollTimer = null;
+		}
+	}
+
+	onDestroy(() => {
+		stopGoogleDriveTreePolling();
+	});
 
 	function nestJsonMessage(j: Record<string, unknown> | null | undefined): string | null {
 		if (!j || typeof j !== 'object') return null;
 		const m = j.message;
 		if (typeof m === 'string' && m.trim()) return m.trim();
 		if (Array.isArray(m)) return m.map(String).join(' ').trim() || null;
+		if (m && typeof m === 'object') {
+			const nested = m as Record<string, unknown>;
+			if (typeof nested.message === 'string' && nested.message.trim()) return nested.message.trim();
+		}
 		const e = j.error;
-		if (typeof e === 'string' && e.trim()) return e.trim();
+		if (typeof e === 'string' && e.trim() && e !== 'Bad Request') return e.trim();
 		return null;
+	}
+
+	function extractStorageTreeError(
+		j: Record<string, unknown> | null | undefined,
+		fallback: string,
+		status?: number,
+	): string {
+		const parts: string[] = [];
+		const msg = nestJsonMessage(j);
+		if (msg) parts.push(msg);
+		if (j && j.success === false && typeof j.error === 'string' && j.error.trim()) {
+			parts.push(String(j.error).trim());
+		}
+		if (j && typeof j.hint === 'string' && j.hint.trim()) {
+			parts.push(String(j.hint).trim());
+		}
+		if (status && status >= 400) {
+			parts.push(`HTTP ${status}`);
+		}
+		return parts.filter(Boolean).join('\n\n') || fallback;
+	}
+
+	function isStorageTreeNode(value: unknown): value is Record<string, unknown> {
+		return (
+			!!value &&
+			typeof value === 'object' &&
+			('folders' in value || 'files' in value || 'path' in value)
+		);
 	}
 
 	const activeOption = $derived(storageOptions.find((o) => o.id === activeTab) || storageOptions[0]);
@@ -245,27 +290,91 @@
 		}
 	}
 
+	async function pollGoogleDriveTreeJob(jobId: string) {
+		const r = await fetch(`/api/admin/storage/google-drive/tree/status/${encodeURIComponent(jobId)}`);
+		const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+
+		if (!r.ok) {
+			stopGoogleDriveTreePolling();
+			googleDriveTreeLoading = false;
+			googleDriveTreeRoot = null;
+			googleDriveTreeError = extractStorageTreeError(
+				j,
+				get(t)('admin.failedToLoadFolderTree'),
+				r.status,
+			);
+			return;
+		}
+
+		const status = typeof j.status === 'string' ? j.status : '';
+		const current = typeof j.current === 'string' ? j.current.trim() : '';
+		if (current) {
+			googleDriveTreeProgress = current;
+		}
+
+		if (status === 'completed') {
+			stopGoogleDriveTreePolling();
+			googleDriveTreeLoading = false;
+			googleDriveTreeProgress = null;
+			const tree = j.tree;
+			if (!isStorageTreeNode(tree)) {
+				googleDriveTreeRoot = null;
+				googleDriveTreeError = get(t)('admin.failedToLoadFolderTree');
+				return;
+			}
+			googleDriveTreeRoot = tree;
+			googleDriveTreeError = null;
+			return;
+		}
+
+		if (status === 'failed') {
+			stopGoogleDriveTreePolling();
+			googleDriveTreeLoading = false;
+			googleDriveTreeProgress = null;
+			googleDriveTreeRoot = null;
+			googleDriveTreeError =
+				(typeof j.error === 'string' && j.error.trim()) ||
+				extractStorageTreeError(j, get(t)('admin.failedToLoadFolderTree'), r.status);
+		}
+	}
+
 	async function openGoogleDriveTree() {
 		if (!isSiteAdmin) return;
+		stopGoogleDriveTreePolling();
 		googleDriveTreeOpen = true;
 		googleDriveTreeLoading = true;
 		googleDriveTreeRoot = null;
 		googleDriveTreeError = null;
+		googleDriveTreeProgress = get(t)('admin.loadingFolderTree');
+
 		try {
-			const r = await fetch('/api/admin/storage/google-drive/tree?maxDepth=4');
-			const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-			if (!r.ok) {
-				googleDriveTreeRoot = null;
-				googleDriveTreeError =
-					nestJsonMessage(j) || get(t)('admin.failedToLoadFolderTree');
+			const startRes = await fetch('/api/admin/storage/google-drive/tree/start?maxDepth=3', {
+				method: 'POST',
+			});
+			const startJson = (await startRes.json().catch(() => ({}))) as Record<string, unknown>;
+
+			if (!startRes.ok || typeof startJson.jobId !== 'string' || !startJson.jobId) {
+				googleDriveTreeLoading = false;
+				googleDriveTreeProgress = null;
+				googleDriveTreeError = extractStorageTreeError(
+					startJson,
+					get(t)('admin.failedToLoadFolderTree'),
+					startRes.status,
+				);
 				return;
 			}
-			googleDriveTreeRoot = (j.data ?? j) as any;
+
+			const jobId = startJson.jobId;
+			await pollGoogleDriveTreeJob(jobId);
+			googleDriveTreePollTimer = setInterval(() => {
+				void pollGoogleDriveTreeJob(jobId);
+			}, 2000);
 		} catch (err) {
+			stopGoogleDriveTreePolling();
+			googleDriveTreeLoading = false;
+			googleDriveTreeProgress = null;
 			googleDriveTreeRoot = null;
 			googleDriveTreeError = handleError(err, get(t)('admin.failedToLoadFolderTree'));
-		} finally {
-			googleDriveTreeLoading = false;
 		}
 	}
 
@@ -1282,8 +1391,11 @@
 								type="button"
 								class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
 								onclick={() => {
+									stopGoogleDriveTreePolling();
 									googleDriveTreeOpen = false;
 									googleDriveTreeError = null;
+									googleDriveTreeProgress = null;
+									googleDriveTreeLoading = false;
 								}}
 							>
 								{$t('admin.close')}
@@ -1291,13 +1403,24 @@
 						</div>
 						<div class="p-4 overflow-auto flex-1 text-sm">
 							{#if googleDriveTreeLoading}
-								<p class="text-gray-600">…</p>
+								<div class="flex items-start gap-3" role="status" aria-live="polite">
+									<div
+										class="mt-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"
+									></div>
+									<p class="text-gray-700 whitespace-pre-wrap">
+										{googleDriveTreeProgress || $t('admin.loadingFolderTree')}
+									</p>
+								</div>
 							{:else if googleDriveTreeError}
-								<p class="text-red-800 whitespace-pre-wrap">{googleDriveTreeError}</p>
+								<div class="space-y-2">
+									<p class="font-medium text-red-800">{$t('admin.failedToLoadFolderTree')}</p>
+									<p class="text-red-700 whitespace-pre-wrap text-sm">{googleDriveTreeError}</p>
+								</div>
 							{:else if googleDriveTreeRoot}
 								<StorageTreeItem node={googleDriveTreeRoot} />
 							{:else}
 								<p class="text-amber-800">{$t('admin.failedToLoadFolderTree')}</p>
+								<p class="mt-2 text-sm text-amber-700">{$t('admin.storageTreeEmptyHint')}</p>
 							{/if}
 						</div>
 					</div>

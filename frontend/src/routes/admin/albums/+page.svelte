@@ -3,6 +3,7 @@
 	import { get } from 'svelte/store';
 	import { invalidate } from '$app/navigation';
 	import { goto } from '$app/navigation';
+	import { navigating } from '$app/stores';
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
@@ -64,7 +65,18 @@
 
 	type AlbumRow = Album;
 
-	const albums = $derived(($pd.albums ?? []) as AlbumRow[]);
+	let isRefreshingAlbums = $state(false);
+	const albums = $derived(($pd.albums ?? data.albums) as AlbumRow[] | undefined);
+	const albumsList = $derived(albums ?? []);
+	const isAlbumsTreeLoading = $derived(
+		isRefreshingAlbums ||
+			albums === undefined ||
+			Boolean(
+				$navigating &&
+					($navigating.to?.url.pathname === '/admin/albums' ||
+						$navigating.from?.url.pathname === '/admin/albums')
+			)
+	);
 	let albumsKey = $state(0);
 
 	// Cover photo modal state
@@ -107,8 +119,13 @@
 	let sortOption: AlbumSortOption = $state('manual');
 
 	async function refreshAlbums() {
-		await invalidate('admin:albums');
-		albumsKey += 1;
+		isRefreshingAlbums = true;
+		try {
+			await invalidate('admin:albums');
+			albumsKey += 1;
+		} finally {
+			isRefreshingAlbums = false;
+		}
 	}
 
 	async function togglePublished(album: Album) {
@@ -215,7 +232,7 @@
 				return;
 			}
 			
-			const album = albums.find(a => a._id === albumId);
+			const album = albumsList.find(a => a._id === albumId);
 			if (!album) {
 				logger.warn('[handleActionClick] Album not found:', albumId);
 				return;
@@ -358,7 +375,7 @@
 	}
 
 	function getDisplayAlbums(): Album[] {
-		const list = albums;
+		const list = albumsList;
 		const q = searchQuery.trim();
 		if (!q && statusFilter === 'all') {
 			return list;
@@ -599,14 +616,14 @@
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
 					<div class="text-2xl font-bold text-orange-600 tabular-nums">
-						{albums.reduce((total, album) => total + (album.photoCount || 0), 0).toLocaleString()}
+						{albumsList.reduce((total, album) => total + (album.photoCount || 0), 0).toLocaleString()}
 					</div>
 					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.albumsListStatPhotosLabel')}</div>
 				</div>
 			</div>
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
-					<div class="text-2xl font-bold text-(--color-primary-600) tabular-nums">{albums.length.toLocaleString()}</div>
+					<div class="text-2xl font-bold text-(--color-primary-600) tabular-nums">{albumsList.length.toLocaleString()}</div>
 					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.albumsListStatAlbumsLabel')}</div>
 					<div class="mt-0.5 text-xs text-(--color-surface-500-400)">{$t('admin.albumsListStatAlbumsSub')}</div>
 				</div>
@@ -614,7 +631,7 @@
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
 					<div class="text-2xl font-bold text-green-600 tabular-nums">
-						{albums.filter((a) => a.isPublished !== false).length.toLocaleString()}
+						{albumsList.filter((a) => a.isPublished !== false).length.toLocaleString()}
 					</div>
 					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.albumsListStatPublishedLabel')}</div>
 				</div>
@@ -622,7 +639,7 @@
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
 					<div class="text-2xl font-bold text-(--color-primary-600) tabular-nums">
-						{albums.filter((a) => a.isPublic === true).length.toLocaleString()}
+						{albumsList.filter((a) => a.isPublic === true).length.toLocaleString()}
 					</div>
 					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.albumsListStatPublicLabel')}</div>
 				</div>
@@ -630,22 +647,22 @@
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
 					<div
-						class="text-2xl font-bold tabular-nums {albums.filter((a) => a.isFeatured).length === 0 &&
-						albums.some((a) => a.isPublished !== false)
+						class="text-2xl font-bold tabular-nums {albumsList.filter((a) => a.isFeatured).length === 0 &&
+						albumsList.some((a) => a.isPublished !== false)
 							? 'text-red-600'
 							: 'text-purple-600'}"
 					>
-						{albums.filter((a) => a.isFeatured).length.toLocaleString()}
+						{albumsList.filter((a) => a.isFeatured).length.toLocaleString()}
 					</div>
 					<div
-						class="text-sm {albums.filter((a) => a.isFeatured).length === 0 &&
-						albums.some((a) => a.isPublished !== false)
+						class="text-sm {albumsList.filter((a) => a.isFeatured).length === 0 &&
+						albumsList.some((a) => a.isPublished !== false)
 							? 'text-red-600 font-medium'
 							: 'text-(--color-surface-600-400)'}"
 					>
 						{$t('admin.albumsListStatFeaturedLabel')}
 					</div>
-					{#if albums.filter((a) => a.isFeatured).length === 0 && albums.some((a) => a.isPublished !== false)}
+					{#if albumsList.filter((a) => a.isFeatured).length === 0 && albumsList.some((a) => a.isPublished !== false)}
 						<div class="mt-0.5 text-xs font-medium text-red-600">{$t('admin.dashboardStatFeaturedHint')}</div>
 					{/if}
 				</div>
@@ -697,7 +714,20 @@
 			<div class="text-center py-8">
 				<p class="text-red-600">{$pd.albumsLoadError}</p>
 			</div>
-		{:else if albums.length === 0}
+		{:else if isAlbumsTreeLoading}
+			<div
+				class="card preset-outlined-surface-200-800 bg-surface-50-950 flex min-h-[280px] flex-col items-center justify-center p-10"
+				role="status"
+				aria-live="polite"
+				aria-label={$t('admin.loadingAlbumsTree')}
+			>
+				<div
+					class="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-(--color-primary-600)"
+				></div>
+				<p class="mt-4 text-base font-medium text-(--color-surface-950-50)">{$t('admin.loadingAlbumsTree')}</p>
+				<p class="mt-1 text-sm text-(--color-surface-600-400)">{$t('admin.loadingAlbums')}</p>
+			</div>
+		{:else if albumsList.length === 0}
 			<div class="text-center py-12 card preset-outlined-surface-200-800 bg-surface-50-950">
 				<div class="text-(--color-surface-400-600) text-6xl mb-4">📁</div>
 				<h3 class="text-xl font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.noAlbumsFound')}</h3>
@@ -718,17 +748,32 @@
 				<p class="text-(--color-surface-600-400) mb-6">{$t('admin.albumsListNoMatches')}</p>
 			</div>
 		{:else}
-			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 relative min-h-[200px]">
+				{#if isRefreshingAlbums}
+					<div
+						class="absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-[color-mix(in_oklab,var(--color-surface-50-950)_82%,transparent)] backdrop-blur-[1px]"
+						role="status"
+						aria-live="polite"
+						aria-label={$t('admin.loadingAlbums')}
+					>
+						<div class="text-center">
+							<div
+								class="inline-block h-10 w-10 animate-spin rounded-full border-b-2 border-(--color-primary-600)"
+							></div>
+							<p class="mt-3 text-sm text-(--color-surface-600-400)">{$t('admin.loadingAlbums')}</p>
+						</div>
+					</div>
+				{/if}
 				{#key albumsKey}
 				<AlbumTree
 					albums={getDisplayAlbums().map((a) => ({
-						_id: a._id,
+						_id: String(a._id),
 						name:
 							typeof a.name === 'string'
 								? a.name
 								: MultiLangUtils.getTextValue(a.name, $currentLanguage) || '(No name)',
 						alias: a.alias,
-						parentAlbumId: a.parentAlbumId ?? null,
+						parentAlbumId: a.parentAlbumId != null ? String(a.parentAlbumId) : null,
 						level: a.level,
 						order: a.order,
 						photoCount: a.photoCount,

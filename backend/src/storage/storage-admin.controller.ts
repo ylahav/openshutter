@@ -6,11 +6,14 @@ import type { StorageProviderId } from '../services/storage/types';
 import { resolveGoogleOAuthRedirectUri } from '../services/storage/google-oauth-redirect';
 import { resolveGoogleDriveStorageType, mergeGoogleDriveStorageTypeFields } from '../services/storage/google-drive-storage-type';
 import { buildGoogleDriveTestDebugFromDb } from '../services/storage/google-drive-config-debug';
+import { StorageTreeService } from './storage-tree.service';
 
 @Controller('admin/storage')
 @UseGuards(AdminGuard)
 export class StorageAdminController {
   private readonly logger = new Logger(StorageAdminController.name);
+
+  constructor(private readonly storageTreeService: StorageTreeService) {}
 
   private parseEnabledFlag(value: unknown): boolean | undefined {
     if (value === true || value === 'true' || value === 1) return true;
@@ -603,6 +606,35 @@ export class StorageAdminController {
   }
 
   /**
+   * Start async folder tree scan (avoids gateway timeouts on large drives).
+   * Path: POST /api/admin/storage/:providerId/tree/start
+   */
+  @Post(':providerId/tree/start')
+  async startStorageTreeScan(
+    @Param('providerId') providerId: string,
+    @Query('path') path?: string,
+    @Query('maxDepth') maxDepth?: string,
+  ) {
+    const depth = maxDepth ? parseInt(maxDepth, 10) : 3;
+    return this.storageTreeService.startTreeScan(providerId as StorageProviderId, {
+      path,
+      maxDepth: depth,
+    });
+  }
+
+  /**
+   * Poll folder tree scan status.
+   * Path: GET /api/admin/storage/:providerId/tree/status/:jobId
+   */
+  @Get(':providerId/tree/status/:jobId')
+  getStorageTreeScanStatus(
+    @Param('providerId') _providerId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    return this.storageTreeService.getTreeScanJobStatus(jobId);
+  }
+
+  /**
    * Get folder/file tree from storage provider (directly from storage, not from database)
    * Path: GET /api/admin/storage/:providerId/tree?path=...
    */
@@ -661,37 +693,74 @@ export class StorageAdminController {
       };
     } catch (error: any) {
       this.logger.error(`Error getting ${providerId} tree:`, error);
-      
-      // Extract more detailed error message
+
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
       let errorMessage = `Failed to get ${providerId} tree`;
-      if (error?.message) {
+      if (error?.name === 'StorageConfigError' || error?.name === 'StorageOperationError') {
+        errorMessage = error.message || errorMessage;
+        if (error.originalError?.message && !String(errorMessage).includes(error.originalError.message)) {
+          errorMessage += `: ${error.originalError.message}`;
+        }
+      } else if (error?.message) {
         errorMessage += `: ${error.message}`;
       } else if (error instanceof Error) {
         errorMessage += `: ${error.message}`;
       } else if (typeof error === 'string') {
         errorMessage += `: ${error}`;
       }
-      
-      // Check for specific error types
+
       if (error?.response?.data?.error) {
         const apiError = error.response.data.error;
-        if (apiError.message) {
-          errorMessage += ` (${apiError.message})`;
+        const apiMsg =
+          typeof apiError === 'string'
+            ? apiError
+            : apiError.message || apiError.error_description || apiError.error;
+        if (apiMsg && !errorMessage.includes(String(apiMsg))) {
+          errorMessage += ` (${apiMsg})`;
         }
-        if (apiError.code === 401 || apiError.code === 403) {
+        const code = typeof apiError === 'object' ? apiError.code : undefined;
+        if (code === 401 || code === 403) {
           errorMessage += ' - Check authentication and permissions';
         }
       }
-      
-      if (error instanceof BadRequestException) {
-        throw error;
+
+      const hint = this.storageTreeErrorHint(providerId, error);
+      if (hint) {
+        errorMessage += `\n\n${hint}`;
       }
+
       throw new BadRequestException(errorMessage);
     }
   }
 
+  private storageTreeErrorHint(providerId: string, error: unknown): string {
+    const msg = (error instanceof Error ? error.message : String(error ?? '')).toLowerCase();
+    if (msg.includes('configuration not found')) {
+      return `Save ${providerId} credentials under Admin → Storage, then try again.`;
+    }
+    if (providerId !== 'google-drive') return '';
+    if (msg.includes('invalid_grant') || msg.includes('refresh token is missing') || msg.includes('refresh token is invalid')) {
+      return 'Google OAuth token expired or revoked. Open Admin → Storage → Google Drive and use "Generate New Token".';
+    }
+    if (msg.includes('deleted_client') || msg.includes('invalid_client')) {
+      return 'OAuth Client ID/Secret is invalid in Google Cloud Console. Update credentials and re-authorize.';
+    }
+    if (msg.includes('authentication tokens are missing')) {
+      return 'Complete Google Drive setup: enter Client ID/Secret and authorize with "Generate New Token".';
+    }
+    if (msg.includes('403') || msg.includes('permission') || msg.includes('insufficient')) {
+      return 'Permission denied. For Visible storage, authorize with full Drive access; for Service Account, share the folder with the service account email (Editor).';
+    }
+    if (msg.includes('service account') && msg.includes('folder')) {
+      return 'Service accounts require a Folder ID; share that folder with the service account email.';
+    }
+    return '';
+  }
+
   /**
-   * Generate Google OAuth authorization URL
    * Path: GET /api/admin/storage/google-drive/auth-url
    */
   @Get('google-drive/auth-url')

@@ -7,17 +7,26 @@
 		children: AlbumTreeNode[];
 	};
 
-	export let node: AlbumTreeNode;
-	export let depth = 0;
-	export let expandedIds: Set<string>;
-	export let selectedIds: Set<string>;
-	export let onToggleSelect: (id: string) => void;
-	export let onToggleExpand: (id: string) => void;
+	let {
+		node,
+		depth = 0,
+		expandedIds,
+		selectedIds,
+		onToggleSelect,
+		onToggleExpand,
+	}: {
+		node: AlbumTreeNode;
+		depth?: number;
+		expandedIds: Set<string>;
+		selectedIds: Set<string>;
+		onToggleSelect: (id: string) => void;
+		onToggleExpand: (id: string) => void;
+	} = $props();
 
-	$: hasChildren = node.children.length > 0;
-	$: isExpanded = expandedIds.has(node.item.id);
-	$: isExisting = node.item.status === 'exists';
-	$: isSelected = selectedIds.has(node.item.id);
+	const hasChildren = $derived(node.children.length > 0);
+	const isExpanded = $derived(expandedIds.has(node.item.id));
+	const isExisting = $derived(node.item.status === 'exists');
+	const isSelected = $derived(selectedIds.has(node.item.id));
 </script>
 
 <li role="treeitem" aria-expanded={hasChildren ? isExpanded : undefined} class="list-none">
@@ -30,7 +39,7 @@
 				type="button"
 				class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-(--color-surface-600-400) hover:bg-(--color-surface-200-800)"
 				aria-label={isExpanded ? 'Collapse' : 'Expand'}
-				on:click={() => onToggleExpand(node.item.id)}
+				onclick={() => onToggleExpand(node.item.id)}
 			>
 				<svg
 					class="h-4 w-4 transition-transform {isExpanded ? 'rotate-90' : ''}"
@@ -63,7 +72,7 @@
 					class="h-4 w-4 rounded border-surface-300-700"
 					checked={isSelected}
 					aria-label="Select {node.item.folderName} for creation"
-					on:change={() => onToggleSelect(node.item.id)}
+					onchange={() => onToggleSelect(node.item.id)}
 				/>
 			{/if}
 		</span>

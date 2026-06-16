@@ -31,14 +31,25 @@ export const GET: RequestHandler = async ({ params, request, cookies }) => {
 
 		const provider = pathParts[0];
 		const filePathParts = pathParts.slice(1);
-		const fullFilePath = filePathParts.join('/');
+		let fullFilePath = filePathParts.join('/');
 
-		// Encode the file path for the backend URL
-		const encodedFilePath = encodeURIComponent(fullFilePath);
-		
-		// Proxy the request to the backend
-		// Forward query params (e.g. storageOwnerId, cache-busting ?v=...) so dedicated storage can be served correctly.
-		const backendUrl = `${BACKEND_URL}/api/storage/serve/${provider}/${encodedFilePath}${new URL(request.url).search}`;
+		// Avoid double-encoding when DB stored `%2F` in a single path segment.
+		try {
+			while (fullFilePath.includes('%')) {
+				const decoded = decodeURIComponent(fullFilePath);
+				if (decoded === fullFilePath) break;
+				fullFilePath = decoded;
+			}
+		} catch {
+			// keep as-is
+		}
+
+		const encodedPath = fullFilePath
+			.split('/')
+			.filter((seg) => seg.length > 0)
+			.map((seg) => encodeURIComponent(seg))
+			.join('/');
+		const backendUrl = `${BACKEND_URL}/api/storage/serve/${provider}/${encodedPath}${new URL(request.url).search}`;
 		
 		// Forward cookies for authentication (if needed)
 		const cookieHeader: string[] = [];

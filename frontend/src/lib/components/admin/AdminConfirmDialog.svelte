@@ -35,8 +35,8 @@
 
 <Dialog role="alertdialog" {open} onOpenChange={handleOpenChange}>
 	<Portal>
-		<Dialog.Backdrop class="fixed inset-0 z-[150] bg-surface-50-950/60 backdrop-blur-[2px]" />
-		<Dialog.Positioner class="fixed inset-0 z-[150] flex items-center justify-center p-4">
+		<Dialog.Backdrop class="fixed inset-0 z-[10050] bg-surface-50-950/60 backdrop-blur-[2px]" />
+		<Dialog.Positioner class="fixed inset-0 z-[10050] flex items-center justify-center p-4">
 			<Dialog.Content
 				class="card preset-outlined-surface-200-800 bg-surface-50-950 max-h-[90vh] w-full max-w-md overflow-y-auto p-6 shadow-xl {anim}"
 			>

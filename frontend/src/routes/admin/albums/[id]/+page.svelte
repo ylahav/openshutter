@@ -76,6 +76,7 @@
 	let album = $state<Album | null>(null);
 	let photos = $state<Photo[]>([]);
 	let loading = $state(true);
+	let photosLoading = $state(true);
 	let albumError = $state('');
 	let photosError = $state('');
 	/** Inline feedback for actions on this page (delete, bulk, etc.) */
@@ -144,6 +145,7 @@
 
 	async function loadPhotos() {
 		photosError = '';
+		photosLoading = true;
 		try {
 			const response = await fetch(`/api/admin/albums/${albumId}/photos?t=${Date.now()}`, {
 				cache: 'no-store',
@@ -177,6 +179,8 @@
 			logger.error('Failed to fetch photos:', err);
 			photos = [];
 			photosError = handleError(err, $t('admin.failedToFetchPhotos'));
+		} finally {
+			photosLoading = false;
 		}
 	}
 
@@ -927,7 +931,14 @@
 					</div>
 				{/if}
 
-				{#if photos.length === 0}
+				{#if photosLoading}
+					<div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" role="status" aria-live="polite">
+						{#each Array(12) as _, i (i)}
+							<div class="aspect-square animate-pulse rounded-lg bg-(--color-surface-200-800)"></div>
+						{/each}
+					</div>
+					<p class="mt-4 text-center text-sm text-(--color-surface-600-400)">{$t('admin.loadingPhotos')}</p>
+				{:else if photos.length === 0}
 					<div class="text-center py-12">
 						<svg
 							class="mx-auto h-12 w-12 text-(--color-surface-400-600)"
@@ -969,12 +980,13 @@
 										title={isSelected ? 'Deselect' : 'Select'}
 									/>
 								</div>
-								<div class="aspect-square bg-(--color-surface-200-800) rounded-lg overflow-hidden {isSelected ? 'ring-4 ring-(--color-primary-500)' : ''}">
+								<div class="relative aspect-square bg-(--color-surface-200-800) rounded-lg overflow-hidden {isSelected ? 'ring-4 ring-(--color-primary-500)' : ''}">
 									{#if photoUrl}
 										<img
 											src={photoUrl}
 											alt={getPhotoTitle(photo)}
-											class="w-full h-full object-cover"
+											class="relative z-0 h-full w-full object-cover"
+											loading="lazy"
 											style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 											onerror={(e) => {
 												const target = e.currentTarget as HTMLImageElement;
@@ -989,12 +1001,9 @@
 												logger.debug('Image failed to load:', photoUrl, photo);
 												target.style.display = 'none';
 											}}
-											onload={() => {
-												logger.debug('Image loaded successfully:', photoUrl);
-											}}
 										/>
 									{:else}
-										<div class="w-full h-full flex items-center justify-center">
+										<div class="flex h-full w-full items-center justify-center">
 											<svg class="w-12 h-12 text-(--color-surface-400-600)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 												<path
 													stroke-linecap="round"
@@ -1007,7 +1016,7 @@
 									{/if}
 								</div>
 								<div
-									class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100"
+									class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-black/0 opacity-0 transition-[opacity,background-color] group-hover:pointer-events-auto group-hover:bg-black/50 group-hover:opacity-100"
 								>
 									<div class="flex gap-2">
 										<a
