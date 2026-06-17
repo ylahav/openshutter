@@ -76,6 +76,10 @@ export class AlbumsAdminController {
 				throw new BadRequestException('Name and alias are required');
 			}
 
+			if (!/^[a-zA-Z0-9_-]+$/.test(createData.alias)) {
+				throw new BadRequestException('Alias may only contain letters, digits, hyphens, and underscores');
+			}
+
 			if (!createData.storageProvider) {
 				throw new BadRequestException('Storage provider is required');
 			}

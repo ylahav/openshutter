@@ -8,6 +8,7 @@ import { randomBytes } from 'crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { mailService } from '../services/mail.service';
+import { escapeRegex } from '../utils/regex';
 import { getOwnerGroupAlias } from '../utils/owner-groups';
 import type { Request } from 'express';
 import { StorageManager } from '../services/storage/manager';
@@ -101,10 +102,11 @@ export class UsersController {
       const query: UsersListQuery = {};
 
       if (search) {
+        const safeSearch = escapeRegex(search);
         query.$or = [
-          { username: { $regex: search, $options: 'i' } },
-          { 'name.en': { $regex: search, $options: 'i' } },
-          { 'name.he': { $regex: search, $options: 'i' } },
+          { username: { $regex: safeSearch, $options: 'i' } },
+          { 'name.en': { $regex: safeSearch, $options: 'i' } },
+          { 'name.he': { $regex: safeSearch, $options: 'i' } },
         ];
       }
 
