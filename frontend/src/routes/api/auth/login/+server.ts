@@ -7,8 +7,10 @@ import { forwardedHostHeadersFromRequest } from '$lib/server/forward-host';
 
 // Simple static JWT secret - backend handles all authentication
 function getJWTSecret(): Uint8Array {
-	const baseSecret = env.AUTH_JWT_SECRET || process.env.AUTH_JWT_SECRET || 'dev-secret-change-me-in-production';
-	// Convert string secret to Uint8Array for jose library
+	const baseSecret = env.AUTH_JWT_SECRET || process.env.AUTH_JWT_SECRET;
+	if (!baseSecret) {
+		throw new Error('AUTH_JWT_SECRET environment variable must be set');
+	}
 	return new TextEncoder().encode(baseSecret);
 }
 
@@ -65,13 +67,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			tokenLength: jwt.length
 		});
 
-		// Set the cookie using SvelteKit's cookies API
-		// In development, don't use secure flag (allows http://localhost)
-		const isProduction = process.env.NODE_ENV === 'production';
-		
 		cookies.set('auth_token', jwt, {
 			httpOnly: true,
-			secure: isProduction,
+			secure: true,
 			path: '/',
 			maxAge: JWT_TTL,
 			sameSite: 'lax'

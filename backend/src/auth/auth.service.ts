@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { IUserDocument } from '../models/User';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { storageConfigService } from '../services/storage/config';
 import { ownerStorageConfigService } from '../services/storage/owner-storage-config.service';
 
@@ -17,28 +18,24 @@ async function verifyPassword(plain: string, hash: string): Promise<boolean> {
   return bcrypt.compare(plain, hash);
 }
 
-// Initial admin user configuration
-const INITIAL_ADMIN_CREDENTIALS = {
-  email: 'admin@openshutter.org',
-  password: 'admin123!',
-  name: 'System Administrator',
-  role: 'admin' as const,
-};
+// Bootstrap admin — email is fixed; password is generated once and printed to console.
+// Used only when no admin exists in the database.
+const BOOTSTRAP_ADMIN_EMAIL = 'admin@openshutter.org';
+let _bootstrapPassword: string | null = null;
 
-function isInitialAdmin(email: string, password: string): boolean {
-  return (
-    email === INITIAL_ADMIN_CREDENTIALS.email &&
-    password === INITIAL_ADMIN_CREDENTIALS.password
-  );
-}
-
-function getInitialAdminUser() {
-  return {
-    _id: 'initial-admin',
-    email: INITIAL_ADMIN_CREDENTIALS.email,
-    name: INITIAL_ADMIN_CREDENTIALS.name,
-    role: INITIAL_ADMIN_CREDENTIALS.role,
-  };
+function getBootstrapPassword(): string {
+  if (!_bootstrapPassword) {
+    _bootstrapPassword = crypto.randomBytes(16).toString('hex');
+    // Print once to console so the operator can log in for the first time.
+    // The password is only valid until an admin exists in the DB.
+    console.log('\n========================================');
+    console.log('  OpenShutter first-run bootstrap admin');
+    console.log(`  Email:    ${BOOTSTRAP_ADMIN_EMAIL}`);
+    console.log(`  Password: ${_bootstrapPassword}`);
+    console.log('  Change this password immediately after login.');
+    console.log('========================================\n');
+  }
+  return _bootstrapPassword;
 }
 
 @Injectable()
@@ -53,16 +50,17 @@ export class AuthService {
       .exec();
   }
 
+  private readonly logger = new Logger(AuthService.name);
+
   async validateUser(email: string, password: string): Promise<any> {
-    // Bootstrap initial admin if needed
+    // Bootstrap initial admin if no admin exists in the database yet
     const existingAdmin = await this.userModel.findOne({ role: 'admin' });
-    if (!existingAdmin && isInitialAdmin(email, password)) {
-      const initial = getInitialAdminUser();
+    if (!existingAdmin && email === BOOTSTRAP_ADMIN_EMAIL && password === getBootstrapPassword()) {
       const passwordHash = await hashPassword(password);
       const now = new Date();
       const newUser = await this.userModel.create({
-        name: { en: initial.name },
-        username: initial.email,
+        name: { en: 'System Administrator' },
+        username: BOOTSTRAP_ADMIN_EMAIL,
         passwordHash,
         role: 'admin',
         groupAliases: [],
@@ -70,6 +68,8 @@ export class AuthService {
         createdAt: now,
         updatedAt: now,
       });
+      // Invalidate bootstrap password after first use
+      _bootstrapPassword = null;
       return {
         id: String(newUser._id),
         email: newUser.username,

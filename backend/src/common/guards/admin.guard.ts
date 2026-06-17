@@ -9,10 +9,10 @@ export class AdminGuard implements CanActivate {
   constructor(private configService: ConfigService) {}
 
   private getJWTSecret(): Uint8Array {
-    const baseSecret = this.configService.get<string>('AUTH_JWT_SECRET') ||
-      'dev-secret-change-me-in-production';
-    
-    // Convert string secret to Uint8Array for jose library
+    const baseSecret = this.configService.get<string>('AUTH_JWT_SECRET');
+    if (!baseSecret) {
+      throw new Error('AUTH_JWT_SECRET environment variable must be set');
+    }
     return new TextEncoder().encode(baseSecret);
   }
 
@@ -26,9 +26,7 @@ export class AdminGuard implements CanActivate {
         hasCookies: !!request.cookies,
         cookieKeys: request.cookies ? Object.keys(request.cookies) : [],
         hasCookieHeader: !!request.headers.cookie,
-        cookieHeaderPreview: request.headers.cookie ? request.headers.cookie.substring(0, 50) + '...' : null,
         hasAuthHeader: !!request.headers.authorization,
-        authHeaderPreview: request.headers.authorization ? request.headers.authorization.substring(0, 30) + '...' : null,
         url: request.url,
         method: request.method
       })}`);
@@ -61,8 +59,7 @@ export class AdminGuard implements CanActivate {
       // Log token verification failures for debugging
       if (error?.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
         this.logger.error(`[AdminGuard] Token signature verification failed: ${JSON.stringify({
-          tokenLength: token.length,
-          tokenPreview: token.substring(0, 20) + '...',
+          hasToken: true,
           error: error.message
         })}`);
       }

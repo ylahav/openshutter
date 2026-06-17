@@ -24,6 +24,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Claude Code local settings
+.claude/local*
+
 # SvelteKit build artifacts (in frontend/)
 frontend/.svelte-kit/
 frontend/build/

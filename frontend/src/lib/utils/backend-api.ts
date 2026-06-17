@@ -71,9 +71,7 @@ export async function backendRequest(
 	if (authToken) {
 		defaultHeaders['Authorization'] = `Bearer ${authToken}`;
 		logger.debug('[Backend API] Setting Authorization header:', {
-			hasToken: !!authToken,
-			tokenLength: authToken?.length || 0,
-			tokenPreview: authToken ? authToken.substring(0, 30) + '...' : null,
+			hasToken: true,
 			endpoint
 		});
 	} else {
@@ -91,10 +89,8 @@ export async function backendRequest(
 		const authCookie = options.cookies.get('auth_token');
 		if (authCookie) {
 			cookieHeader.push(`auth_token=${authCookie}`);
-			// Log cookie forwarding for debugging
 			logger.debug('[Backend API] Forwarding auth_token cookie:', {
-				tokenLength: authCookie.length,
-				tokenPreview: authCookie.substring(0, 30) + '...',
+				hasToken: true,
 				endpoint
 			});
 		} else {
@@ -169,11 +165,8 @@ export async function backendRequest(
 		url,
 		hasAuthToken: !!authToken,
 		hasCookieHeader: !!finalHeaders['Cookie'],
-		cookieHeaderPreview: finalHeaders['Cookie'] ? finalHeaders['Cookie'].substring(0, 100) + '...' : null,
 		hasAuthorizationHeader: !!finalHeaders['Authorization'],
-		authorizationPreview: finalHeaders['Authorization'] ? finalHeaders['Authorization'].substring(0, 50) + '...' : null,
-		method: options.method || 'GET',
-		allHeaderKeys: Object.keys(finalHeaders)
+		method: options.method || 'GET'
 	});
 
 	let response: Response;

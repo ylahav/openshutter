@@ -213,9 +213,7 @@ export class GoogleDriveService implements IStorageService {
       if (timeSinceLastError >= this.INVALID_GRANT_THROTTLE || this.lastInvalidGrantError === 0) {
         this.logger.debug('Attempting to refresh Google Drive access token', JSON.stringify({
           hasRefreshToken: !!this.config.refreshToken,
-          refreshTokenLength: this.config.refreshToken?.length,
-          refreshTokenPreview: this.config.refreshToken?.substring(0, 20) + '...',
-          clientId: this.config.clientId ? `${this.config.clientId.substring(0, 20)}...` : 'missing',
+          hasClientId: !!this.config.clientId,
           hasClientSecret: !!this.config.clientSecret
         }))
       }
