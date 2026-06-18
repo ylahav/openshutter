@@ -5,8 +5,21 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { setupSwagger } from './config/swagger.config';
+import type { Request, Response, NextFunction } from 'express';
 
 const cookieParser = require('cookie-parser');
+
+function applySecurityHeaders(req: Request, res: Response, next: NextFunction): void {
+  res.removeHeader('X-Powered-By');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+}
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -15,6 +28,9 @@ async function bootstrap() {
   const mode = process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT';
   logger.log(`🚀 Backend server started (${mode})`);
   
+  // Security headers
+  app.use(applySecurityHeaders);
+
   // Enable cookie parser for JWT tokens
   app.use(cookieParser());
   
@@ -41,54 +57,34 @@ async function bootstrap() {
   // Log allowed origins for debugging
   logger.log('🌐 CORS allowed origins: ' + uniqueOrigins.join(', '));
   
+  const isProduction = process.env.NODE_ENV === 'production';
+
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
+      // Requests with no Origin header (e.g. curl, server-to-server) — allow in dev, block in prod.
       if (!origin) {
-        return callback(null, true);
+        return isProduction ? callback(new Error('Not allowed by CORS')) : callback(null, true);
       }
-      
-      // Normalize origin for comparison (remove trailing slash, handle http/https)
+
       const normalizeOrigin = (url: string) => {
         try {
-          const urlObj = new URL(url);
-          return `${urlObj.protocol}//${urlObj.host}`;
+          const { protocol, host } = new URL(url);
+          return `${protocol}//${host}`;
         } catch {
-          return url.replace(/\/$/, ''); // Remove trailing slash if URL parsing fails
+          return url.replace(/\/$/, '');
         }
       };
-      
+
       const normalizedOrigin = normalizeOrigin(origin);
-      
-      // Check if origin matches any allowed origin (exact match or starts with)
-      const isAllowed = uniqueOrigins.some(allowed => {
-        const normalizedAllowed = normalizeOrigin(allowed);
-        // Exact match
-        if (normalizedOrigin === normalizedAllowed) return true;
-        // Starts with match (for cases like http://localhost:4000 matching http://localhost:4000/)
-        if (normalizedOrigin.startsWith(normalizedAllowed) || normalizedAllowed.startsWith(normalizedOrigin)) {
-          return true;
-        }
-        // Check if hostname matches (for http vs https)
+
+      // Exact protocol+host match against the explicit allow-list.
+      const isAllowed = uniqueOrigins.some(allowed => normalizedOrigin === normalizeOrigin(allowed));
+      if (isAllowed) return callback(null, true);
+
+      // In development: also allow any *.localhost subdomain (owner-site dev).
+      if (!isProduction) {
         try {
-          const originUrl = new URL(origin);
-          const allowedUrl = new URL(allowed);
-          if (originUrl.hostname === allowedUrl.hostname) return true;
-        } catch {
-          // Ignore URL parsing errors
-        }
-        return false;
-      });
-      
-      if (isAllowed) {
-        return callback(null, true);
-      }
-      
-      // For development, allow localhost and *.localhost (e.g. sara.localhost:4000) on any port
-      if (process.env.NODE_ENV !== 'production') {
-        try {
-          const originUrl = new URL(origin);
-          const h = originUrl.hostname;
+          const h = new URL(origin).hostname;
           if (h === 'localhost' || h === '127.0.0.1' || h.endsWith('.localhost')) {
             return callback(null, true);
           }
@@ -96,12 +92,9 @@ async function bootstrap() {
           // Ignore URL parsing errors
         }
       }
-      
-      // Log blocked origin for debugging
+
       logger.warn(`🚫 CORS blocked origin: ${origin}`);
-      logger.warn(`💡 To fix: Set FRONTEND_URL or CORS_ORIGINS environment variable in backend/.env`);
-      logger.warn('   Example: FRONTEND_URL=https://yairl.com,http://localhost:3021');
-      logger.warn('   Note: EMAIL_BASE_URL and GOOGLE_OAUTH_CALLBACK_BASE_URL are optional and fall back to FRONTEND_URL');
+      logger.warn('💡 To fix: Set FRONTEND_URL or CORS_ORIGINS in backend/.env');
       callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
