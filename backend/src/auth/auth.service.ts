@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { IUserDocument } from '../models/User';
@@ -38,8 +38,18 @@ function getBootstrapPassword(): string {
   return _bootstrapPassword;
 }
 
+interface FailedLoginEntry {
+  count: number;
+  since: number;
+}
+
+const LOCKOUT_MAX_ATTEMPTS = 10;
+const LOCKOUT_WINDOW_MS = 15 * 60_000; // 15 minutes
+
 @Injectable()
 export class AuthService {
+  private readonly failedLogins = new Map<string, FailedLoginEntry>();
+
   constructor(@InjectModel('User') private userModel: Model<IUserDocument>) {}
 
   /** Persist successful password-login time (ignored for invalid ids). */
@@ -78,8 +88,12 @@ export class AuthService {
       };
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+    this.checkAccountLockout(normalizedEmail);
+
     const user = await this.userModel.findOne({ username: email });
     if (!user) {
+      this.recordFailedLogin(normalizedEmail);
       return null;
     }
 
@@ -94,9 +108,11 @@ export class AuthService {
 
     const ok = await verifyPassword(password, user.passwordHash);
     if (!ok) {
+      this.recordFailedLogin(normalizedEmail);
       return null;
     }
 
+    this.clearFailedLogins(normalizedEmail);
     return {
       id: String(user._id),
       email: user.username,
@@ -107,6 +123,36 @@ export class AuthService {
         ? (user as any).groupAliases
         : [],
     };
+  }
+
+  private checkAccountLockout(email: string): void {
+    const entry = this.failedLogins.get(email);
+    if (!entry) return;
+    const now = Date.now();
+    if (now - entry.since > LOCKOUT_WINDOW_MS) {
+      this.failedLogins.delete(email);
+      return;
+    }
+    if (entry.count >= LOCKOUT_MAX_ATTEMPTS) {
+      const minutesLeft = Math.ceil((LOCKOUT_WINDOW_MS - (now - entry.since)) / 60_000);
+      throw new UnauthorizedException(
+        `Account temporarily locked due to too many failed attempts. Try again in ${minutesLeft} minute(s).`,
+      );
+    }
+  }
+
+  private recordFailedLogin(email: string): void {
+    const now = Date.now();
+    const entry = this.failedLogins.get(email);
+    if (!entry || now - entry.since > LOCKOUT_WINDOW_MS) {
+      this.failedLogins.set(email, { count: 1, since: now });
+    } else {
+      entry.count += 1;
+    }
+  }
+
+  private clearFailedLogins(email: string): void {
+    this.failedLogins.delete(email);
   }
 
   async getProfile(userId: string): Promise<{ user: any }> {
