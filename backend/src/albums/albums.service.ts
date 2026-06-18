@@ -576,27 +576,29 @@ export class AlbumsService {
       this.logger.debug(`Count with $or query (ObjectId, string, $eq ObjectId): ${countWithOr} albums`      );
     }
     
-    // Calculate childAlbumCount for each album (same visibility as list)
-    const albumsWithChildCount = await Promise.all(
-      albums.map(async (album) => {
-        const childQuery = {
-          $and: [
-            { parentAlbumId: album._id },
-            visibility
-          ]
-        };
-        const childCount = await this.albumModel.countDocuments(childQuery);
-        const albumObj = album.toObject ? album.toObject() : (album as any);
-        return {
-          ...albumObj,
-          _id: albumObj._id?.toString(),
-          parentAlbumId: albumObj.parentAlbumId?.toString() || null,
-          coverPhotoId: albumObj.coverPhotoId?._id?.toString() || albumObj.coverPhotoId?.toString() || null,
-          childAlbumCount: childCount,
-        };
-      })
+    // Batch-fetch child counts in a single aggregation instead of one countDocuments per album.
+    const parentIds = albums.map((a: any) => a._id);
+    const childCountRows = parentIds.length > 0
+      ? await this.albumModel.aggregate([
+          { $match: { $and: [{ parentAlbumId: { $in: parentIds } }, visibility] } },
+          { $group: { _id: '$parentAlbumId', count: { $sum: 1 } } },
+        ])
+      : [];
+    const childCountMap = new Map<string, number>(
+      childCountRows.map((r: any) => [r._id?.toString(), r.count as number])
     );
-    
+
+    const albumsWithChildCount = albums.map((album: any) => {
+      const albumObj = album.toObject ? album.toObject() : album;
+      return {
+        ...albumObj,
+        _id: albumObj._id?.toString(),
+        parentAlbumId: albumObj.parentAlbumId?.toString() || null,
+        coverPhotoId: albumObj.coverPhotoId?._id?.toString() || albumObj.coverPhotoId?.toString() || null,
+        childAlbumCount: childCountMap.get(albumObj._id?.toString()) ?? 0,
+      };
+    });
+
     return albumsWithChildCount;
   }
 
@@ -1074,18 +1076,23 @@ export class AlbumsService {
     this.logger.debug(`getAlbumData - serializedAlbum.name type: ${typeof serializedAlbum.name}`);
     this.logger.debug(`getAlbumData - serializedAlbum keys: ${JSON.stringify(Object.keys(serializedAlbum))}`);
 
-    // Match list endpoints: each sub-album needs childAlbumCount for gallery cards (thumb badges).
-    const childAlbumCounts =
-      subAlbums.length === 0
-        ? []
-        : await Promise.all(
-            subAlbums.map((sub: any) => {
-              const oid =
-                sub._id instanceof Types.ObjectId ? sub._id : new Types.ObjectId(String(sub._id));
-              const childQuery = { $and: [{ parentAlbumId: oid }, subVisibility] };
-              return this.albumModel.countDocuments(childQuery);
-            }),
-          );
+    // Batch-fetch child counts for sub-albums in a single aggregation.
+    const subParentIds = subAlbums.map((s: any) =>
+      s._id instanceof Types.ObjectId ? s._id : new Types.ObjectId(String(s._id))
+    );
+    const subChildCountRows = subParentIds.length > 0
+      ? await this.albumModel.aggregate([
+          { $match: { $and: [{ parentAlbumId: { $in: subParentIds } }, subVisibility] } },
+          { $group: { _id: '$parentAlbumId', count: { $sum: 1 } } },
+        ])
+      : [];
+    const subChildCountMap = new Map<string, number>(
+      subChildCountRows.map((r: any) => [r._id?.toString(), r.count as number])
+    );
+    const childAlbumCounts = subAlbums.map((sub: any) => {
+      const oid = sub._id instanceof Types.ObjectId ? sub._id : new Types.ObjectId(String(sub._id));
+      return subChildCountMap.get(oid.toString()) ?? 0;
+    });
 
     // Serialize sub-albums
     const serializedSubAlbums = subAlbums.map((subAlbum: any, index: number) => ({
