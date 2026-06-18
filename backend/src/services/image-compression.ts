@@ -100,13 +100,16 @@ export class ImageCompressionService {
       config.maxHeight
     )
 
-    // Compress JPEG
-    const compressedJpeg = await sharp(imageBuffer)
-      .resize(dimensions.width, dimensions.height, {
-        fit: 'inside',
-        withoutEnlargement: true
-      })
-      // Preserve existing EXIF metadata from the source image
+    // Build a single resized pipeline and clone it for each output format.
+    // This runs the decode+resize step once instead of once per format,
+    // keeping peak memory closer to 1× the resized image rather than 3×.
+    const base = sharp(imageBuffer).resize(dimensions.width, dimensions.height, {
+      fit: 'inside',
+      withoutEnlargement: true
+    })
+
+    // Compress JPEG (preserve EXIF metadata from the source image)
+    const compressedJpeg = await base.clone()
       .withMetadata()
       .jpeg({
         quality: config.quality,
@@ -124,27 +127,15 @@ export class ImageCompressionService {
 
     // Generate WebP if enabled
     if (config.webp) {
-      result.webp = await sharp(imageBuffer)
-        .resize(dimensions.width, dimensions.height, {
-          fit: 'inside',
-          withoutEnlargement: true
-        })
-        .webp({
-          quality: config.quality
-        })
+      result.webp = await base.clone()
+        .webp({ quality: config.quality })
         .toBuffer()
     }
 
     // Generate AVIF if enabled
     if (config.avif) {
-      result.avif = await sharp(imageBuffer)
-        .resize(dimensions.width, dimensions.height, {
-          fit: 'inside',
-          withoutEnlargement: true
-        })
-        .avif({
-          quality: config.quality
-        })
+      result.avif = await base.clone()
+        .avif({ quality: config.quality })
         .toBuffer()
     }
 
