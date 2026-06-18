@@ -32,13 +32,18 @@ The setup form allows you to configure:
 
 ### Default Admin Credentials (Fallback)
 
-If the setup wizard doesn't appear (e.g., if the database was already initialized), you can use these default credentials:
+If no admin user exists in the database, the backend generates a **random one-time password** on startup and prints it once to the console (or PM2 log):
 
-- **Email**: `admin@openshutter.org`
-- **Password**: `admin123!`
-- **Role**: System Administrator
+```
+========================================
+  OpenShutter first-run bootstrap admin
+  Email:    admin@openshutter.org
+  Password: <random 32-char hex>
+  Change this password immediately after login.
+========================================
+```
 
-**⚠️ IMPORTANT**: These default credentials should only be used if the setup wizard is not available. Always change them immediately after first login in production!
+Use that printed password for the first login, then change it immediately. The one-time password is only valid until an admin account exists in the database — it is not stored anywhere and cannot be recovered if lost (restart the backend with an empty `users` collection to generate a new one).
 
 ### After Initial Setup
 
@@ -75,18 +80,7 @@ After changing admin layout, Skeleton, or merged **Phase 6** UI waves, run **[`A
 
 ### Initial Admin Settings
 
-The initial admin user is automatically created by the database initialization service. The default credentials are:
-
-- **Email**: `admin@openshutter.org`
-- **Password**: `admin123!`
-- **Name**: System Administrator
-- **Role**: admin
-
-These are defined in `backend/src/database/database-init.service.ts` and are only used when:
-- No admin user exists in the database
-- The setup wizard hasn't been completed yet
-
-**Note**: The setup wizard allows you to change these credentials during initial setup, so you may never need to use the defaults.
+The initial admin user is bootstrapped by `backend/src/auth/auth.service.ts` the first time `admin@openshutter.org` logs in with the one-time password printed to the backend console on startup. The bootstrap only runs when no admin user exists in the database — after first login the normal bcrypt-verified path is used for all subsequent logins.
 
 ### Environment Variables
 Location: `.env.local`

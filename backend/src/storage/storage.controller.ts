@@ -1,5 +1,5 @@
-import { Controller, Get, Param, Query, Res, NotFoundException, Logger } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Param, Query, Req, Res, NotFoundException, Logger } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { StorageManager } from '../services/storage/manager';
 import type { StorageOwnerContext } from '../services/storage/types';
 import { StorageConfigError } from '../services/storage/types';
@@ -51,7 +51,7 @@ export class StorageController {
   @Get('serve/:provider/*path')
   async serveFile(
     @Param('provider') provider: string,
-    @Param('path') filePath: string,
+    @Req() req: Request,
     @Query('storageOwnerId') storageOwnerId: string | undefined,
     @Res() res: Response,
   ) {
@@ -59,6 +59,13 @@ export class StorageController {
       const storageManager = StorageManager.getInstance();
       const ownerCtx: StorageOwnerContext | undefined =
         storageOwnerId && storageOwnerId.trim() ? { ownerUserId: storageOwnerId.trim() } : undefined;
+
+      // NestJS joins wildcard path segments with commas when accessed via @Param.
+      // Extract the file path directly from the raw URL to preserve slashes.
+      const rawUrl: string = (req.path || req.url || '').split('?')[0];
+      const marker = `/serve/${provider}/`;
+      const markerIdx = rawUrl.indexOf(marker);
+      const filePath = markerIdx >= 0 ? rawUrl.slice(markerIdx + marker.length) : '';
 
       // Decode the path - handle both single and double encoding
       let decodedPath = filePath;

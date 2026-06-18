@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { AlbumsService, type AlbumAccessContext } from '../albums/albums.service';
 import { SiteConfigService } from '../services/site-config';
+import { escapeRegex } from '../utils/regex';
 
 export interface SearchFilters {
 	q?: string;
@@ -170,7 +171,11 @@ export class SearchService {
 		const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
 		let textMatch: any = null;
 		if (filters.q && filters.q.trim()) {
-			const q = filters.q.trim();
+			const raw = filters.q.trim();
+			if (raw.length > 256) {
+				throw new BadRequestException('Search query must be 256 characters or fewer');
+			}
+			const q = escapeRegex(raw);
 			const titleDesc = ['title', 'description'].flatMap((f) =>
 				langs.map((code) => ({ [`${f}.${code}`]: { $regex: q, $options: 'i' } })),
 			);
@@ -429,12 +434,13 @@ export class SearchService {
 		const visibilityCondition = this.albumsService.getVisibilityCondition(accessContext ?? null);
 		const match: any = { $and: [visibilityCondition] };
 		if (q && q.trim()) {
+			const safe = escapeRegex(q.trim());
 			const { SUPPORTED_LANGUAGES } = await import('../types/multi-lang');
 			const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
 			const conds = [
-				...langs.map((code) => ({ [`name.${code}`]: { $regex: q.trim(), $options: 'i' } })),
-				...langs.map((code) => ({ [`description.${code}`]: { $regex: q.trim(), $options: 'i' } })),
-				{ alias: { $regex: q.trim(), $options: 'i' } },
+				...langs.map((code) => ({ [`name.${code}`]: { $regex: safe, $options: 'i' } })),
+				...langs.map((code) => ({ [`description.${code}`]: { $regex: safe, $options: 'i' } })),
+				{ alias: { $regex: safe, $options: 'i' } },
 			];
 			match.$and.push({ $or: conds });
 		}
@@ -454,10 +460,11 @@ export class SearchService {
 	private async searchPeople(db: mongoose.mongo.Db, q?: string, limitCount = 20): Promise<{ people: any[]; total: number }> {
 		const match: any = {};
 		if (q && q.trim()) {
+			const safe = escapeRegex(q.trim());
 			const { SUPPORTED_LANGUAGES } = await import('../types/multi-lang');
 			const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
 			const fields = ['firstName', 'lastName', 'fullName', 'nickname'];
-			const conds = fields.flatMap((f) => langs.map((code) => ({ [`${f}.${code}`]: { $regex: q.trim(), $options: 'i' } })));
+			const conds = fields.flatMap((f) => langs.map((code) => ({ [`${f}.${code}`]: { $regex: safe, $options: 'i' } })));
 			match.$or = conds;
 		}
 		const [people, total] = await Promise.all([
@@ -471,13 +478,14 @@ export class SearchService {
 	private async searchLocations(db: mongoose.mongo.Db, q?: string, limitCount = 20): Promise<{ locations: any[]; total: number }> {
 		const match: any = {};
 		if (q && q.trim()) {
+			const safe = escapeRegex(q.trim());
 			const { SUPPORTED_LANGUAGES } = await import('../types/multi-lang');
 			const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
 			const conds = [
-				...langs.map((code) => ({ [`name.${code}`]: { $regex: q.trim(), $options: 'i' } })),
-				{ address: { $regex: q.trim(), $options: 'i' } },
-				{ city: { $regex: q.trim(), $options: 'i' } },
-				{ country: { $regex: q.trim(), $options: 'i' } },
+				...langs.map((code) => ({ [`name.${code}`]: { $regex: safe, $options: 'i' } })),
+				{ address: { $regex: safe, $options: 'i' } },
+				{ city: { $regex: safe, $options: 'i' } },
+				{ country: { $regex: safe, $options: 'i' } },
 			];
 			match.$or = conds;
 		}

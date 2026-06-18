@@ -12,6 +12,7 @@ import {
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { OptionalAdminGuard } from '../common/guards/optional-admin.guard';
+import { LoginRateLimitGuard } from '../common/guards/login-rate-limit.guard';
 import { getOwnerIdFromOwnerGroupAlias, isOwnerGroupAlias } from '../utils/owner-groups';
 
 @Controller('auth')
@@ -19,6 +20,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
+  @UseGuards(LoginRateLimitGuard)
   async login(@Req() req: Request, @Body() loginDto: { email: string; password: string }) {
     const user = await this.authService.validateUser(
       loginDto.email,

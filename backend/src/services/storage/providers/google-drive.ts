@@ -23,6 +23,7 @@ export class GoogleDriveService implements IStorageService {
   private readonly TOKEN_SAVE_THROTTLE = 5000 // Save token max once per 5 seconds
   private lastInvalidGrantError: number = 0
   private readonly INVALID_GRANT_THROTTLE = 5 * 60 * 1000 // Don't retry invalid_grant for 5 minutes
+  private refreshPromise: Promise<void> | null = null
 
   constructor(config: Record<string, any>) {
     this.config = config
@@ -185,11 +186,18 @@ export class GoogleDriveService implements IStorageService {
   }
 
   private async refreshAccessToken(): Promise<void> {
+    if (!this.refreshPromise) {
+      this.refreshPromise = this._doRefresh().finally(() => { this.refreshPromise = null })
+    }
+    return this.refreshPromise
+  }
+
+  private async _doRefresh(): Promise<void> {
     try {
       if (!this.config.refreshToken) {
         throw new Error('Refresh token is missing')
       }
-      
+
       // Check if we recently got an invalid_grant error - throttle retries to prevent endless loops
       const now = Date.now()
       const timeSinceLastError = now - this.lastInvalidGrantError
@@ -207,15 +215,13 @@ export class GoogleDriveService implements IStorageService {
         }
         throw error
       }
-      
+
       // Log token refresh attempt for debugging (without exposing sensitive data)
       // Only log if we haven't recently failed (to reduce noise)
       if (timeSinceLastError >= this.INVALID_GRANT_THROTTLE || this.lastInvalidGrantError === 0) {
         this.logger.debug('Attempting to refresh Google Drive access token', JSON.stringify({
           hasRefreshToken: !!this.config.refreshToken,
-          refreshTokenLength: this.config.refreshToken?.length,
-          refreshTokenPreview: this.config.refreshToken?.substring(0, 20) + '...',
-          clientId: this.config.clientId ? `${this.config.clientId.substring(0, 20)}...` : 'missing',
+          hasClientId: !!this.config.clientId,
           hasClientSecret: !!this.config.clientSecret
         }))
       }

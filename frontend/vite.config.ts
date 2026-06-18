@@ -16,19 +16,15 @@ export default defineConfig({
 		sveltekit(),
 	],
 	build: {
-		chunkSizeWarningLimit: 1000, // Increase limit to reduce warnings for large chunks
+		chunkSizeWarningLimit: 500,
 		rollupOptions: {
-			onwarn(warning, warn) {
-				// Suppress TypeScript import warnings for storage types (false positives)
-				if (
-					warning.code === 'MODULE_LEVEL_DIRECTIVE' ||
-					(warning.message && warning.message.includes('is not exported by'))
-				) {
-					// These are often false positives in SvelteKit builds
-					return;
-				}
-				// Use default warning handler for other warnings
-				warn(warning);
+			output: {
+				manualChunks(id: string) {
+					if (id.includes('@tiptap/')) return 'vendor-tiptap';
+					if (id.includes('chart.js')) return 'vendor-chart';
+					if (id.includes('@skeletonlabs/skeleton')) return 'vendor-skeleton';
+					if (id.includes('/marked/') || id.includes('/marked@')) return 'vendor-marked';
+				},
 			},
 		},
 	},

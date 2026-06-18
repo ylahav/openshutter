@@ -43,6 +43,7 @@ export class GoogleDriveImportService extends GoogleDriveService {
   private async scanFoldersRecursively(folderId: string, folders: GoogleDriveFolder[]): Promise<void> {
     try {
       let nextPageToken: string | undefined
+      const subfolderIds: string[] = []
 
       do {
         const response = await this.drive.files.list({
@@ -80,12 +81,17 @@ export class GoogleDriveImportService extends GoogleDriveService {
             parentPath
           })
 
-          // Recursively scan subfolders
-          await this.scanFoldersRecursively(folder.id!, folders)
+          subfolderIds.push(folder.id!)
         }
 
         nextPageToken = response.data.nextPageToken
       } while (nextPageToken)
+
+      const CONCURRENCY = 5
+      for (let i = 0; i < subfolderIds.length; i += CONCURRENCY) {
+        const batch = subfolderIds.slice(i, i + CONCURRENCY)
+        await Promise.all(batch.map(id => this.scanFoldersRecursively(id, folders)))
+      }
     } catch (error) {
       this.importLogger.warn(`Failed to scan folder ${folderId}: ${error instanceof Error ? error.message : String(error)}`)
       // Continue with other folders even if one fails
@@ -179,8 +185,11 @@ export class GoogleDriveImportService extends GoogleDriveService {
           fields: 'files(id)'
         })
 
-        for (const subfolder of subfoldersResponse.data.files || []) {
-          await this.scanFilesRecursively(subfolder.id!, files, true)
+        const subfolderList = subfoldersResponse.data.files || []
+        const CONCURRENCY = 5
+        for (let i = 0; i < subfolderList.length; i += CONCURRENCY) {
+          const batch = subfolderList.slice(i, i + CONCURRENCY)
+          await Promise.all(batch.map((sf: any) => this.scanFilesRecursively(sf.id!, files, true)))
         }
       }
     } catch (error) {

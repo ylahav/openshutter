@@ -7,8 +7,10 @@ import { resolveSiteContext } from '$lib/server/site-context';
 // Frontend only uses this for UI state (showing user info)
 // Backend handles all authentication enforcement
 function getJWTSecret(): Uint8Array {
-	const baseSecret = env.AUTH_JWT_SECRET || process.env.AUTH_JWT_SECRET || 'dev-secret-change-me-in-production';
-	// Convert string secret to Uint8Array for jose library
+	const baseSecret = env.AUTH_JWT_SECRET || process.env.AUTH_JWT_SECRET;
+	if (!baseSecret) {
+		throw new Error('AUTH_JWT_SECRET environment variable must be set');
+	}
 	return new TextEncoder().encode(baseSecret);
 }
 

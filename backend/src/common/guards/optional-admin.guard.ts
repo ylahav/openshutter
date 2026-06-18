@@ -12,8 +12,10 @@ export class OptionalAdminGuard implements CanActivate {
   constructor(private configService: ConfigService) {}
 
   private getJWTSecret(): Uint8Array {
-    const baseSecret = this.configService.get<string>('AUTH_JWT_SECRET') ||
-      'dev-secret-change-me-in-production';
+    const baseSecret = this.configService.get<string>('AUTH_JWT_SECRET');
+    if (!baseSecret) {
+      throw new Error('AUTH_JWT_SECRET environment variable must be set');
+    }
     return new TextEncoder().encode(baseSecret);
   }
 
