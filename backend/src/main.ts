@@ -61,9 +61,10 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Requests with no Origin header (e.g. curl, server-to-server) — allow in dev, block in prod.
+      // Requests with no Origin header (server-to-server, curl, mobile) are never browser
+      // cross-origin requests, so CORS doesn't apply — always allow.
       if (!origin) {
-        return isProduction ? callback(new Error('Not allowed by CORS')) : callback(null, true);
+        return callback(null, true);
       }
 
       const normalizeOrigin = (url: string) => {
