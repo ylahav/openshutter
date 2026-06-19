@@ -417,15 +417,34 @@ export class FaceDetectionController {
 			}
 			const updatedPeopleObjectIds = updatedPeople.map((id) => new Types.ObjectId(id));
 
+			// If the photo has been cropped, also mirror this face into the original-space
+			// backup so that restoring the original preserves the face at the correct position.
+			const updatePayload: Record<string, unknown> = {
+				'faceRecognition.faces': updatedFaces,
+				'faceRecognition.processedAt': new Date(),
+				people: updatedPeopleObjectIds,
+			};
+			const cropOffset = photo.cumulativeCropOffset as { x: number; y: number } | undefined;
+			if (photo.originalBackupPath && cropOffset) {
+				const faceInOriginalSpace = {
+					...newFace,
+					box: {
+						x: Math.round(box.x + cropOffset.x),
+						y: Math.round(box.y + cropOffset.y),
+						width: box.width,
+						height: box.height,
+					},
+				};
+				const backupFr = photo.originalBackupFaceRecognition as { faces?: any[] } | undefined;
+				const backupFaces = Array.isArray(backupFr?.faces)
+					? [...backupFr.faces, faceInOriginalSpace]
+					: [faceInOriginalSpace];
+				updatePayload['originalBackupFaceRecognition.faces'] = backupFaces;
+			}
+
 			await db.collection('photos').updateOne(
 				{ _id: objectId },
-				{
-					$set: {
-						'faceRecognition.faces': updatedFaces,
-						'faceRecognition.processedAt': new Date(),
-						people: updatedPeopleObjectIds,
-					},
-				},
+				{ $set: updatePayload },
 			);
 
 			return {

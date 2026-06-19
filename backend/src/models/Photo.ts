@@ -58,6 +58,10 @@ export interface IPhoto extends Document {
   iptcXmp?: Record<string, unknown>
   /** Display rotation in degrees (0, 90, -90, 180). Applied when displaying; file is unchanged. */
   rotation?: number
+  /** Cumulative pixel offset of the current (possibly cropped) image origin within the original image.
+   *  Accumulated across successive crops; cleared when the original is restored. Used to back-project
+   *  face boxes drawn on a cropped image into original-image coordinates for the restore snapshot. */
+  cumulativeCropOffset?: { x: number; y: number }
   faceRecognition?: {
     faces: Array<{
       descriptor: number[] // 128D face descriptor vector
@@ -172,6 +176,10 @@ export const PhotoSchema = new Schema<IPhoto>({
   rotation: {
     type: Number,
     default: 0
+  },
+  cumulativeCropOffset: {
+    x: Number,
+    y: Number,
   },
   exif: {
     make: String,

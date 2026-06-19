@@ -1283,6 +1283,14 @@ export class PhotosAdminController {
 			// Calculate new file size
 			const compressionResult = await ImageCompressionService.compressImage(croppedBuffer, 'gallery');
 
+			// Track cumulative offset so that faces drawn on a cropped image can be
+			// back-projected to original-image coordinates (used by addManualFace).
+			const prevOffset = (photo as any).cumulativeCropOffset as { x: number; y: number } | undefined;
+			const newCumulativeOffset = {
+				x: (prevOffset?.x ?? 0) + finalX,
+				y: (prevOffset?.y ?? 0) + finalY,
+			};
+
 			// Translate stored face-detection rectangles into the new (cropped) image's
 			// coordinate system. Faces fully outside the crop area are dropped; partial
 			// overlaps are clipped. Descriptors and matched person ids are preserved so
@@ -1320,6 +1328,7 @@ export class PhotosAdminController {
 			if (faceUpdate !== undefined) {
 				updateSet.faceRecognition = faceUpdate;
 			}
+			updateSet.cumulativeCropOffset = newCumulativeOffset;
 			const updateResult = await db.collection('photos').updateOne(
 				{ _id: objectId },
 				{ $set: updateSet }
@@ -1569,6 +1578,7 @@ export class PhotosAdminController {
 						originalBackupPath: '',
 						originalBackupFilename: '',
 						originalBackupFaceRecognition: '',
+						cumulativeCropOffset: '',
 						rotation: '',
 					},
 				}
