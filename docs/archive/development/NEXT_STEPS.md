@@ -24,7 +24,7 @@ Use this list to pick **immediate** follow-ups vs **product roadmap** work.
 | [`VIDEO_TASKS.md`](./VIDEO_TASKS.md) | Video feature checklist (albums, lightbox, storage). |
 | [`PHASE_4_WORKFLOW.md`](./PHASE_4_WORKFLOW.md) | Remaining Phase 4: mobile app (5), video (6), enterprise (7); tag optimization follow-ups if any. |
 | [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md) | Admin shell UX backlog; **includes owner-scoped `/admin` dashboard backlog** (access + API scoping). |
-| [`TEMPLATING.md` — Part III](./TEMPLATING.md#part-iii-implementation-checklist-and-backlog) | Template / page-builder implementation gaps. |
+| [`TEMPLATING.md` — Part III](../../development/TEMPLATING.md#part-iii-implementation-checklist-and-backlog) | Template / page-builder implementation gaps. |
 
 ---
 
@@ -34,7 +34,7 @@ Use this list to pick **immediate** follow-ups vs **product roadmap** work.
 |------|--------|
 | **ESLint warning reduction** | Baseline ~400 warnings; tighten rules or fix clusters when touching files. |
 | **`eslint --max-warnings 0`** | Only after warning count is manageable. |
-| **Svelte `vite build` warnings** | Treat selected `a11y_*` as errors via `onwarn` when noise is low. |
+| ~~**Svelte `vite build` warnings**~~ | ✅ Done — zero-warning production build achieved (2026-06). |
 | **E2E in CI** | Add workflow when DB + env + secrets are available in CI. |
 
 ---

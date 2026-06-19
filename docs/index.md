@@ -47,4 +47,4 @@ Root [README.md](../README.md), [LICENSE](../LICENSE), and [CHANGELOG.md](../CHA
 
 ---
 
-*Last updated: 2026-04 — slimmed index; roadmaps and design specs moved to `archive/development/`.*
+*Last updated: 2026-06 — slimmed index; roadmaps and design specs moved to `archive/development/`; Svelte 5 runes migration complete (zero-warning production build).*

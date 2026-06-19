@@ -12,6 +12,7 @@ Architecture and contributor notes. For **install, deploy, and operations**, see
 | [TYPE_SYSTEM.md](./TYPE_SYSTEM.md) | Shared TypeScript types |
 | [API_TESTING.md](./API_TESTING.md) | Testing NestJS APIs |
 | [SWAGGER_SETUP.md](./SWAGGER_SETUP.md) | OpenAPI/Swagger UI: install, env, URLs |
+| [../templating-refactor.md](../templating-refactor.md) | Templating refactor tracker: goals, architecture phases A–D, migration runbook (`frontendTemplate` → `frontendTemplates`) |
 
 ## Visitor templates — two documents
 

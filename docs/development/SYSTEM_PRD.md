@@ -298,6 +298,7 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 
 #### Supported Storage Providers
 - Local filesystem (default)
+- Google Drive
 - AWS S3
 - Wasabi (S3-compatible)
 - Backblaze B2 (S3-compatible)
