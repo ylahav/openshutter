@@ -350,7 +350,7 @@
 					}
 				} else {
 					// Non-2xx status code
-					let errorMsg = $state(`Upload failed (${xhr.status})`);
+					let errorMsg = `Upload failed (${xhr.status})`;
 					
 					// Handle 413 Request Entity Too Large
 					if (xhr.status === 413) {
@@ -548,7 +548,7 @@
 		
 		// Check for stuck uploads (100% progress but still 'uploading' status for > 10 seconds)
 		const now = Date.now();
-		let hasStuckUploads = $state(false);
+		let hasStuckUploads = false;
 		uploads = uploads.map((upload) => {
 			if (upload.status === 'uploading' && upload.progress >= 100 && upload.progress100Timestamp) {
 				const stuckDuration = now - upload.progress100Timestamp;
@@ -655,8 +655,8 @@
 		}
 	}
 
-	const allUploadsComplete = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
-	const hasErrors = uploads.some((upload) => upload.status === 'error');
+	const allUploadsComplete = $derived(uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading'));
+	const hasErrors = $derived(uploads.some((upload) => upload.status === 'error'));
 
 	function handleFolderSelected(files: FileList | null) {
 		if (!files || files.length === 0) {

@@ -386,7 +386,7 @@
 		);
 		const visible = new Set<string>();
 		const addAncestors = (id: string) => {
-			let cur: Album | undefined = $state(byId.get(id));
+			let cur: Album | undefined = byId.get(id);
 			while (cur) {
 				visible.add(cur._id);
 				const pid = cur.parentAlbumId;

@@ -399,7 +399,7 @@
 	let lightboxIndex = $state(0);
 
 	function albumEditorialIndex(list: AlbumCard[], index: number): number {
-		let n = $state(0);
+		let n = 0;
 		for (let j = 0; j < index; j++) {
 			if (list[j]?.cardType !== 'photo') n++;
 		}
@@ -660,7 +660,7 @@
 						if (Array.isArray(albumsData)) {
 							// Flatten recursively
 							const flattenAlbums = (items: any[]): any[] => {
-								let resultList: any[] = $state([]);
+								let resultList: any[] = [];
 								for (const album of items) {
 									if (album.isPublic || album.isFeatured) {
 										resultList.push(album);

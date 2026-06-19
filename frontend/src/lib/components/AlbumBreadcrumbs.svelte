@@ -85,7 +85,7 @@
 
       // Parent chain - build full path
       const parentChain: TemplateAlbum[] = [];
-      let currentParentId = $state(currentAlbum.parentAlbumId);
+      let currentParentId = currentAlbum.parentAlbumId;
 
       while (currentParentId) {
         try {

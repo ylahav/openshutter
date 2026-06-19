@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
@@ -126,8 +126,8 @@
 		albumCollaboration,
 	}: Props = $props();
 
-	let current = $state(startIndex ?? initialIndex ?? 0);
-	let playing = $state(autoPlay);
+	let current = $state(untrack(() => startIndex ?? initialIndex ?? 0));
+	let playing = $state(untrack(() => autoPlay));
 	let showInfo = $state(false);
 	let showShare = $state(false);
 	let showFaces = $state(false);
@@ -298,7 +298,7 @@
 					// Prefer above the box; if not enough space, put below (clamp to canvas)
 					const spaceAbove = y;
 					const putAbove = spaceAbove >= labelHeight + 2;
-					let labelY = $state(putAbove ? y - labelHeight - 2 : y + height + 2);
+					let labelY = putAbove ? y - labelHeight - 2 : y + height + 2;
 					if (!putAbove && labelY + labelHeight > canvas.height) {
 						labelY = canvas.height - labelHeight - 2;
 					}
@@ -444,13 +444,13 @@
 		if (!id) return null;
 		const opts = { credentials: 'include' as RequestCredentials };
 		try {
-			let personResponse = $state(await fetch(`/api/people/${id}`, opts));
+			let personResponse = await fetch(`/api/people/${id}`, opts);
 			if (!personResponse.ok) {
 				personResponse = await fetch(`/api/admin/people/${id}`, opts);
 			}
 			if (personResponse.ok) {
 				const personData = await personResponse.json();
-				let person = $state(personData.success ? personData.data : personData);
+				let person = personData.success ? personData.data : personData;
 				if (Array.isArray(person) && person.length > 0) {
 					person = person.find((p: any) => String(p._id || '') === id) || person[0];
 				}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '$stores/i18n';
+	import { untrack } from 'svelte';
 
 	let {
 		query = '',
@@ -15,7 +16,7 @@
 
 	const displayPlaceholder = $derived(placeholder || $t('search.placeholder'));
 
-	let inputValue = $state(query);
+	let inputValue = $state(untrack(() => query));
 	let isFocused = $state(false);
 
 	$effect(() => {

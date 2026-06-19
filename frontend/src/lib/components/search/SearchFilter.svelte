@@ -4,6 +4,7 @@
 	import { t } from '$stores/i18n';
 	import { logger } from '$lib/utils/logger';
 	import { hasActiveSearchFilters, type SearchModuleFilters } from './search-modules-store';
+	import { untrack } from 'svelte';
 
 	let {
 		filters,
@@ -27,7 +28,7 @@
 		people: [],
 		locations: []
 	});
-	let draftFilters = $state<SearchModuleFilters>({ ...filters });
+	let draftFilters = $state<SearchModuleFilters>(untrack(() => ({ ...filters })));
 
 	const activeFilters = $derived(
 		filters || {

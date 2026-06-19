@@ -6,8 +6,8 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const isMember = data.user?.role === 'guest';
-	const isAdmin = data.user?.role === 'admin';
+	const isMember = $derived(data.user?.role === 'guest');
+	const isAdmin = $derived(data.user?.role === 'admin');
 
 	async function handleLogout() {
 		await logout();

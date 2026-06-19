@@ -455,7 +455,7 @@ let layoutShellInstances: Record<
 				
 				// Flatten albums hierarchy for dropdown with proper levels
 				const flattenAlbums = (items: AlbumHierarchyNode[], level = 0): AlbumDropdownItem[] => {
-					let result: AlbumDropdownItem[] = $state([]);
+					let result: AlbumDropdownItem[] = [];
 					for (const album of items) {
 						result.push({
 							_id: album._id,
@@ -547,8 +547,8 @@ let layoutShellInstances: Record<
 
 	function inferGridFromModules(moduleList: PageModuleData[]): { rows: number; cols: number } {
 		if (!moduleList.length) return { rows: 1, cols: 1 };
-		let maxRow = $state(0);
-		let maxCol = $state(0);
+		let maxRow = 0;
+		let maxCol = 0;
 		for (const m of moduleList) {
 			if (m.rowOrder !== undefined && m.columnIndex !== undefined) {
 				const endRow = (m.rowOrder ?? 0) + (m.rowSpan ?? 1);
@@ -571,8 +571,8 @@ let layoutShellInstances: Record<
 		
 		// Extract grid dimensions from layout (fallback to 1x1 if not persisted)
 		const layout = page.layout || {};
-		let gridRows = $state((layout as any).gridRows);
-		let gridColumns = $state((layout as any).gridColumns);
+		let gridRows = (layout as any).gridRows;
+		let gridColumns = (layout as any).gridColumns;
 		if (typeof gridRows !== 'number' || gridRows < 1) gridRows = 1;
 		if (typeof gridColumns !== 'number' || gridColumns < 1) gridColumns = 1;
 		const urlParams = (layout as any).urlParams || '';
@@ -1016,7 +1016,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	}
 
 	function openLayoutShellEditorDialog() {
-		let key = $state(layoutShellPresetKey.trim());
+		let key = layoutShellPresetKey.trim();
 		if (!key && layoutShellReusePick.trim()) {
 			key = layoutShellReusePick.trim();
 			layoutShellPresetKey = key;
@@ -1068,7 +1068,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	}
 
 	function openMenuEditorDialog() {
-		let key = $state(menuPresetKey.trim());
+		let key = menuPresetKey.trim();
 		if (!key && menuReusePick.trim()) {
 			key = menuReusePick.trim();
 			menuPresetKey = key;
@@ -1666,7 +1666,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		if (!editingModule) return;
 		modulesError = '';
 		try {
-			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = $state({});
+			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = {};
 			
 			// Handle featureGrid module specially
 			if (moduleForm.type === 'featureGrid') {
@@ -1835,7 +1835,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		if (!editingPage) return;
 		modulesError = '';
 		try {
-			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = $state({});
+			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = {};
 			
 			// Handle module-specific props
 			if (moduleForm.type === 'featureGrid') {
@@ -2012,7 +2012,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		modulesError = '';
 
 		// Compute columnProportion from spanned columns
-		let columnProportion = $state(1);
+		let columnProportion = 1;
 		if (rowStructure.has(rowOrder)) {
 			const proportions = rowStructure.get(rowOrder)!;
 			columnProportion = proportions.slice(columnIndex, columnIndex + colSpan).reduce((a, p) => a + (p || 1), 0);

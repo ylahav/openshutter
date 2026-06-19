@@ -186,7 +186,7 @@ $effect(() => { if (browser && photoId && !loadPhotoCalled && photoId !== lastLo
 		
 		loadPhotoCalled = true;
 		
-		let timeoutId: ReturnType<typeof setTimeout> | null = $state(null);
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
 		const controller = new AbortController();
 		
 		try {
@@ -217,7 +217,7 @@ $effect(() => { if (browser && photoId && !loadPhotoCalled && photoId !== lastLo
 				const responseData = await response.json();
 				loading = false;
 				// Extract photo data from response (API returns { success: true, data: {...} })
-				let loadedPhoto = $state(responseData.data || responseData);
+				let loadedPhoto = responseData.data || responseData;
 				// Normalize faceRecognition so UI always gets a clean faces array (ensures reactivity after detect)
 				if (loadedPhoto?.faceRecognition?.faces && Array.isArray(loadedPhoto.faceRecognition.faces)) {
 					loadedPhoto = {

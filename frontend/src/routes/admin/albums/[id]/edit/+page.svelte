@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { currentLanguage } from '$stores/language';
@@ -68,10 +68,10 @@
 	}
 
 	const albumId: string = $page.params.id || '';
-	let album: Album | null = $state((data.album as Album | null) ?? null);
-	let loading = $state(!data.album && !data.loadError);
+	let album: Album | null = $state(untrack(() => (data.album as Album | null) ?? null));
+	let loading = $state(untrack(() => !data.album && !data.loadError));
 	let saving = $state(false);
-	let error = $state(data.loadError ?? '');
+	let error = $state(untrack(() => data.loadError ?? ''));
 
 		let formData = $state({
 		name: {} as Record<string, string>,
@@ -171,8 +171,8 @@
 		formData.allowedGroups = albumData.allowedGroups?.map((a: string) => String(a)) || [];
 	}
 
-	if (album) {
-		applyAlbumToForm(album);
+	if (untrack(() => album)) {
+		applyAlbumToForm(untrack(() => album!));
 	}
 
 	async function loadAlbum() {
@@ -322,9 +322,9 @@
 			fromSubAlbums: false,
 		};
 		try {
-			let response = $state(await fetch(`/api/admin/albums/${album._id}/photos`));
-			let data: Photo[] = $state([]);
-			let fromSubAlbums = $state(false);
+			let response = await fetch(`/api/admin/albums/${album._id}/photos`);
+			let data: Photo[] = [];
+			let fromSubAlbums = false;
 			if (response.ok) {
 				const result = await response.json();
 				if (result.success && Array.isArray(result.data)) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { currentLanguage } from '$stores/language';
@@ -42,7 +42,7 @@
 		hasMore: boolean;
 	}
 
-	let query = $state(initialQuery || $page.url.searchParams.get('q') || '');
+	let query = $state(untrack(() => initialQuery || $page.url.searchParams.get('q') || ''));
 	let filters = $state<AdvancedFilters>({
 		albumId: $page.url.searchParams.get('albumId') || null,
 		tags: $page.url.searchParams.get('tags')?.split(',').filter(Boolean) || [],
@@ -60,7 +60,7 @@
 		people: [],
 		locations: []
 	});
-	let draftFilters = $state<AdvancedFilters>({ ...filters });
+	let draftFilters = $state<AdvancedFilters>(untrack(() => ({ ...filters })));
 
 	let results = $state<SearchResult>({
 		photos: [],

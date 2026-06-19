@@ -18,7 +18,7 @@ import { t } from '$stores/i18n';
 		external?: boolean;
 	}
 
-	const isOwner = data?.user?.role === 'owner';
+	const isOwner = $derived(data?.user?.role === 'owner');
 	let loading = $state(true);
 	let saving = $state(false);
 	let error: string | null = $state(null);

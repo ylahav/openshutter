@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
@@ -100,9 +100,9 @@
 	let loadingGroups = $state(false);
 	let loadingOwnerDomains = $state(false);
 	let error = $state('');
-	let searchTerm = $state(data.filters?.search ?? '');
-	let roleFilter = $state(data.filters?.role ?? 'all');
-	let blockedFilter = $state(data.filters?.blocked ?? 'all');
+	let searchTerm = $state(untrack(() => data.filters?.search ?? ''));
+	let roleFilter = $state(untrack(() => data.filters?.role ?? 'all'));
+	let blockedFilter = $state(untrack(() => data.filters?.blocked ?? 'all'));
 	let editingUser: User | null = $state(null);
 	let userToDelete: User | null = $state(null);
 	let showCreateDialog = $state(false);

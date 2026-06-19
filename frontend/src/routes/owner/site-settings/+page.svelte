@@ -12,7 +12,7 @@ import { t } from '$stores/i18n';
 
 	let { data }: { data: PageData } = $props();
 
-	const isOwner = data?.user?.role === 'owner';
+	const isOwner = $derived(data?.user?.role === 'owner');
 	let loading = $state(true);
 	let saving = $state(false);
 	let uploadingLogo = $state(false);

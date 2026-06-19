@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
@@ -35,8 +35,8 @@
 
 	const tags = $derived((data.tags ?? []) as Tag[]);
 
-	let searchTerm = $state(data.filters?.search ?? '');
-	let categoryFilter = $state(data.filters?.category ?? 'all');
+	let searchTerm = $state(untrack(() => data.filters?.search ?? ''));
+	let categoryFilter = $state(untrack(() => data.filters?.category ?? 'all'));
 
 	async function refreshTags() {
 		await invalidate('admin:tags');
@@ -124,9 +124,9 @@
 	type TagPayload = Pick<Partial<Tag>, 'name' | 'description' | 'color' | 'category' | 'isActive'>;
 
 	const crudOps = useCrudOperations<Tag>('/api/admin/tags', {
-		createSuccessMessage: translate('admin.tagsCreatedSuccessfully', 'Tag created successfully!'),
-		updateSuccessMessage: translate('admin.tagsUpdatedSuccessfully', 'Tag updated successfully!'),
-		deleteSuccessMessage: translate('admin.tagsDeletedSuccessfully', 'Tag deleted successfully!'),
+		createSuccessMessage: untrack(() => translate('admin.tagsCreatedSuccessfully', 'Tag created successfully!')),
+		updateSuccessMessage: untrack(() => translate('admin.tagsUpdatedSuccessfully', 'Tag updated successfully!')),
+		deleteSuccessMessage: untrack(() => translate('admin.tagsDeletedSuccessfully', 'Tag deleted successfully!')),
 		transformPayload: (data: Partial<Tag>): TagPayload => {
 			const rawName = data.name && typeof data.name === 'object' ? data.name : {};
 			const rawDescription = data.description && typeof data.description === 'object' ? data.description : {};
@@ -381,8 +381,8 @@ $effect(() => { if (feedbackAdvancedOpen && !feedbackTelemetryLoadStarted) {
 	async function handleTagsImport(file: File) {
 		importExportBusy = true;
 		crudError.set('');
-		let created = $state(0);
-		let failed = $state(0);
+		let created = 0;
+		let failed = 0;
 		const failureLines: string[] = [];
 		try {
 			const list = parseImportItems(await file.text());

@@ -225,7 +225,7 @@
 
 			logger.debug('[confirmDeletePhoto] Response status:', response.status, response.statusText);
 
-			let result: { success?: boolean; error?: string; message?: string } = $state({});
+			let result: { success?: boolean; error?: string; message?: string } = {};
 			try {
 				result = await response.json() as { success?: boolean; error?: string; message?: string };
 				logger.debug('[confirmDeletePhoto] Response data:', result);
@@ -289,7 +289,7 @@
 				const errorText = await response.text();
 				logger.error('[deleteAlbum] Delete failed:', response.status, errorText);
 				
-				let errorData: { error?: string; message?: string } = $state({});
+				let errorData: { error?: string; message?: string } = {};
 				try {
 					errorData = JSON.parse(errorText) as { error?: string; message?: string };
 				} catch (parseError) {
@@ -478,8 +478,8 @@
 		error = '';
 		bulkDeleteDialogOpen = false;
 		const ids = Array.from(selectedPhotoIds);
-		let deleted = $state(0);
-		let failed = $state(0);
+		let deleted = 0;
+		let failed = 0;
 		try {
 			for (const id of ids) {
 				const response = await fetch(`/api/admin/photos/${id}`, { method: 'DELETE' });
@@ -600,8 +600,8 @@
 			}
 
 			const decoder = new TextDecoder();
-			let buffer = $state('');
-			let lastDone: { success: boolean; message?: string; error?: string } | null = $state(null);
+			let buffer = '';
+			let lastDone: { success: boolean; message?: string; error?: string } | null = null;
 
 			while (true) {
 				const { done, value } = await reader.read();

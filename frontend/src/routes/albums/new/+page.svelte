@@ -86,7 +86,7 @@ import { t } from '$stores/i18n';
 					// Flatten the tree to get all albums for parent selection
 					// If user can create albums (admin/owner), they should see all albums as potential parents
 					const flattenAlbums = (albums: any[]): AlbumOption[] => {
-						let result: AlbumOption[] = $state([]);
+						let result: AlbumOption[] = [];
 						for (const album of albums) {
 							// Include all albums - users creating albums should be able to select any existing album as parent
 							result.push({
@@ -270,7 +270,7 @@ import { t } from '$stores/i18n';
 					});
 					
 					// Default to owner albums, but check for admin role explicitly
-					let dest = $state('/owner/albums');
+					let dest = '/owner/albums';
 					if (userRole === 'admin') {
 						dest = '/admin/albums';
 						logger.debug('[handleSubmit] Admin user detected, redirecting to admin albums');

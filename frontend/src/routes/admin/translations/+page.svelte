@@ -169,7 +169,7 @@
 	function countMissingTranslations(): number {
 		if (!selectedLanguage || selectedLanguage === 'en') return 0;
 		
-		let count = $state(0);
+		let count = 0;
 		const countMissing = (obj: any, target: any, prefix = '') => {
 			for (const key in obj) {
 				const fullKey = prefix ? `${prefix}.${key}` : key;
@@ -277,7 +277,7 @@
 
 				const translatedCount = result.data.translated || 0;
 				let completionSummary =
-					$state(result.data.message || `Auto-translation completed! Translated ${translatedCount} keys.`);
+					result.data.message || `Auto-translation completed! Translated ${translatedCount} keys.`;
 
 				// Wait longer for file system to sync (Windows file system can be slow)
 				await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -507,7 +507,7 @@
 
 	function setNestedValue(obj: any, path: string, value: any) {
 		const parts = path.split('.');
-		let current = $state(obj);
+		let current = obj;
 		for (let i = 0; i < parts.length - 1; i++) {
 			if (!(parts[i] in current)) {
 				current[parts[i]] = {};
@@ -519,7 +519,7 @@
 
 	function getNestedValue(obj: any, path: string): any {
 		const parts = path.split('.');
-		let current = $state(obj);
+		let current = obj;
 		for (const part of parts) {
 			if (current && typeof current === 'object' && part in current) {
 				current = current[part];

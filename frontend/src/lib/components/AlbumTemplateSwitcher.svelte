@@ -48,7 +48,7 @@ const pageForRenderer = $derived({
 		const list = Array.isArray(modules) ? [...modules] : [];
 		if (!onAlbumDetailRoute || list.length === 0) return list;
 
-		let hasAlbumView = $state(false);
+		let hasAlbumView = false;
 		const normalized = list.map((m) => {
 			const type = String((m as any)?.type || '');
 			if (type === 'albumView' || type === 'albumGallery') {

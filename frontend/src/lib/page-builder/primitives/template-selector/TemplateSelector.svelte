@@ -65,7 +65,7 @@
 		themesLoading = true;
 		themesError = '';
 		try {
-			let res = $state(await fetch('/api/admin/themes', { credentials: 'include' }));
+			let res = await fetch('/api/admin/themes', { credentials: 'include' });
 			if (res.status === 401 || res.status === 403) {
 				res = await fetch('/api/themes');
 			}
@@ -147,7 +147,7 @@
 		const dropdownWidth = 256;
 		const dropdownHeight = 250;
 		const right = window.innerWidth - rect.right;
-		let top = $state(rect.bottom + 4);
+		let top = rect.bottom + 4;
 
 		if (top + dropdownHeight > window.innerHeight && rect.top > dropdownHeight) {
 			top = rect.top - dropdownHeight - 4;

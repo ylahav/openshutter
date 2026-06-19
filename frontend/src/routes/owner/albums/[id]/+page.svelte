@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
@@ -38,13 +39,13 @@
 		isPublished?: boolean;
 	}
 
-	const album: Album | undefined = data.album;
-	let photos: Photo[] = $state(data.photos ?? []);
+	const album = $derived(data.album as Album | undefined);
+	let photos: Photo[] = $state(untrack(() => data.photos ?? []));
 	const albumId = $page.params.id;
 
-	const isAdmin = data.user?.role === 'admin';
-	const backHref = isAdmin ? '/admin/albums' : '/owner/albums';
-	const editHref = isAdmin ? `/admin/albums/${albumId}/edit` : `/owner/albums/${albumId}/edit`;
+	const isAdmin = $derived(data.user?.role === 'admin');
+	const backHref = $derived(isAdmin ? '/admin/albums' : '/owner/albums');
+	const editHref = $derived(isAdmin ? `/admin/albums/${albumId}/edit` : `/owner/albums/${albumId}/edit`);
 
 	let photoDeleteDialog: {
 		isOpen: boolean;

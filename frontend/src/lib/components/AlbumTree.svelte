@@ -4,6 +4,7 @@
 	import AdminAlbumTreeRow from '$lib/components/AdminAlbumTreeRow.svelte';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
+	import { untrack } from 'svelte';
 
 	function nodeIdStr(id: string | unknown): string {
 		return String(id);
@@ -56,7 +57,7 @@
 	type FlatAlbumTreeNode = AlbumTreeNode & { displayDepth: number; hasChildNodes: boolean };
 
 	let expandedNodesOverride = $state<Set<string> | null>(null);
-	let localAlbums = $state(albums);
+	let localAlbums = $state(untrack(() => albums));
 	let flatItemsForDnd = $state<Array<FlatAlbumTreeNode & { id: string }>>([]);
 	let isDragging = $state(false);
 

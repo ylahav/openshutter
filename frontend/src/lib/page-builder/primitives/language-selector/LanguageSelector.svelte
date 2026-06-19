@@ -71,7 +71,7 @@
 		const dropdownWidth = 192;
 		const dropdownHeight = 200;
 		const right = window.innerWidth - rect.right;
-		let top = $state(rect.bottom + 4);
+		let top = rect.bottom + 4;
 
 		if (top + dropdownHeight > window.innerHeight && rect.top > dropdownHeight) {
 			top = rect.top - dropdownHeight - 4;

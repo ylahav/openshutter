@@ -29,8 +29,8 @@ import { t } from '$stores/i18n';
 	let loading = $state(true);
 	let error: string | null = $state(null);
 
-	const isAdmin = data.user?.role === 'admin';
-	const isOwner = data.user?.role === 'owner';
+	const isAdmin = $derived(data.user?.role === 'admin');
+	const isOwner = $derived(data.user?.role === 'owner');
 
 	onMount(async () => {
 		await fetchAlbums();

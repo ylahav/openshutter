@@ -57,7 +57,7 @@
 		}>;
 	} | null = $state(null);
 
-	const isAdmin = data.user?.role === 'admin';
+	const isAdmin = $derived(data.user?.role === 'admin');
 
 	function setDefaultRange() {
 		const to = new Date();

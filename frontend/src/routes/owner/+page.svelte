@@ -7,8 +7,8 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const isAdmin = data.user?.role === 'admin';
-	const isOwner = data.user?.role === 'owner';
+	const isAdmin = $derived(data.user?.role === 'admin');
+	const isOwner = $derived(data.user?.role === 'owner');
 
 	/** Show Storage management: own profile storage, or dedicated per-owner storage (admin flag). */
 	let showStorageManagementCard = $state(false);

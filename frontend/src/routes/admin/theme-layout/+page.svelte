@@ -225,7 +225,7 @@ $effect(() => { if (data.siteConfig && data.siteConfig !== hydratedSiteConfig) {
 			saving = true;
 
 			const tplRes = await fetch('/api/admin/templates', { cache: 'no-store' });
-			let templates: TemplateListRow[] = $state([]);
+			let templates: TemplateListRow[] = [];
 			if (tplRes.ok) {
 				const tplJson = await tplRes.json();
 				if (tplJson?.success && Array.isArray(tplJson.data)) {

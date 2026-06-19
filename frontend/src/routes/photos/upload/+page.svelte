@@ -138,7 +138,7 @@
 		}
 	}
 
-	const allUploadsComplete = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
+	const allUploadsComplete = $derived(uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading'));
 </script>
 
 <svelte:head>

@@ -230,8 +230,8 @@ $effect(() => { if ($crudMessage) adminToast.success({ title: $crudMessage }); }
 	async function handleGroupsImport(file: File) {
 		importExportBusy = true;
 		crudError.set('');
-		let created = $state(0);
-		let failed = $state(0);
+		let created = 0;
+		let failed = 0;
 		const failureLines: string[] = [];
 		try {
 			const list = parseImportItems(await file.text());

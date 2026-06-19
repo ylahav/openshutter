@@ -382,7 +382,7 @@
 		const opt = storageOptions.find((o) => o.id === providerId);
 		const isEnabled = opt?.isEnabled !== false;
 
-		let body: Record<string, unknown> = $state({ isEnabled });
+		let body: Record<string, unknown> = { isEnabled };
 
 		if (providerId === 'google-drive') {
 			body = { isEnabled, ...buildGoogleDedicatedConfig() };
