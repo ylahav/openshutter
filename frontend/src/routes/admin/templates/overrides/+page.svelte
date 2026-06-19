@@ -47,6 +47,8 @@
 		getPageModulesForBreakpoint,
 		mergePageLayoutRowForBreakpointEdit,
 		resolveBreakpointForWidth,
+		validateModulePlacement,
+		findOverlappingPairs,
 		type TemplateBreakpointId,
 		type ShellLayout
 	} from '$lib/template/breakpoints';
@@ -1225,6 +1227,12 @@
 
 	let assignedModuleType = '';
 	let editingModule: any | null = null;
+	$: editingModuleSpanGrid = editingModule
+		? getGridForPageType(editingPageType, editingBreakpoint)
+		: { gridRows: 1, gridColumns: 1 };
+	$: editingModuleMaxRowSpan = editingModule ? editingModuleSpanGrid.gridRows - (editingModule.rowOrder ?? 0) : 1;
+	$: editingModuleMaxColSpan = editingModule ? editingModuleSpanGrid.gridColumns - (editingModule.columnIndex ?? 0) : 1;
+	$: editingModuleSpanError = editingModule ? validateModulePlacement(editingModule, editingModuleSpanGrid) : null;
 let editingInnerLayoutPresetKey = '';
 let editingInnerLayoutModuleIndex = -1;
 	let layoutShellReusePick = '';
@@ -3873,6 +3881,16 @@ let draggedAlbumHeaderField: string | null = null;
 							{/if}
 						</div>
 
+						{@const overlapPairs = findOverlappingPairs(getModulesForPageType(editingPageType, editingBreakpoint))}
+						{#if overlapPairs.length > 0}
+							<div class="mb-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-800 dark:text-amber-300" role="alert">
+								<svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+								<span>
+									<strong>Overlapping modules</strong> — {overlapPairs.length} conflict{overlapPairs.length > 1 ? 's' : ''} detected at <strong>{editingBreakpoint}</strong>.
+									Move or resize modules so their cells do not overlap before saving.
+								</span>
+							</div>
+						{/if}
 						{#key pageGrid.gridRows + '-' + pageGrid.gridColumns + '-' + editingBreakpoint + '-' + layoutEditorModulesKey}
 						<!-- Layout grid (like page builder: select cells, assign module) -->
 						<div>
@@ -4529,15 +4547,46 @@ let draggedAlbumHeaderField: string | null = null;
 			</div>
 			<div class="p-6 space-y-4">
 				<div>
-					<p class="text-sm text-(--color-surface-600-400) mb-4">
+					<p class="text-sm text-(--color-surface-600-400) mb-2">
 						Module: <span class="font-medium text-(--color-surface-950-50)">{editingModule.type === 'albumGallery' ? 'albumView' : editingModule.type}</span>
 						<br />
 						Position: Row {editingModule.rowOrder + 1}, Col {editingModule.columnIndex + 1}
-						{#if (editingModule.rowSpan ?? 1) > 1 || (editingModule.colSpan ?? 1) > 1}
-							<br />
-							Span: {(editingModule.rowSpan ?? 1)}×{(editingModule.colSpan ?? 1)}
-						{/if}
 					</p>
+					<div class="grid grid-cols-2 gap-3 max-w-xs">
+						<div>
+							<label class="block text-xs font-medium text-(--color-surface-800-200) mb-1" for="mod-row-span">Row span</label>
+							<input
+								id="mod-row-span"
+								type="number"
+								min="1"
+								max={editingModuleMaxRowSpan}
+								class={ADMIN_TEXT_INPUT_CLASS}
+								value={editingModule.rowSpan ?? 1}
+								oninput={(e) => {
+									const v = Math.max(1, Math.min(editingModuleMaxRowSpan, parseInt((e.currentTarget as HTMLInputElement).value) || 1));
+									editingModule = { ...editingModule, rowSpan: v };
+								}}
+							/>
+						</div>
+						<div>
+							<label class="block text-xs font-medium text-(--color-surface-800-200) mb-1" for="mod-col-span">Col span</label>
+							<input
+								id="mod-col-span"
+								type="number"
+								min="1"
+								max={editingModuleMaxColSpan}
+								class={ADMIN_TEXT_INPUT_CLASS}
+								value={editingModule.colSpan ?? 1}
+								oninput={(e) => {
+									const v = Math.max(1, Math.min(editingModuleMaxColSpan, parseInt((e.currentTarget as HTMLInputElement).value) || 1));
+									editingModule = { ...editingModule, colSpan: v };
+								}}
+							/>
+						</div>
+					</div>
+					{#if editingModuleSpanError}
+						<p class="mt-1 text-xs text-amber-700 dark:text-amber-400" role="alert">{editingModuleSpanError}</p>
+					{/if}
 				</div>
 
 				<ModuleCellPlacementControls bind:editingModule />

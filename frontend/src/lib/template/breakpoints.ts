@@ -701,3 +701,70 @@ export function legacyCustomLayoutFromByBreakpoint(
 ): ShellLayout {
 	return fillShellDefaults(byBp['lg'] ?? byBp['md'] ?? byBp['sm'] ?? byBp['xs']);
 }
+
+// ---------------------------------------------------------------------------
+// P0 — Placement validation (mirrors backend validate-pages-layer.ts)
+// ---------------------------------------------------------------------------
+
+export interface PlacementRect {
+	rowOrder: number;
+	columnIndex: number;
+	rowSpan: number;
+	colSpan: number;
+}
+
+function toPlacementRect(m: unknown): PlacementRect | null {
+	if (!m || typeof m !== 'object') return null;
+	const o = m as Record<string, unknown>;
+	const row = typeof o.rowOrder === 'number' ? Math.trunc(o.rowOrder) : null;
+	const col = typeof o.columnIndex === 'number' ? Math.trunc(o.columnIndex) : null;
+	if (row == null || col == null) return null;
+	const rs = typeof o.rowSpan === 'number' ? Math.trunc(o.rowSpan) : 1;
+	const cs = typeof o.colSpan === 'number' ? Math.trunc(o.colSpan) : 1;
+	return { rowOrder: row, columnIndex: col, rowSpan: Math.max(1, rs), colSpan: Math.max(1, cs) };
+}
+
+/**
+ * Validate a single module placement against the current grid.
+ * Returns `null` when valid, or a human-readable error string.
+ */
+export function validateModulePlacement(
+	module: unknown,
+	grid: PageGrid
+): string | null {
+	const r = toPlacementRect(module);
+	if (!r) return 'Module is missing rowOrder or columnIndex.';
+	if (r.rowOrder < 0 || r.columnIndex < 0) return 'Row and column must be ≥ 0.';
+	if (r.rowSpan < 1 || r.colSpan < 1) return 'Span must be ≥ 1.';
+	if (r.rowOrder + r.rowSpan > grid.gridRows)
+		return `Row span exceeds grid (row ${r.rowOrder + 1} + span ${r.rowSpan} > ${grid.gridRows} rows).`;
+	if (r.columnIndex + r.colSpan > grid.gridColumns)
+		return `Column span exceeds grid (col ${r.columnIndex + 1} + span ${r.colSpan} > ${grid.gridColumns} cols).`;
+	return null;
+}
+
+function rectsOverlap(a: PlacementRect, b: PlacementRect): boolean {
+	return (
+		a.rowOrder < b.rowOrder + b.rowSpan &&
+		a.rowOrder + a.rowSpan > b.rowOrder &&
+		a.columnIndex < b.columnIndex + b.colSpan &&
+		a.columnIndex + a.colSpan > b.columnIndex
+	);
+}
+
+/**
+ * Find all overlapping module pairs in a list.
+ * Returns an array of `[indexA, indexB]` pairs (0-based). Empty = no overlaps.
+ */
+export function findOverlappingPairs(modules: unknown[]): Array<[number, number]> {
+	const rects = modules.map(toPlacementRect);
+	const pairs: Array<[number, number]> = [];
+	for (let i = 0; i < rects.length; i++) {
+		for (let j = i + 1; j < rects.length; j++) {
+			const a = rects[i];
+			const b = rects[j];
+			if (a && b && rectsOverlap(a, b)) pairs.push([i, j]);
+		}
+	}
+	return pairs;
+}
