@@ -37,13 +37,13 @@
 		createdAt: string;
 	}
 
-	let profile: UserProfile | null = null;
-	let loading = true;
-	let saving = false;
-	let error: string | null = null;
-	let success: string | null = null;
+	let profile: UserProfile | null = $state(null);
+	let loading = $state(true);
+	let saving = $state(false);
+	let error: string | null = $state(null);
+	let success: string | null = $state(null);
 
-let formData = {
+let formData = $state({
 	name: '' as string,
 	email: '',
 	bio: { en: '', he: '' } as { en?: string; he?: string },
@@ -52,7 +52,7 @@ let formData = {
 	currentPassword: '',
 	newPassword: '',
 	confirmPassword: '',
-};
+});
 
 	onMount(async () => {
 		await fetchProfile();

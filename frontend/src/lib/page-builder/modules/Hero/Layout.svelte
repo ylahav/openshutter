@@ -115,7 +115,7 @@
 	const hasAnything = $derived(!!(bgSrc || showContent || showMedia));
 
 	let slideIndex = $state(0);
-	let slideshowTimer: ReturnType<typeof setInterval> | null = null;
+	let slideshowTimer: ReturnType<typeof setInterval> | null = $state(null);
 
 	function clearTimer() {
 		if (slideshowTimer) {

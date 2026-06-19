@@ -101,7 +101,7 @@
 	let googleDriveTreeRoot = $state<any>(null);
 	let googleDriveTreeError = $state<string | null>(null);
 	let googleDriveTreeProgress = $state<string | null>(null);
-	let googleDriveTreePollTimer: ReturnType<typeof setInterval> | null = null;
+	let googleDriveTreePollTimer: ReturnType<typeof setInterval> | null = $state(null);
 
 	function stopGoogleDriveTreePolling() {
 		if (googleDriveTreePollTimer) {
@@ -382,7 +382,7 @@
 		const opt = storageOptions.find((o) => o.id === providerId);
 		const isEnabled = opt?.isEnabled !== false;
 
-		let body: Record<string, unknown> = { isEnabled };
+		let body: Record<string, unknown> = $state({ isEnabled });
 
 		if (providerId === 'google-drive') {
 			body = { isEnabled, ...buildGoogleDedicatedConfig() };

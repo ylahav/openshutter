@@ -94,7 +94,7 @@
 	// Date range for filtered analytics
 	let dateFrom = $state('');
 	let dateTo = $state('');
-	let period: 'day' | 'week' | 'month' = 'day';
+	let period: 'day' | 'week' | 'month' = $state('day');
 
 	const translate = $derived($t);
 	const analyticsUnknownLabel = $derived(translate('admin.analyticsUnknown'));

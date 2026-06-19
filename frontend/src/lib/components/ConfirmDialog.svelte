@@ -28,8 +28,8 @@
 	let mounted = $state(false);
 	let deleteFromStorage = $state(false);
 	let confirmButton = $state<HTMLButtonElement | undefined>(undefined);
-	let previousOverflow = '';
-	let escapeHandler: ((e: KeyboardEvent) => void) | null = null;
+	let previousOverflow = $state('');
+	let escapeHandler: ((e: KeyboardEvent) => void) | null = $state(null);
 
 	onMount(() => {
 		mounted = true;

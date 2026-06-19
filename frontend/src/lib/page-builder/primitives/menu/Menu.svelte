@@ -77,7 +77,7 @@
 
 	// Get menu items from props or config, with defaults and auth buttons
 	const menuItems = $derived.by(() => {
-		let result: MenuItem[] = [];
+		let result: MenuItem[] = $state([]);
 		
 		// Priority: items prop > config.menu > defaults
 		if (items !== undefined && items !== null && items.length > 0) {

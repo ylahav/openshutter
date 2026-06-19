@@ -11,8 +11,8 @@
 	const isOwner = data.user?.role === 'owner';
 
 	/** Show Storage management: own profile storage, or dedicated per-owner storage (admin flag). */
-	let showStorageManagementCard = false;
-	let profileLoaded = false;
+	let showStorageManagementCard = $state(false);
+	let profileLoaded = $state(false);
 
 	onMount(async () => {
 		if (!isOwner) {

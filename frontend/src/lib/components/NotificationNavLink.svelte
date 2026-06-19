@@ -15,7 +15,7 @@
 	} = $props();
 		'absolute -top-1 -right-2 min-w-[1.1rem] rounded-full bg-primary-600 px-1 text-center text-[10px] font-semibold leading-tight text-white';
 
-	let notifUnread = 0;
+	let notifUnread = $state(0);
 
 	async function refreshNotifUnread() {
 		if (!browser || !get(auth).authenticated) {

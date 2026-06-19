@@ -25,9 +25,9 @@
 
 	let { alias }: { alias: string } = $props();
 
-	let page: Page | null = null;
-	let loading = true;
-	let error: string | null = null;
+	let page: Page | null = $state(null);
+	let loading = $state(true);
+	let error: string | null = $state(null);
 
 	onMount(() => {
 		fetchPage();

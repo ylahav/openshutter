@@ -37,22 +37,22 @@
 		name?: Record<string, string>;
 	}
 
-	let album: Album | null = null;
-	let loading = true;
-	let saving = false;
-	let error: string | null = null;
+	let album: Album | null = $state(null);
+	let loading = $state(true);
+	let saving = $state(false);
+	let error: string | null = $state(null);
 	let albumId = $page.params.id;
 
-	let groups: Group[] = [];
-	let users: User[] = [];
-	let loadingGroups = false;
-	let loadingUsers = false;
+	let groups: Group[] = $state([]);
+	let users: User[] = $state([]);
+	let loadingGroups = $state(false);
+	let loadingUsers = $state(false);
 	let showGroupsDropdown = $state(false);
 	let showUsersDropdown = $state(false);
 	let groupSearch = $state('');
 	let userSearch = $state('');
 
-	let formData = {
+	let formData = $state({
 		name: {} as { en?: string; he?: string },
 		description: {} as { en?: string; he?: string },
 		isPublic: false,
@@ -61,7 +61,7 @@
 		order: 0,
 		allowedUsers: [] as string[],
 		allowedGroups: [] as string[]
-	};
+	});
 
 const filteredGroups = $derived(groups.filter(
 		(g) =>

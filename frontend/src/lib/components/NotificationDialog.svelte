@@ -23,7 +23,7 @@
 	} = $props();
 
 	let mounted = $state(false);
-	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	let timeoutId: ReturnType<typeof setTimeout> | null = $state(null);
 
 	onMount(() => {
 		mounted = true;

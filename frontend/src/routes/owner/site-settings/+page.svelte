@@ -13,23 +13,23 @@ import { t } from '$stores/i18n';
 	let { data }: { data: PageData } = $props();
 
 	const isOwner = data?.user?.role === 'owner';
-	let loading = true;
-	let saving = false;
-	let uploadingLogo = false;
-	let loadingHeroPhotos = false;
-	let showHeroPhotoPicker = false;
-	let heroPhotoPickerError: string | null = null;
+	let loading = $state(true);
+	let saving = $state(false);
+	let uploadingLogo = $state(false);
+	let loadingHeroPhotos = $state(false);
+	let showHeroPhotoPicker = $state(false);
+	let heroPhotoPickerError: string | null = $state(null);
 	let heroPhotos: Array<{
 		_id: string;
 		title?: string | Record<string, string>;
 		storage?: { url?: string; thumbnailPath?: string };
 		url?: string;
-	}> = [];
-	let error: string | null = null;
-	let success: string | null = null;
+	}> = $state([]);
+	let error: string | null = $state(null);
+	let success: string | null = $state(null);
 
-	let activeTab: 'branding' | 'hero' | 'seo' | 'contact' = 'branding';
-	let formData = {
+	let activeTab: 'branding' | 'hero' | 'seo' | 'contact' = $state('branding');
+	let formData = $state({
 		siteName: {} as MultiLangText,
 		description: {} as MultiLangHTML,
 		logo: '' as string,
@@ -50,7 +50,7 @@ import { t } from '$stores/i18n';
 		seo: { metaTitle: {} as MultiLangText, metaDescription: {} as MultiLangText },
 		contact: { email: '', socialMedia: { facebook: '', instagram: '', twitter: '' } as Record<string, string> },
 		footer: { copyrightText: '', termsUrl: '', privacyUrl: '' },
-	};
+	});
 
 	onMount(async () => {
 		await fetchSettings();

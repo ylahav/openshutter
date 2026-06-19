@@ -25,9 +25,9 @@ import { t } from '$stores/i18n';
 		isFeatured?: boolean;
 	}
 
-	let albums: Album[] = [];
-	let loading = true;
-	let error: string | null = null;
+	let albums: Album[] = $state([]);
+	let loading = $state(true);
+	let error: string | null = $state(null);
 
 	const isAdmin = data.user?.role === 'admin';
 	const isOwner = data.user?.role === 'owner';

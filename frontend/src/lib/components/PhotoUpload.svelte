@@ -32,18 +32,18 @@
 		returnTo?: string | null;
 	} = $props();
 
-	let uploads: UploadProgress[] = [];
-	let isUploading = false;
-	let title = '';
-	let description = '';
-	let tags = '';
-	let isDragActive = false;
+	let uploads: UploadProgress[] = $state([]);
+	let isUploading = $state(false);
+	let title = $state('');
+	let description = $state('');
+	let tags = $state('');
+	let isDragActive = $state(false);
 	let fileInput: HTMLInputElement | null = null;
 	
 	// Alert modal state
-	let showErrorModal = false;
-	let errorModalTitle = '';
-	let errorModalMessage = '';
+	let showErrorModal = $state(false);
+	let errorModalTitle = $state('');
+	let errorModalMessage = $state('');
 
 	// Preselect album from query param
 	onMount(() => {

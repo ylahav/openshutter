@@ -96,8 +96,8 @@
 	let showUsersDropdown = $state(false);
 	let groupSearch = $state('');
 	let userSearch = $state('');
-	let groupsAccessRef: HTMLDivElement | null = null;
-	let usersAccessRef: HTMLDivElement | null = null;
+	let groupsAccessRef: HTMLDivElement | null = $state(null);
+	let usersAccessRef: HTMLDivElement | null = $state(null);
 
 	// Cover / leading photo modal
 	let coverPhotoModal: {
@@ -322,9 +322,9 @@
 			fromSubAlbums: false,
 		};
 		try {
-			let response = await fetch(`/api/admin/albums/${album._id}/photos`);
-			let data: Photo[] = [];
-			let fromSubAlbums = false;
+			let response = $state(await fetch(`/api/admin/albums/${album._id}/photos`));
+			let data: Photo[] = $state([]);
+			let fromSubAlbums = $state(false);
 			if (response.ok) {
 				const result = await response.json();
 				if (result.success && Array.isArray(result.data)) {

@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 
-	/** Matches backend `FaceAvatarFromPhoto` (crop in source image pixel space). */
-	export let avatar: {
-		imageUrl: string;
-		box?: { x: number; y: number; width: number; height: number };
-		sourceWidth: number;
-		sourceHeight: number;
-	};
-	export let alt = '';
+	const { avatar, alt = '' }: {
+		avatar: {
+			imageUrl: string;
+			box?: { x: number; y: number; width: number; height: number };
+			sourceWidth: number;
+			sourceHeight: number;
+		};
+		alt?: string;
+	} = $props();
 
 	let wrap: HTMLDivElement;
-	let sidePx = 80;
+	let sidePx = $state(80);
 
 	function measure() {
 		if (!wrap) return;
@@ -27,9 +28,11 @@
 		return () => ro?.disconnect();
 	});
 
-	$: if (typeof window !== 'undefined' && wrap && avatar?.imageUrl) {
-		queueMicrotask(measure);
-	}
+	$effect(() => {
+		if (typeof window !== 'undefined' && wrap && avatar?.imageUrl) {
+			queueMicrotask(measure);
+		}
+	});
 </script>
 
 <div

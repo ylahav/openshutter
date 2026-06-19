@@ -19,14 +19,14 @@ import { t } from '$stores/i18n';
 	}
 
 	const isOwner = data?.user?.role === 'owner';
-	let loading = true;
-	let saving = false;
-	let error: string | null = null;
-	let success: string | null = null;
+	let loading = $state(true);
+	let saving = $state(false);
+	let error: string | null = $state(null);
+	let success: string | null = $state(null);
 
-	let pageLayout = { home: { gridRows: 2, gridColumns: 1 } };
-	let headerConfig = { showLogo: true, showSiteTitle: true, showMenu: true };
-	let menuItems: MenuItem[] = [];
+	let pageLayout = $state({ home: { gridRows: 2, gridColumns: 1 } });
+	let headerConfig = $state({ showLogo: true, showSiteTitle: true, showMenu: true });
+	let menuItems: MenuItem[] = $state([]);
 
 	onMount(async () => {
 		await fetchSettings();

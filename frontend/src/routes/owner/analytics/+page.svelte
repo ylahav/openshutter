@@ -10,11 +10,11 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let dateFrom = '';
-	let dateTo = '';
-	let period: 'day' | 'week' | 'month' = 'day';
-	let loading = true;
-	let error = '';
+	let dateFrom = $state('');
+	let dateTo = $state('');
+	let period: 'day' | 'week' | 'month' = $state('day');
+	let loading = $state(true);
+	let error = $state('');
 	let payload: {
 		summary?: { totalSearches?: number };
 		tagFilterStats?: {
@@ -55,7 +55,7 @@
 			zeroResultCount: number;
 			averageResults: number;
 		}>;
-	} | null = null;
+	} | null = $state(null);
 
 	const isAdmin = data.user?.role === 'admin';
 

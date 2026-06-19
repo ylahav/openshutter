@@ -37,8 +37,8 @@
 		unoptimized?: unknown;
 	} = $props();
 
-	let isLoaded = false;
-	let isInView = priority;
+	let isLoaded = $state(false);
+	let isInView = $state(priority);
 	let imgRef: HTMLDivElement | null = null;
 
 	onMount(() => {

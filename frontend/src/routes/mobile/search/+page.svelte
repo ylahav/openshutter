@@ -19,8 +19,9 @@
 	}
 
 	let query = $state($page.url.searchParams.get('q') || '');
-	let type: 'all' | 'photos' | 'albums' | 'people' | 'locations' =
-		($page.url.searchParams.get('type') as 'all' | 'photos' | 'albums' | 'people' | 'locations') || 'all';
+	let type: 'all' | 'photos' | 'albums' | 'people' | 'locations' = $state(
+		($page.url.searchParams.get('type') as 'all' | 'photos' | 'albums' | 'people' | 'locations') || 'all'
+	);
 	let results: SearchResult[]  = $state([]);
 	let loading = $state(false);
 	let error: string | null  = $state(null);

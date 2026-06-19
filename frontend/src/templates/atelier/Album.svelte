@@ -50,7 +50,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	let lightboxIndex = $state(0);
 	let loadingMore = $state(false);
 	let isInitialLoad = $state(true);
-	let photoLoaded: Record<string, boolean> = {};
+	let photoLoaded: Record<string, boolean> = $state({});
 
 const collabVis = $derived(resolveCollaborationVisibility($siteConfigData?.features));
 	const isAuthed = $derived($auth.authenticated && !!$auth.user);

@@ -540,8 +540,8 @@
 	async function handleLocationsImport(file: File) {
 		importExportBusy = true;
 		crudOps.error.set('');
-		let created = 0;
-		let failed = 0;
+		let created = $state(0);
+		let failed = $state(0);
 		const failureLines: string[] = [];
 		try {
 			const list = parseImportItems(await file.text());

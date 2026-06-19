@@ -22,19 +22,19 @@
 	} = $props();
 
 	let activityOpen = $state(false);
-	let events: Array<{ _id: string; type: string; actorUserId: string; payload: unknown; createdAt: string }> = [];
+	let events: Array<{ _id: string; type: string; actorUserId: string; payload: unknown; createdAt: string }> = $state([]);
 	let tasks: Array<{
 		_id: string;
 		title: string;
 		status: string;
 		approvalStatus?: string;
 		createdBy: string;
-	}> = [];
-	let loadingAct = false;
-	let loadingTasks = false;
-	let taskTitle = '';
-	let needsApproval = false;
-	let creatingTask = false;
+	}> = $state([]);
+	let loadingAct = $state(false);
+	let loadingTasks = $state(false);
+	let taskTitle = $state('');
+	let needsApproval = $state(false);
+	let creatingTask = $state(false);
 
 const canModerate = $derived($auth.authenticated &&
 		$auth.user &&

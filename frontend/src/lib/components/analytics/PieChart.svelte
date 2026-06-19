@@ -26,7 +26,7 @@
 	} = $props();
 
 	let canvas: HTMLCanvasElement;
-	let chart: Chart | null = null;
+	let chart: Chart | null = $state(null);
 
 $effect(() => { if (canvas && data) {
 		updateChart();

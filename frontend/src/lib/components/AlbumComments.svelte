@@ -35,14 +35,14 @@
 		hasReportedByViewer?: boolean;
 	}
 
-	let comments: CommentRow[] = [];
-	let loading = true;
-	let loadError = '';
-	let draft = '';
-	let posting = false;
-	let postError = '';
-	let replyingTo: CommentRow | null = null;
-	let mounted = false;
+	let comments: CommentRow[] = $state([]);
+	let loading = $state(true);
+	let loadError = $state('');
+	let draft = $state('');
+	let posting = $state(false);
+	let postError = $state('');
+	let replyingTo: CommentRow | null = $state(null);
+	let mounted = $state(false);
 
 const canModerate = $derived($auth.authenticated &&
 		$auth.user &&

@@ -69,21 +69,21 @@
 		name: string | { en?: string; he?: string };
 	}
 
-	let photoId: string = '';
-	let photo: Photo | null = null;
-	let loading = true;
-	let saving = false;
-	let regeneratingThumbnails = false;
-	let rotatingPhoto = false;
-	let restoringOriginal = false;
-	let error = '';
-	let notification = { show: false, message: '', type: 'success' as 'success' | 'error' };
+	let photoId: string = $state('');
+	let photo: Photo | null = $state(null);
+	let loading = $state(true);
+	let saving = $state(false);
+	let regeneratingThumbnails = $state(false);
+	let rotatingPhoto = $state(false);
+	let restoringOriginal = $state(false);
+	let error = $state('');
+	let notification = $state({ show: false, message: '', type: 'success' as 'success' | 'error' });
 	
-	let tags: Tag[] = [];
-	let people: Person[] = [];
-	let locations: Location[] = [];
-	let loadingOptions = true;
-	let loadPhotoCalled = false;
+	let tags: Tag[] = $state([]);
+	let people: Person[] = $state([]);
+	let locations: Location[] = $state([]);
+	let loadingOptions = $state(true);
+	let loadPhotoCalled = $state(false);
 	
 	// Popup states
 	let showTagsPopup = $state(false);
@@ -91,7 +91,7 @@
 	let showLocationPopup = $state(false);
 	
 	// Track the last loaded photoId to prevent reloading the same photo
-	let lastLoadedPhotoId: string | null = null;
+	let lastLoadedPhotoId: string | null = $state(null);
 	
 	// Update photoId from route params reactively
 $effect(() => {
@@ -148,7 +148,7 @@ $effect(() => { if (browser && photoId && !loadPhotoCalled && photoId !== lastLo
 		});
 	} });
 
-	let formData = {
+	let formData = $state({
 		title: {} as Record<string, string>,
 		description: {} as Record<string, string>,
 		isPublished: false,
@@ -160,9 +160,9 @@ $effect(() => { if (browser && photoId && !loadPhotoCalled && photoId !== lastLo
 		metadata: {} as Record<string, unknown>,
 		/** Override EXIF-derived fields (merged on save; does not wipe other EXIF) */
 		exifOverrides: { dateTime: '', make: '', model: '' } as { dateTime: string; make: string; model: string },
-	};
-	let descriptionLanguage = 'en';
-	let reExtractingExif = false;
+	});
+	let descriptionLanguage = $state('en');
+	let reExtractingExif = $state(false);
 
 	// Photo URL helper - uses shared utility
 	// Wrapper maintains backward compatibility with preferFullSize parameter
@@ -186,7 +186,7 @@ $effect(() => { if (browser && photoId && !loadPhotoCalled && photoId !== lastLo
 		
 		loadPhotoCalled = true;
 		
-		let timeoutId: ReturnType<typeof setTimeout> | null = null;
+		let timeoutId: ReturnType<typeof setTimeout> | null = $state(null);
 		const controller = new AbortController();
 		
 		try {
@@ -217,7 +217,7 @@ $effect(() => { if (browser && photoId && !loadPhotoCalled && photoId !== lastLo
 				const responseData = await response.json();
 				loading = false;
 				// Extract photo data from response (API returns { success: true, data: {...} })
-				let loadedPhoto = responseData.data || responseData;
+				let loadedPhoto = $state(responseData.data || responseData);
 				// Normalize faceRecognition so UI always gets a clean faces array (ensures reactivity after detect)
 				if (loadedPhoto?.faceRecognition?.faces && Array.isArray(loadedPhoto.faceRecognition.faces)) {
 					loadedPhoto = {

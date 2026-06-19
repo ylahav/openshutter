@@ -79,7 +79,7 @@
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 	let currentPage = $state(1);
-	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+	let searchTimeout: ReturnType<typeof setTimeout> | null = $state(null);
 
 	$effect(() => {
 		const urlParams = $page.url.searchParams;
