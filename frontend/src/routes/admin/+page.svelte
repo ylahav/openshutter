@@ -23,7 +23,7 @@
 	}
 
 	function replaceParams(s: string, params: Record<string, string | number>): string {
-		let out = s;
+		let out = $state(s);
 		for (const [k, v] of Object.entries(params)) {
 			out = out.split(`{${k}}`).join(String(v));
 		}

@@ -16,8 +16,8 @@
     childAlbumCount?: number;
   }
 
-  let albums: TemplateAlbum[] = [];
-  let isLoading = true;
+  let albums: TemplateAlbum[] = $state([]);
+  let isLoading = $state(true);
   let coverImages: Record<string, string> = {};
   let coverImagesLoading = false;
 

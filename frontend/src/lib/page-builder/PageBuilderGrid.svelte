@@ -170,11 +170,11 @@
 		const prefix = skipPrefix ? '' : packClassPrefixFor(pack, pageAliasPrefixes);
 
 		const raw = m?.props?.className;
-		let base = typeof raw === 'string' ? raw.trim() : '';
+		let base = $state(typeof raw === 'string' ? raw.trim() : '');
 		if (prefix && base) base = applyPackClassPrefix(base, prefix);
 
 		const byPack = m?.props?.wrapperClassByPack ?? m?.props?.classNameByPack;
-		let extra = '';
+		let extra = $state('');
 		if (byPack && typeof byPack === 'object' && !Array.isArray(byPack) && pack in byPack) {
 			const v = (byPack as Record<string, unknown>)[pack];
 			extra = typeof v === 'string' ? v.trim() : '';

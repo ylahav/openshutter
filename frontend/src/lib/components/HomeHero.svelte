@@ -16,9 +16,9 @@
     url?: string;
   }
 
-  let photos: TemplatePhoto[] = [];
-  let loading = true;
-  let currentPhotoIndex = 0;
+  let photos: TemplatePhoto[] = $state([]);
+  let loading = $state(true);
+  let currentPhotoIndex = $state(0);
 
 const config = $derived($siteConfigData);
 	const lang = $derived($currentLanguage);

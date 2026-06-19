@@ -29,8 +29,7 @@
 	// Available icon names from icons.ts (sorted)
 	const AVAILABLE_ICONS: string[] = [...AVAILABLE_ICON_NAMES].sort();
 
-	// svelte-ignore export_let_unused - Required by SvelteKit page component
-	export let data: PageData;
+	const { data }: { data: PageData } = $props();
 
 	// Module payload types
 	interface ModulePayload {
@@ -271,23 +270,23 @@
 	const dialogs = useDialogManager();
 
 	// Reactive stores from composables
-	let pages: Page[] = [];
-	let loading = false;
-	let saving = false;
-	let error = '';
-	let searchTerm = '';
-	let categoryFilter = 'all';
-	let publishedFilter = 'all';
-	let sortBy: 'title-asc' | 'title-desc' | 'alias-asc' | 'alias-desc' = 'title-asc';
-	let showCreateDialog = false;
-	let showEditDialog = false;
-	let showDeleteDialog = false;
-	let showDuplicateDialog = false;
-	let editingPage: Page | null = null;
-	let pageToDelete: Page | null = null;
-	let pageToDuplicate: Page | null = null;
-	let duplicateTargetPacks: string[] = [];
-	let duplicateAliasOverride = '';
+	let pages: Page[] = $state([]);
+	let loading = $state(false);
+	let saving = $state(false);
+	let error = $state('');
+	let searchTerm = $state('');
+	let categoryFilter = $state('all');
+	let publishedFilter = $state('all');
+	let sortBy: 'title-asc' | 'title-desc' | 'alias-asc' | 'alias-desc' = $state('title-asc');
+	let showCreateDialog = $state(false);
+	let showEditDialog = $state(false);
+	let showDeleteDialog = $state(false);
+	let showDuplicateDialog = $state(false);
+	let editingPage: Page | null = $state(null);
+	let pageToDelete: Page | null = $state(null);
+	let pageToDuplicate: Page | null = $state(null);
+	let duplicateTargetPacks: string[] = $state([]);
+	let duplicateAliasOverride = $state('');
 
 	// Subscribe to stores
 	crudLoader.items.subscribe(value => pages = value);
@@ -306,20 +305,20 @@
 	dialogs.showCreate.subscribe(value => showCreateDialog = value);
 	dialogs.showEdit.subscribe(value => showEditDialog = value);
 	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
-	let modules: PageModuleData[] = [];
-	let modulesLoading = false;
-	let modulesError = '';
-	let pendingModules: PageModuleData[] = []; // Modules to save after page creation
-	let moduleForm = {
+	let modules: PageModuleData[] = $state([]);
+	let modulesLoading = $state(false);
+	let modulesError = $state('');
+	let pendingModules: PageModuleData[] = $state([]); // Modules to save after page creation
+	let moduleForm = $state({
 		id: '',
 		type: 'hero',
 		zone: 'main',
 		order: 0,
 		propsJson: '{}'
-	};
+	});
 
 	// Form state
-	let formData = {
+	let formData = $state({
 		title: { en: '', he: '' } as MultiLangText,
 		subtitle: { en: '', he: '' } as MultiLangText,
 		alias: '',
@@ -336,11 +335,11 @@
 		gridRows: 1,
 		gridColumns: 1,
 		urlParams: ''
-	};
+	});
 	
 	// Grid builder state
-	let showGridBuilder = false;
-	let gridInitialized = false;
+	let showGridBuilder = $state(false);
+	let gridInitialized = $state(false);
 let layoutShellInstances: Record<
 	string,
 	{
@@ -351,7 +350,7 @@ let layoutShellInstances: Record<
 		cellPlacementByCell?: Record<string, { horizontal?: string; vertical?: string }>;
 	}
 > = {};
-	let menuInstances: Record<string, MenuInstanceConfig> = {};
+	let menuInstances: Record<string, MenuInstanceConfig> = $state({});
 
 	onMount(async () => {
 		await Promise.all([crudLoader.loadItems(), loadAlbums(), loadBlogCategories(), loadLayoutPresetNames()]);
@@ -456,7 +455,7 @@ let layoutShellInstances: Record<
 				
 				// Flatten albums hierarchy for dropdown with proper levels
 				const flattenAlbums = (items: AlbumHierarchyNode[], level = 0): AlbumDropdownItem[] => {
-					let result: AlbumDropdownItem[] = [];
+					let result: AlbumDropdownItem[] = $state([]);
 					for (const album of items) {
 						result.push({
 							_id: album._id,
@@ -548,8 +547,8 @@ let layoutShellInstances: Record<
 
 	function inferGridFromModules(moduleList: PageModuleData[]): { rows: number; cols: number } {
 		if (!moduleList.length) return { rows: 1, cols: 1 };
-		let maxRow = 0;
-		let maxCol = 0;
+		let maxRow = $state(0);
+		let maxCol = $state(0);
 		for (const m of moduleList) {
 			if (m.rowOrder !== undefined && m.columnIndex !== undefined) {
 				const endRow = (m.rowOrder ?? 0) + (m.rowSpan ?? 1);
@@ -572,8 +571,8 @@ let layoutShellInstances: Record<
 		
 		// Extract grid dimensions from layout (fallback to 1x1 if not persisted)
 		const layout = page.layout || {};
-		let gridRows = (layout as any).gridRows;
-		let gridColumns = (layout as any).gridColumns;
+		let gridRows = $state((layout as any).gridRows);
+		let gridColumns = $state((layout as any).gridColumns);
 		if (typeof gridRows !== 'number' || gridRows < 1) gridRows = 1;
 		if (typeof gridColumns !== 'number' || gridColumns < 1) gridColumns = 1;
 		const urlParams = (layout as any).urlParams || '';
@@ -798,8 +797,8 @@ let layoutShellInstances: Record<
 		heroModuleProps = {};
 	}
 
-	let showModuleEditDialog = false;
-	let editingModule: PageModuleData | null = null;
+	let showModuleEditDialog = $state(false);
+	let editingModule: PageModuleData | null = $state(null);
 	
 	// Feature Grid form state
 	interface FeatureGridItem {
@@ -807,81 +806,81 @@ let layoutShellInstances: Record<
 		title: MultiLangText;
 		description: MultiLangHTML;
 	}
-	let featureGridTitle: MultiLangText = { en: '', he: '' };
-	let featureGridSubtitle: MultiLangText = { en: '', he: '' };
-	let featureGridItems: FeatureGridItem[] = [];
-	let editingFeatureIndex: number | null = null;
+	let featureGridTitle: MultiLangText = $state({ en: '', he: '' });
+	let featureGridSubtitle: MultiLangText = $state({ en: '', he: '' });
+	let featureGridItems: FeatureGridItem[] = $state([]);
+	let editingFeatureIndex: number | null = $state(null);
 
 	// Rich Text form state
-	let richTextTitle: MultiLangText = { en: '', he: '' };
-	let richTextBody: MultiLangHTML = { en: '', he: '' };
-	let richTextBackground: RichTextBackgroundMode = 'white';
-	let richTextBackgroundColor = '';
-	let pageTitleShowTitle = true;
-	let pageTitleShowSubtitle = true;
-	let pageTitleAlign: 'left' | 'center' = 'center';
+	let richTextTitle: MultiLangText = $state({ en: '', he: '' });
+	let richTextBody: MultiLangHTML = $state({ en: '', he: '' });
+	let richTextBackground: RichTextBackgroundMode = $state('white');
+	let richTextBackgroundColor = $state('');
+	let pageTitleShowTitle = $state(true);
+	let pageTitleShowSubtitle = $state(true);
+	let pageTitleAlign: 'left' | 'center' = $state('center');
 
-	let heroModuleProps: Record<string, unknown> = {};
+	let heroModuleProps: Record<string, unknown> = $state({});
 
 	// Albums Grid module form state
-	let albumsGridTitle: MultiLangText = { en: '', he: '' };
-	let albumsGridDescription: MultiLangHTML = { en: '', he: '' };
-	let albumsGridSelectedAlbums: string[] = []; // Array of album IDs
-	let albumsGridAlbumCardLayout: 'stack' | 'row' = 'stack';
-	let availableAlbums: Array<{ _id: string; name: string | MultiLangText; alias: string; level?: number }> = [];
-	let albumsLoading = false;
-	let blogCategoryAlias = '';
-	let availableBlogCategories: Array<{ alias: string; title: string }> = [];
-	let layoutShellPresetKey = '';
-	let layoutShellReusePick = '';
-	let layoutShellPresetError = '';
-	let availableLayoutPresetNames: string[] = [];
-	let showLayoutShellEditorDialog = false;
-	let layoutShellEditorKey = '';
-	let layoutShellEditorGridRows = 1;
-	let layoutShellEditorGridColumns = 1;
-	let layoutShellEditorModules: PageModuleData[] = [];
-	let layoutShellEditorRowStructure: Map<number, number[]> = new Map();
-let layoutShellEditorRowTemplateColumnsByRow: Record<string, string> = {};
-let layoutShellEditorCellPlacementByCell: Record<string, { horizontal?: string; vertical?: string }> = {};
-let layoutShellEditorAlignRow = 1;
-let layoutShellEditorAlignCol = 1;
-let layoutShellEditorAlignHorizontal: 'default' | 'start' | 'center' | 'end' | 'stretch' = 'default';
-let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'stretch' = 'default';
-	let editingLayoutShellModule = false;
-	let layoutShellEditorSaving = false;
-	let layoutShellEditorError = '';
-	let menuPresetKey = '';
-	let menuReusePick = '';
-	let menuPresetError = '';
-	let availableMenuInstanceNames: string[] = [];
-	let showMenuEditorDialog = false;
-	let menuEditorKey = '';
-	let menuEditorOrientation: 'horizontal' | 'vertical' = 'horizontal';
-	let menuEditorShowAuthButtons = false;
-	let menuEditorItems: MenuEditorItem[] = [];
-	let menuEditorItemClass = '';
-	let menuEditorActiveItemClass = '';
-	let menuEditorContainerClass = '';
-	let menuEditorSeparatorEnabled = false;
-	let menuEditorSeparatorText = '|';
-	let menuEditorShowActiveIndicator = true;
-	let menuEditorSaving = false;
-	let menuEditorError = '';
-	let menuOrientation: 'horizontal' | 'vertical' = 'horizontal';
-	let menuShowAuthButtons = false;
+	let albumsGridTitle: MultiLangText = $state({ en: '', he: '' });
+	let albumsGridDescription: MultiLangHTML = $state({ en: '', he: '' });
+	let albumsGridSelectedAlbums: string[] = $state([]); // Array of album IDs
+	let albumsGridAlbumCardLayout: 'stack' | 'row' = $state('stack');
+	let availableAlbums: Array<{ _id: string; name: string | MultiLangText; alias: string; level?: number }> = $state([]);
+	let albumsLoading = $state(false);
+	let blogCategoryAlias = $state('');
+	let availableBlogCategories: Array<{ alias: string; title: string }> = $state([]);
+	let layoutShellPresetKey = $state('');
+	let layoutShellReusePick = $state('');
+	let layoutShellPresetError = $state('');
+	let availableLayoutPresetNames: string[] = $state([]);
+	let showLayoutShellEditorDialog = $state(false);
+	let layoutShellEditorKey = $state('');
+	let layoutShellEditorGridRows = $state(1);
+	let layoutShellEditorGridColumns = $state(1);
+	let layoutShellEditorModules: PageModuleData[] = $state([]);
+	let layoutShellEditorRowStructure: Map<number, number[]> = $state(new Map());
+let layoutShellEditorRowTemplateColumnsByRow: Record<string, string> = $state({});
+let layoutShellEditorCellPlacementByCell: Record<string, { horizontal?: string; vertical?: string }> = $state({});
+let layoutShellEditorAlignRow = $state(1);
+let layoutShellEditorAlignCol = $state(1);
+let layoutShellEditorAlignHorizontal: 'default' | 'start' | 'center' | 'end' | 'stretch' = $state('default');
+let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'stretch' = $state('default');
+	let editingLayoutShellModule = $state(false);
+	let layoutShellEditorSaving = $state(false);
+	let layoutShellEditorError = $state('');
+	let menuPresetKey = $state('');
+	let menuReusePick = $state('');
+	let menuPresetError = $state('');
+	let availableMenuInstanceNames: string[] = $state([]);
+	let showMenuEditorDialog = $state(false);
+	let menuEditorKey = $state('');
+	let menuEditorOrientation: 'horizontal' | 'vertical' = $state('horizontal');
+	let menuEditorShowAuthButtons = $state(false);
+	let menuEditorItems: MenuEditorItem[] = $state([]);
+	let menuEditorItemClass = $state('');
+	let menuEditorActiveItemClass = $state('');
+	let menuEditorContainerClass = $state('');
+	let menuEditorSeparatorEnabled = $state(false);
+	let menuEditorSeparatorText = $state('|');
+	let menuEditorShowActiveIndicator = $state(true);
+	let menuEditorSaving = $state(false);
+	let menuEditorError = $state('');
+	let menuOrientation: 'horizontal' | 'vertical' = $state('horizontal');
+	let menuShowAuthButtons = $state(false);
 	/** themeToggle module: icons vs text labels */
-	let themeToggleVariant: 'icons' | 'text' | 'both' = 'icons';
+	let themeToggleVariant: 'icons' | 'text' | 'both' = $state('icons');
 
-	let socialMediaModuleProps: Record<string, unknown> = {};
-	let albumViewModuleProps: Record<string, unknown> = {};
-	let logoModuleProps: Record<string, unknown> = {};
-	let contactFormModuleProps: Record<string, unknown> = {};
-	let searchBarModuleProps: Record<string, unknown> = {};
-	let searchFilterModuleProps: Record<string, unknown> = {};
-	let searchFormModuleProps: Record<string, unknown> = {};
-	let searchResultsModuleProps: Record<string, unknown> = {};
-	let loginFormModuleProps: Record<string, unknown> = {};
+	let socialMediaModuleProps: Record<string, unknown> = $state({});
+	let albumViewModuleProps: Record<string, unknown> = $state({});
+	let logoModuleProps: Record<string, unknown> = $state({});
+	let contactFormModuleProps: Record<string, unknown> = $state({});
+	let searchBarModuleProps: Record<string, unknown> = $state({});
+	let searchFilterModuleProps: Record<string, unknown> = $state({});
+	let searchFormModuleProps: Record<string, unknown> = $state({});
+	let searchResultsModuleProps: Record<string, unknown> = $state({});
+	let loginFormModuleProps: Record<string, unknown> = $state({});
 
 	function normalizeSocialMediaPropsForEditor(raw: Record<string, unknown>): Record<string, unknown> {
 		const p = { ...raw };
@@ -1006,7 +1005,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			}
 		}
 	}
-	let moduleWrapperClassName = '';
+	let moduleWrapperClassName = $state('');
 
 	function getLayoutShellRef(props: Record<string, unknown> | undefined): string {
 		return String((props as any)?.instanceRef ?? (props as any)?.presetKey ?? '').trim();
@@ -1017,7 +1016,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	}
 
 	function openLayoutShellEditorDialog() {
-		let key = layoutShellPresetKey.trim();
+		let key = $state(layoutShellPresetKey.trim());
 		if (!key && layoutShellReusePick.trim()) {
 			key = layoutShellReusePick.trim();
 			layoutShellPresetKey = key;
@@ -1069,7 +1068,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	}
 
 	function openMenuEditorDialog() {
-		let key = menuPresetKey.trim();
+		let key = $state(menuPresetKey.trim());
 		if (!key && menuReusePick.trim()) {
 			key = menuReusePick.trim();
 			menuPresetKey = key;
@@ -1667,7 +1666,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		if (!editingModule) return;
 		modulesError = '';
 		try {
-			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = {};
+			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = $state({});
 			
 			// Handle featureGrid module specially
 			if (moduleForm.type === 'featureGrid') {
@@ -1836,7 +1835,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		if (!editingPage) return;
 		modulesError = '';
 		try {
-			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = {};
+			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = $state({});
 			
 			// Handle module-specific props
 			if (moduleForm.type === 'featureGrid') {
@@ -1991,7 +1990,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	}
 
 	// Row/Column Layout Handlers
-	let rowStructure: Map<number, number[]> = new Map(); // rowOrder -> proportions[]
+	let rowStructure: Map<number, number[]> = $state(new Map()); // rowOrder -> proportions[]
 
 	/** Check if a cell is inside a module's span */
 	function isCellInModule(row: number, col: number, m: PageModuleData): boolean {
@@ -2013,7 +2012,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		modulesError = '';
 
 		// Compute columnProportion from spanned columns
-		let columnProportion = 1;
+		let columnProportion = $state(1);
 		if (rowStructure.has(rowOrder)) {
 			const proportions = rowStructure.get(rowOrder)!;
 			columnProportion = proportions.slice(columnIndex, columnIndex + colSpan).reduce((a, p) => a + (p || 1), 0);

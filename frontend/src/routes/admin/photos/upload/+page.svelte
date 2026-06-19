@@ -37,13 +37,13 @@
 	let isUploading = $state(false);
 	let error: string | null = $state(null);
 	let isDragActive = $state(false);
-	let fileInput: HTMLInputElement | null = null;
+	let fileInput: HTMLInputElement | null = $state(null);
 	let fileUploadReport: UploadReport | null = $state(null);
 	let replaceIfExists = $state(false); // Option to replace existing files
 	
 	// Folder upload state
 	let uploadMode: 'files' | 'folder' = $state('files');
-	let folderInput: HTMLInputElement | null = null;
+	let folderInput: HTMLInputElement | null = $state(null);
 	let selectedFolderName = $state('');
 	let folderUploadReport: UploadReport | null = $state(null);
 	let isUploadingFolder = $state(false);
@@ -350,7 +350,7 @@
 					}
 				} else {
 					// Non-2xx status code
-					let errorMsg = `Upload failed (${xhr.status})`;
+					let errorMsg = $state(`Upload failed (${xhr.status})`);
 					
 					// Handle 413 Request Entity Too Large
 					if (xhr.status === 413) {

@@ -30,12 +30,12 @@ import { t } from '$stores/i18n';
 		seoDescription: { en?: string; he?: string };
 	}
 
-	let saving = false;
-	let error: string | null = null;
-	let success: string | null = null;
-	let categories: string[] = [];
+	let saving = $state(false);
+	let error: string | null = $state(null);
+	let success: string | null = $state(null);
+	let categories: string[] = $state([]);
 
-	let formData: BlogFormData = {
+	let formData: BlogFormData = $state({
 		title: { [$currentLanguage]: '' },
 		category: '',
 		tags: [],
@@ -45,9 +45,9 @@ import { t } from '$stores/i18n';
 		isFeatured: false,
 		seoTitle: { [$currentLanguage]: '' },
 		seoDescription: { [$currentLanguage]: '' }
-	};
+	});
 
-	let tagInput = '';
+	let tagInput = $state('');
 
 	onMount(async () => {
 		await loadCategories();

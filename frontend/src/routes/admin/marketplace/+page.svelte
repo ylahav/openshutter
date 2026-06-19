@@ -34,7 +34,7 @@
 	let listings: Listing[] = $state([]);
 	let loading = $state(true);
 	let error = $state('');
-	let filterApproved: 'all' | 'true' | 'false' = 'all';
+	let filterApproved: 'all' | 'true' | 'false' = $state('all');
 	let togglingId: string | null = $state(null);
 	let deletingId: string | null = $state(null);
 	let editingTagsId: string | null = $state(null);

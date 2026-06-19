@@ -27,8 +27,8 @@
 		downloadUrl: '',
 		repositoryUrl: '',
 	};
-	let submitting = false;
-	let error = '';
+	let submitting = $state(false);
+	let error = $state('');
 	let success = $state(false);
 
 	async function submitListing() {

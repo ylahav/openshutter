@@ -23,11 +23,11 @@
 		error?: string | null;
 	} = $props();
 
-	let photos: any[] = [];
-	let photosLoading = true;
-	let photosError: string | null = null;
-	let lightboxOpen = false;
-	let lightboxIndex = 0;
+	let photos: any[] = $state([]);
+	let photosLoading = $state(true);
+	let photosError: string | null = $state(null);
+	let lightboxOpen = $state(false);
+	let lightboxIndex = $state(0);
 
 	onMount(async () => {
 		if (mode === 'albums') return;

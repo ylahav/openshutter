@@ -20,8 +20,8 @@
 		compact?: unknown;
 	} = $props();
 
-	let isOpen = false;
-	let buttonElement: HTMLButtonElement | null = null;
+	let isOpen = $state(false);
+	let buttonElement: HTMLButtonElement | null = $state(null);
 	let dropdownStyle = $state('');
 
 	const config = $derived($siteConfigData);
@@ -71,7 +71,7 @@
 		const dropdownWidth = 192;
 		const dropdownHeight = 200;
 		const right = window.innerWidth - rect.right;
-		let top = rect.bottom + 4;
+		let top = $state(rect.bottom + 4);
 
 		if (top + dropdownHeight > window.innerHeight && rect.top > dropdownHeight) {
 			top = rect.top - dropdownHeight - 4;
@@ -86,7 +86,7 @@
 		}
 	});
 
-	let resizeHandler: (() => void) | null = null;
+	let resizeHandler: (() => void) | null = $state(null);
 
 	onMount(() => {
 		resizeHandler = () => {

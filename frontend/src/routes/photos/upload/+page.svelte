@@ -14,7 +14,7 @@
 		progress: number;
 		status: 'uploading' | 'success' | 'error';
 		error?: string;
-	}> = [];
+	}> = $state([]);
 	let isUploading = $state(false);
 	let error: string | null  = $state(null);
 	let isDragActive = $state(false);

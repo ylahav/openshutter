@@ -23,13 +23,13 @@ import { t } from '$stores/i18n';
 		};
 	}
 
-	let articles: BlogArticle[] = [];
-	let loading = true;
-	let error: string | null = null;
-	let searchTerm = '';
-	let categoryFilter = '';
-	let statusFilter = '';
-	let categories: string[] = [];
+	let articles: BlogArticle[] = $state([]);
+	let loading = $state(true);
+	let error: string | null = $state(null);
+	let searchTerm = $state('');
+	let categoryFilter = $state('');
+	let statusFilter = $state('');
+	let categories: string[] = $state([]);
 
 	onMount(async () => {
 		await fetchArticles();

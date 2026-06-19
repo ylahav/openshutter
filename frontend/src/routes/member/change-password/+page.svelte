@@ -6,12 +6,12 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let currentPassword = '';
-	let newPassword = '';
-	let confirmPassword = '';
-	let saving = false;
-	let error: string | null = null;
-	let success: string | null = null;
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmPassword = $state('');
+	let saving = $state(false);
+	let error: string | null = $state(null);
+	let success: string | null = $state(null);
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();

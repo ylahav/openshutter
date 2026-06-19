@@ -52,12 +52,12 @@
 
 	// Import
 	let importPath = $state('');
-	let importPathInput: HTMLInputElement | null = null;
-	let importZipInput: HTMLInputElement | null = null;
+	let importPathInput: HTMLInputElement | null = $state(null);
+	let importZipInput: HTMLInputElement | null = $state(null);
 	let importUploadLoading = $state(false);
 	let importMode: 'package' | 'raw' = $state('package');
 	let importIncludeConfig = $state(true);
-	let importConfigMode: 'merge' | 'replace' = 'merge';
+	let importConfigMode: 'merge' | 'replace' = $state('merge');
 	let importPreview: {
 		albumCount: number;
 		photoCount: number;

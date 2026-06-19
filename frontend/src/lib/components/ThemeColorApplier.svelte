@@ -18,8 +18,8 @@
 		initialSiteConfig?: SiteConfig | null;
 	} = $props();
 
-	let styleElement: HTMLStyleElement | null = null;
-	let googleFontsLink: HTMLLinkElement | null = null;
+	let styleElement: HTMLStyleElement | null = $state(null);
+	let googleFontsLink: HTMLLinkElement | null = $state(null);
 
 	const effectiveConfig = $derived($siteConfigData ?? initialSiteConfig);
 

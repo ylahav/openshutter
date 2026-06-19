@@ -39,7 +39,7 @@
 	}
 
 	const album: Album | undefined = data.album;
-	let photos: Photo[] = data.photos ?? [];
+	let photos: Photo[] = $state(data.photos ?? []);
 	const albumId = $page.params.id;
 
 	const isAdmin = data.user?.role === 'admin';
@@ -51,13 +51,13 @@
 		photoId: string | null;
 		photoTitle: string;
 		isDeleting: boolean;
-	} = {
+	} = $state({
 		isOpen: false,
 		photoId: null,
 		photoTitle: '',
 		isDeleting: false,
-	};
-	let errorMessage = '';
+	});
+	let errorMessage = $state('');
 
 	function openPhotoDeleteDialog(photo: Photo) {
 		photoDeleteDialog = {
