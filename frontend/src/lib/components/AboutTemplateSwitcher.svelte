@@ -12,5 +12,6 @@
 const packPromise = $derived(getTemplatePack($activeTemplate));</script>
 
 {#await packPromise then pack}
-	<svelte:component this={pack.pages.About} {page} />
+	{@const About = pack.pages.About}
+	<About {page} />
 {/await}

@@ -43,7 +43,7 @@
 				src={docsUrl}
 				class="w-full border-0 rounded-b-lg"
 				style="height: calc(100vh - 280px); min-height: 500px;"
-			/>
+			></iframe>
 		</div>
 		<p class="text-sm text-gray-500">
 			If the frame is empty, ensure the backend is running and Swagger is enabled (<code class="bg-gray-100 px-1 rounded">ENABLE_SWAGGER=true</code> in production). See <code class="bg-gray-100 px-1 rounded">docs/development/SWAGGER_SETUP.md</code>.

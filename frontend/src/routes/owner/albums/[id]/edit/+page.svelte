@@ -254,6 +254,7 @@ const filteredUsers = $derived(users.filter(
 
 			<form onsubmit={handleSubmit} class="space-y-6 bg-white border rounded p-6">
 				<div>
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-2">Album Name</label>
 					<MultiLangInput
 						bind:value={formData.name}
@@ -262,6 +263,7 @@ const filteredUsers = $derived(users.filter(
 					/>
 				</div>
 				<div>
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
 					<MultiLangHTMLEditor
 						bind:value={formData.description}
@@ -451,8 +453,9 @@ const filteredUsers = $derived(users.filter(
 					</div>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+					<label for="album-display-order" class="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
 					<input
+						id="album-display-order"
 						type="number"
 						name="order"
 						bind:value={formData.order}

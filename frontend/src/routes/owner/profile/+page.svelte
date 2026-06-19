@@ -265,10 +265,11 @@ let formData = $state({
 					<div>
 						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.profileImage')}</h3>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="owner-profile-image-url" class="block text-sm font-medium text-gray-700 mb-2">
 								{$t('owner.profileImageUrl')}
 							</label>
                 <input
+                  id="owner-profile-image-url"
                   type="url"
                   value={formData.profileImage?.url || ''}
                   oninput={(e) => {
@@ -291,6 +292,7 @@ let formData = $state({
 					<div>
 						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.bio')}</h3>
 						<div>
+							<!-- svelte-ignore a11y_label_has_associated_control -->
 							<label class="block text-sm font-medium text-gray-700 mb-2">
 								{$t('owner.bioDescription')}
 							</label>

@@ -21,9 +21,7 @@ const config = {
 		},
 	},
 
-	compilerOptions: {
-		enableSourcemap: true,
-	},
+	compilerOptions: {},
 };
 
 export default config;

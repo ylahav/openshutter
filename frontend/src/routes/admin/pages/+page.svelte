@@ -2450,7 +2450,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 									<input
 										type="checkbox"
 										checked={formData.frontendTemplates.includes(opt.value)}
-										on:change={(e) => {
+										onchange={(e) => {
 											const checked = (e.currentTarget as HTMLInputElement).checked;
 											formData.frontendTemplates = checked
 												? Array.from(new Set([...formData.frontendTemplates, opt.value]))
@@ -2589,7 +2589,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<div class="flex justify-end">
 						<button
 							type="button"
-							on:click={initializeGrid}
+							onclick={initializeGrid}
 							disabled={!formData.title || !formData.alias.trim() || formData.gridRows < 1 || formData.gridColumns < 1}
 							class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
 						>
@@ -2647,7 +2647,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
+						onclick={() => {
 							showCreateDialog = false;
 							resetForm();
 						}}
@@ -2657,7 +2657,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</button>
 					<button
 						type="button"
-						on:click={handleCreate}
+						onclick={handleCreate}
 						disabled={saving || !formData.title || !formData.alias.trim() || !gridInitialized}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
@@ -2691,7 +2691,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<select
 						id="module-type"
 						bind:value={moduleForm.type}
-						on:change={handleModuleTypeChangeInDialog}
+						onchange={handleModuleTypeChangeInDialog}
 						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					>
 						{#each MODULE_TYPES as moduleType}
@@ -2724,7 +2724,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								</span>
 								<button
 									type="button"
-									on:click={addFeatureItem}
+									onclick={addFeatureItem}
 									class="{adminBtnPrimarySm} {adminRingPrimary}"
 								>
 									+ Add Item
@@ -2743,7 +2743,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 												<span class="text-sm font-medium text-(--color-surface-800-200)">Feature {index + 1}</span>
 												<button
 													type="button"
-													on:click={() => removeFeatureItem(index)}
+													onclick={() => removeFeatureItem(index)}
 													class="text-sm text-red-600 hover:text-red-800"
 												>
 													Remove
@@ -2759,7 +2759,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 														<IconSelector
 															bind:value={item.icon}
 															placeholder="Select an icon..."
-															on:change={(e) => {
+															onchange={(e) => {
 																item.icon = e.detail.value as string;
 															}}
 														/>
@@ -2769,8 +2769,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 																bind:value={item.icon}
 																placeholder="🎨 or custom text"
 																class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) text-sm"
-																on:click|stopPropagation
-																on:mousedown|stopPropagation
+																onclick={(e) => e.stopPropagation()}
+																onmousedown={(e) => e.stopPropagation()}
 															/>
 														{/if}
 													</div>
@@ -2949,7 +2949,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 													<input
 														type="checkbox"
 														checked={albumsGridSelectedAlbums.includes(album._id)}
-														on:change={(e) => {
+														onchange={(e) => {
 															if (e.currentTarget.checked) {
 																albumsGridSelectedAlbums = [...albumsGridSelectedAlbums, album._id];
 															} else {
@@ -2992,7 +2992,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								bind:value={layoutShellPresetKey}
 								placeholder="e.g. site_header"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								on:input={() => {
+								oninput={() => {
 									layoutShellPresetError = '';
 								}}
 							/>
@@ -3008,7 +3008,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								id="module-layout-shell-reuse"
 								bind:value={layoutShellReusePick}
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								on:change={() => {
+								onchange={() => {
 									if (!layoutShellReusePick) return;
 									layoutShellPresetKey = layoutShellReusePick;
 									layoutShellPresetError = '';
@@ -3024,7 +3024,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						<div class="flex justify-end">
 							<button
 								type="button"
-								on:click={openLayoutShellEditorDialog}
+								onclick={openLayoutShellEditorDialog}
 								disabled={!layoutShellPresetKey.trim() && !layoutShellReusePick.trim()}
 								class="{adminBtnPrimarySm} {adminRingPrimary} text-xs"
 							>
@@ -3068,7 +3068,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								bind:value={menuPresetKey}
 								placeholder="e.g. header_main"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								on:input={() => {
+								oninput={() => {
 									menuPresetError = '';
 								}}
 							/>
@@ -3084,7 +3084,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								id="module-menu-reuse"
 								bind:value={menuReusePick}
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								on:change={() => {
+								onchange={() => {
 									if (!menuReusePick) return;
 									menuPresetKey = menuReusePick;
 									menuPresetError = '';
@@ -3100,7 +3100,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						<div class="flex justify-end">
 							<button
 								type="button"
-								on:click={openMenuEditorDialog}
+								onclick={openMenuEditorDialog}
 								disabled={!menuPresetKey.trim() && !menuReusePick.trim()}
 								class="{adminBtnPrimarySm} {adminRingPrimary} text-xs"
 							>
@@ -3248,7 +3248,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								id="module-logo-size"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={String(logoModuleProps.size ?? 'md')}
-								on:change={(e) => {
+								onchange={(e) => {
 									logoModuleProps = {
 										...logoModuleProps,
 										size: (e.currentTarget as HTMLSelectElement).value as 'sm' | 'md' | 'lg'
@@ -3266,7 +3266,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								type="checkbox"
 								class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
 								checked={logoModuleProps.fallbackIcon !== false}
-								on:change={(e) => {
+								onchange={(e) => {
 									logoModuleProps = {
 										...logoModuleProps,
 										fallbackIcon: (e.currentTarget as HTMLInputElement).checked
@@ -3281,7 +3281,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								type="checkbox"
 								class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
 								checked={logoModuleProps.linkToHome !== false}
-								on:change={(e) => {
+								onchange={(e) => {
 									logoModuleProps = {
 										...logoModuleProps,
 										linkToHome: (e.currentTarget as HTMLInputElement).checked
@@ -3296,7 +3296,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								type="checkbox"
 								class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
 								checked={logoModuleProps.showSiteTitle === true}
-								on:change={(e) => {
+								onchange={(e) => {
 									logoModuleProps = {
 										...logoModuleProps,
 										showSiteTitle: (e.currentTarget as HTMLInputElement).checked
@@ -3314,7 +3314,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								id="module-logo-title-position"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={String(logoModuleProps.titlePosition ?? 'right')}
-								on:change={(e) => {
+								onchange={(e) => {
 									logoModuleProps = {
 										...logoModuleProps,
 										titlePosition: (e.currentTarget as HTMLSelectElement).value as
@@ -3390,7 +3390,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<div class="flex justify-end gap-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
+						onclick={() => {
 							showModuleEditDialog = false;
 							editingModule = null;
 							resetModuleForm();
@@ -3401,7 +3401,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</button>
 					<button
 						type="button"
-						on:click={saveModuleEdit}
+						onclick={saveModuleEdit}
 						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						Save Module
@@ -3482,7 +3482,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 									<input
 										type="checkbox"
 										checked={formData.frontendTemplates.includes(opt.value)}
-										on:change={(e) => {
+										onchange={(e) => {
 											const checked = (e.currentTarget as HTMLInputElement).checked;
 											formData.frontendTemplates = checked
 												? Array.from(new Set([...formData.frontendTemplates, opt.value]))
@@ -3659,7 +3659,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
+						onclick={() => {
 							showEditDialog = false;
 							editingPage = null;
 							resetForm();
@@ -3670,7 +3670,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</button>
 					<button
 						type="button"
-						on:click={handleEdit}
+						onclick={handleEdit}
 						disabled={saving || !formData.title || !formData.alias.trim()}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
@@ -3736,7 +3736,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								</span>
 								<button
 									type="button"
-									on:click={addFeatureItem}
+									onclick={addFeatureItem}
 									class="{adminBtnPrimarySm} {adminRingPrimary}"
 								>
 									+ Add Item
@@ -3755,7 +3755,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 												<span class="text-sm font-medium text-(--color-surface-800-200)">Feature {index + 1}</span>
 												<button
 													type="button"
-													on:click={() => removeFeatureItem(index)}
+													onclick={() => removeFeatureItem(index)}
 													class="text-sm text-red-600 hover:text-red-800"
 												>
 													Remove
@@ -3771,7 +3771,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 														<IconSelector
 															bind:value={item.icon}
 															placeholder="Select an icon..."
-															on:change={(e) => {
+															onchange={(e) => {
 																item.icon = e.detail.value as string;
 															}}
 														/>
@@ -3781,8 +3781,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 																bind:value={item.icon}
 																placeholder="🎨 or custom text"
 																class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) text-sm"
-																on:click|stopPropagation
-																on:mousedown|stopPropagation
+																onclick={(e) => e.stopPropagation()}
+																onmousedown={(e) => e.stopPropagation()}
 															/>
 														{/if}
 													</div>
@@ -3933,7 +3933,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 													<input
 														type="checkbox"
 														checked={albumsGridSelectedAlbums.includes(album._id)}
-														on:change={(e) => {
+														onchange={(e) => {
 															if (e.currentTarget.checked) {
 																albumsGridSelectedAlbums = [...albumsGridSelectedAlbums, album._id];
 															} else {
@@ -3971,7 +3971,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								id="module-logo-size"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={String(logoModuleProps.size ?? 'md')}
-								on:change={(e) => {
+								onchange={(e) => {
 									logoModuleProps = { ...logoModuleProps, size: (e.currentTarget as HTMLSelectElement).value as 'sm' | 'md' | 'lg' };
 								}}
 							>
@@ -3981,15 +3981,15 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							</select>
 						</div>
 						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
-							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.fallbackIcon !== false} on:change={(e) => { logoModuleProps = { ...logoModuleProps, fallbackIcon: (e.currentTarget as HTMLInputElement).checked }; }} />
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.fallbackIcon !== false} onchange={(e) => { logoModuleProps = { ...logoModuleProps, fallbackIcon: (e.currentTarget as HTMLInputElement).checked }; }} />
 							Show icon when logo is missing
 						</label>
 						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
-							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.linkToHome !== false} on:change={(e) => { logoModuleProps = { ...logoModuleProps, linkToHome: (e.currentTarget as HTMLInputElement).checked }; }} />
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.linkToHome !== false} onchange={(e) => { logoModuleProps = { ...logoModuleProps, linkToHome: (e.currentTarget as HTMLInputElement).checked }; }} />
 							Link logo to home page
 						</label>
 						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
-							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.showSiteTitle === true} on:change={(e) => { logoModuleProps = { ...logoModuleProps, showSiteTitle: (e.currentTarget as HTMLInputElement).checked }; }} />
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.showSiteTitle === true} onchange={(e) => { logoModuleProps = { ...logoModuleProps, showSiteTitle: (e.currentTarget as HTMLInputElement).checked }; }} />
 							Show site title
 						</label>
 						<div>
@@ -3998,7 +3998,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								id="module-logo-title-position"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={String(logoModuleProps.titlePosition ?? 'right')}
-								on:change={(e) => {
+								onchange={(e) => {
 									logoModuleProps = { ...logoModuleProps, titlePosition: (e.currentTarget as HTMLSelectElement).value as 'above' | 'below' | 'right' | 'left' };
 								}}
 							>
@@ -4052,7 +4052,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<div class="flex justify-end gap-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
+						onclick={() => {
 							showModuleEditDialog = false;
 							editingModule = null;
 							resetModuleForm();
@@ -4063,7 +4063,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</button>
 					<button
 						type="button"
-						on:click={saveModuleEdit}
+						onclick={saveModuleEdit}
 						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						Save Module
@@ -4102,7 +4102,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								<input
 									type="checkbox"
 									checked={duplicateTargetPacks.includes(opt.value)}
-									on:change={(e) => {
+									onchange={(e) => {
 										const checked = (e.currentTarget as HTMLInputElement).checked;
 										duplicateTargetPacks = checked
 											? Array.from(new Set([...duplicateTargetPacks, opt.value]))
@@ -4132,14 +4132,14 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<div class="flex justify-end space-x-2">
 					<button
 						type="button"
-						on:click={closeDuplicateDialog}
+						onclick={closeDuplicateDialog}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
 						Cancel
 					</button>
 					<button
 						type="button"
-						on:click={handleDuplicatePage}
+						onclick={handleDuplicatePage}
 						disabled={saving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
@@ -4195,7 +4195,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={layoutShellEditorRowTemplateColumnsByRow[String(rIdx)] ?? ''}
 								placeholder="default (equal columns)"
-								on:input={(e) => {
+								oninput={(e) => {
 									const v = (e.currentTarget as HTMLInputElement).value.trim();
 									const next = { ...layoutShellEditorRowTemplateColumnsByRow };
 									if (v) next[String(rIdx)] = v;
@@ -4267,7 +4267,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						<button
 							type="button"
 							class="{adminBtnPrimarySm} {adminRingPrimary} w-full text-xs"
-							on:click={() => {
+							onclick={() => {
 								const row = Math.max(1, Math.min(layoutShellEditorGridRows, Number(layoutShellEditorAlignRow || 1)));
 								const col = Math.max(1, Math.min(layoutShellEditorGridColumns, Number(layoutShellEditorAlignCol || 1)));
 								layoutShellEditorAlignRow = row;
@@ -4299,7 +4299,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								<button
 									type="button"
 									class="px-2 py-1 text-[11px] rounded border border-red-300 text-red-700 hover:bg-red-50"
-									on:click={() => {
+									onclick={() => {
 										const next = { ...layoutShellEditorCellPlacementByCell };
 										delete next[cellKey];
 										layoutShellEditorCellPlacementByCell = next;
@@ -4315,7 +4315,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			<div class="mb-2">
 				<button
 					type="button"
-					on:click={() => {
+					onclick={() => {
 						const rows = Math.max(1, Number(layoutShellEditorGridRows || 1));
 						const cols = Math.max(1, Number(layoutShellEditorGridColumns || 1));
 						const rowMap = new Map<number, number[]>();
@@ -4364,15 +4364,15 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				onRemoveEmptyColumn={removeEmptyLayoutShellColumn}
 			/>
 			<div class="flex justify-end gap-2">
-				<button type="button" on:click={deleteLayoutShellInstance} disabled={layoutShellEditorSaving}
+				<button type="button" onclick={deleteLayoutShellInstance} disabled={layoutShellEditorSaving}
 					class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium mr-auto">
 					Delete instance
 				</button>
-				<button type="button" on:click={() => (showLayoutShellEditorDialog = false)}
+				<button type="button" onclick={() => (showLayoutShellEditorDialog = false)}
 					class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium">
 					Cancel
 				</button>
-				<button type="button" on:click={saveLayoutShellInstance} disabled={layoutShellEditorSaving}
+				<button type="button" onclick={saveLayoutShellInstance} disabled={layoutShellEditorSaving}
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50">
 					{layoutShellEditorSaving ? 'Saving...' : 'Save instance'}
 				</button>
@@ -4444,7 +4444,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<h3 class="text-sm font-semibold text-(--color-surface-900-100)">Menu items</h3>
 					<button
 						type="button"
-						on:click={addMenuEditorItem}
+						onclick={addMenuEditorItem}
 						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						+ Add item
@@ -4496,7 +4496,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 										<input type="checkbox" bind:checked={item.external} />
 										<span>Open in new tab</span>
 									</label>
-									<button type="button" on:click={() => removeMenuEditorItem(idx)}
+									<button type="button" onclick={() => removeMenuEditorItem(idx)}
 										class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">
 										Remove
 									</button>
@@ -4507,15 +4507,15 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				{/if}
 			</div>
 			<div class="flex justify-end gap-2 mt-4">
-				<button type="button" on:click={deleteMenuInstance} disabled={menuEditorSaving}
+				<button type="button" onclick={deleteMenuInstance} disabled={menuEditorSaving}
 					class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium mr-auto">
 					Delete instance
 				</button>
-				<button type="button" on:click={() => (showMenuEditorDialog = false)}
+				<button type="button" onclick={() => (showMenuEditorDialog = false)}
 					class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium">
 					Cancel
 				</button>
-				<button type="button" on:click={saveMenuInstance} disabled={menuEditorSaving}
+				<button type="button" onclick={saveMenuInstance} disabled={menuEditorSaving}
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50">
 					{menuEditorSaving ? 'Saving...' : 'Save instance'}
 				</button>
@@ -4542,7 +4542,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<div class="flex justify-end space-x-2">
 					<button
 						type="button"
-						on:click={() => {
+						onclick={() => {
 							showDeleteDialog = false;
 							pageToDelete = null;
 						}}
@@ -4552,7 +4552,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</button>
 					<button
 						type="button"
-						on:click={handleDelete}
+						onclick={handleDelete}
 						disabled={saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
@@ -4618,7 +4618,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								</span>
 								<button
 									type="button"
-									on:click={addFeatureItem}
+									onclick={addFeatureItem}
 									class="{adminBtnPrimarySm} {adminRingPrimary}"
 								>
 									+ Add Item
@@ -4637,7 +4637,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 												<span class="text-sm font-medium text-(--color-surface-800-200)">Feature {index + 1}</span>
 												<button
 													type="button"
-													on:click={() => removeFeatureItem(index)}
+													onclick={() => removeFeatureItem(index)}
 													class="text-sm text-red-600 hover:text-red-800"
 												>
 													Remove
@@ -4653,7 +4653,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 														<IconSelector
 															bind:value={item.icon}
 															placeholder="Select an icon..."
-															on:change={(e) => {
+															onchange={(e) => {
 																item.icon = e.detail.value as string;
 															}}
 														/>
@@ -4663,8 +4663,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 																bind:value={item.icon}
 																placeholder="🎨 or custom text"
 																class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) text-sm"
-																on:click|stopPropagation
-																on:mousedown|stopPropagation
+																onclick={(e) => e.stopPropagation()}
+																onmousedown={(e) => e.stopPropagation()}
 															/>
 														{/if}
 													</div>
@@ -4815,7 +4815,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 													<input
 														type="checkbox"
 														checked={albumsGridSelectedAlbums.includes(album._id)}
-														on:change={(e) => {
+														onchange={(e) => {
 															if (e.currentTarget.checked) {
 																albumsGridSelectedAlbums = [...albumsGridSelectedAlbums, album._id];
 															} else {
@@ -4847,27 +4847,27 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
 							<label for="module-logo-size" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Size</label>
-							<select id="module-logo-size" class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" value={String(logoModuleProps.size ?? 'md')} on:change={(e) => { logoModuleProps = { ...logoModuleProps, size: (e.currentTarget as HTMLSelectElement).value as 'sm' | 'md' | 'lg' }; }}>
+							<select id="module-logo-size" class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" value={String(logoModuleProps.size ?? 'md')} onchange={(e) => { logoModuleProps = { ...logoModuleProps, size: (e.currentTarget as HTMLSelectElement).value as 'sm' | 'md' | 'lg' }; }}>
 								<option value="sm">Small</option>
 								<option value="md">Medium</option>
 								<option value="lg">Large</option>
 							</select>
 						</div>
 						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
-							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.fallbackIcon !== false} on:change={(e) => { logoModuleProps = { ...logoModuleProps, fallbackIcon: (e.currentTarget as HTMLInputElement).checked }; }} />
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.fallbackIcon !== false} onchange={(e) => { logoModuleProps = { ...logoModuleProps, fallbackIcon: (e.currentTarget as HTMLInputElement).checked }; }} />
 							Show icon when logo is missing
 						</label>
 						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
-							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.linkToHome !== false} on:change={(e) => { logoModuleProps = { ...logoModuleProps, linkToHome: (e.currentTarget as HTMLInputElement).checked }; }} />
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.linkToHome !== false} onchange={(e) => { logoModuleProps = { ...logoModuleProps, linkToHome: (e.currentTarget as HTMLInputElement).checked }; }} />
 							Link logo to home page
 						</label>
 						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
-							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.showSiteTitle === true} on:change={(e) => { logoModuleProps = { ...logoModuleProps, showSiteTitle: (e.currentTarget as HTMLInputElement).checked }; }} />
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.showSiteTitle === true} onchange={(e) => { logoModuleProps = { ...logoModuleProps, showSiteTitle: (e.currentTarget as HTMLInputElement).checked }; }} />
 							Show site title
 						</label>
 						<div>
 							<label for="module-logo-title-position" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Title position</label>
-							<select id="module-logo-title-position" class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" value={String(logoModuleProps.titlePosition ?? 'right')} on:change={(e) => { logoModuleProps = { ...logoModuleProps, titlePosition: (e.currentTarget as HTMLSelectElement).value as 'above' | 'below' | 'right' | 'left' }; }}>
+							<select id="module-logo-title-position" class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" value={String(logoModuleProps.titlePosition ?? 'right')} onchange={(e) => { logoModuleProps = { ...logoModuleProps, titlePosition: (e.currentTarget as HTMLSelectElement).value as 'above' | 'below' | 'right' | 'left' }; }}>
 								<option value="above">Above</option>
 								<option value="below">Below</option>
 								<option value="right">Right</option>
@@ -4918,7 +4918,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<div class="flex justify-end gap-2 pt-4">
 					<button
 						type="button"
-						on:click={() => {
+						onclick={() => {
 							showModuleEditDialog = false;
 							editingModule = null;
 							resetModuleForm();
@@ -4929,7 +4929,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</button>
 					<button
 						type="button"
-						on:click={saveModuleEdit}
+						onclick={saveModuleEdit}
 						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						Save Module

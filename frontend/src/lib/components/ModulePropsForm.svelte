@@ -242,6 +242,7 @@
 		{#each fields.filter(shouldShowField) as field}
 			<div>
 				{#if field.type === 'multilangText'}
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-1">
 						{field.label}
 						{#if field.required}
@@ -254,6 +255,7 @@
 						placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
 					/>
 				{:else if field.type === 'multilangHTML'}
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-1">
 						{field.label}
 						{#if field.required}
@@ -266,6 +268,7 @@
 						placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
 					/>
 				{:else if field.type === 'string'}
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-1">
 						{field.label}
 						{#if field.required}
@@ -275,7 +278,7 @@
 					<input
 						type="text"
 						value={props[field.key] || ''}
-						on:input={(e) => updateProp(field.key, e.currentTarget.value)}
+						oninput={(e) => updateProp(field.key, e.currentTarget.value)}
 						placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
 					/>
@@ -283,6 +286,7 @@
 						<p class="text-xs text-gray-500 mt-1">{field.description}</p>
 					{/if}
 				{:else if field.type === 'textarea'}
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-1">
 						{field.label}
 						{#if field.required}
@@ -292,7 +296,7 @@
 					<textarea
 						rows={field.rows ?? 4}
 						value={props[field.key] || ''}
-						on:input={(e) => updateProp(field.key, e.currentTarget.value)}
+						oninput={(e) => updateProp(field.key, e.currentTarget.value)}
 						placeholder={field.placeholder || ''}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono"
 					></textarea>
@@ -300,6 +304,7 @@
 						<p class="text-xs text-gray-500 mt-1">{field.description}</p>
 					{/if}
 				{:else if field.type === 'select'}
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-1">
 						{field.label}
 						{#if field.required}
@@ -308,7 +313,7 @@
 					</label>
 					<select
 						value={props[field.key] ?? field.default ?? ''}
-						on:change={(e) => updateProp(field.key, e.currentTarget.value)}
+						onchange={(e) => updateProp(field.key, e.currentTarget.value)}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
 					>
 						{#if !field.required}
@@ -334,7 +339,7 @@
 						<input
 							type="checkbox"
 							checked={props[field.key] ?? field.default ?? false}
-							on:change={(e) => updateProp(field.key, e.currentTarget.checked)}
+							onchange={(e) => updateProp(field.key, e.currentTarget.checked)}
 							class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 						/>
 						<span class="text-sm font-medium text-gray-700">
@@ -349,6 +354,7 @@
 					{/if}
 				{:else if field.type === 'object' && field.fields}
 					<!-- Nested object fields (e.g., socialMedia with facebook, instagram, etc.) -->
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-2">
 						{field.label}
 						{#if field.required}
@@ -361,6 +367,7 @@
 					<div class="bg-gray-50 border border-gray-200 rounded-md p-3 space-y-3">
 						{#each field.fields as nestedField}
 							<div>
+								<!-- svelte-ignore a11y_label_has_associated_control -->
 								<label class="block text-xs font-medium text-gray-600 mb-1">
 									{nestedField.label}
 									{#if nestedField.required}
@@ -370,7 +377,7 @@
 								<input
 									type="text"
 									value={(props[field.key] || {})[nestedField.key] || ''}
-									on:input={(e) => updateNestedProp(field.key, nestedField.key, e.currentTarget.value)}
+									oninput={(e) => updateNestedProp(field.key, nestedField.key, e.currentTarget.value)}
 									placeholder={nestedField.placeholder || `Enter ${nestedField.label.toLowerCase()}`}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
 								/>
@@ -390,6 +397,7 @@
 							/>
 						</div>
 					{:else}
+						<!-- svelte-ignore a11y_label_has_associated_control -->
 						<label class="block text-sm font-medium text-gray-700 mb-1">
 							{field.label}
 							{#if field.required}
@@ -399,7 +407,7 @@
 						<input
 							type="text"
 							value={props[field.key] || ''}
-							on:input={(e) => updateProp(field.key, e.currentTarget.value)}
+							oninput={(e) => updateProp(field.key, e.currentTarget.value)}
 							placeholder={field.placeholder || 'Enter image URL'}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
 						/>
@@ -408,6 +416,7 @@
 						{/if}
 					{/if}
 				{:else if field.type === 'socialLinks'}
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-1">
 						{field.label}
 						{#if field.required}
@@ -429,7 +438,7 @@
 											id={`soc-pl-${i}`}
 											class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
 											value={row.platformPreset}
-											on:change={(e) =>
+											onchange={(e) =>
 												patchSocialRow(i, {
 													platformPreset: (e.currentTarget as HTMLSelectElement).value,
 												})}
@@ -450,7 +459,7 @@
 												value={row.platformCustom}
 												placeholder="e.g. mastodon"
 												class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
-												on:input={(e) =>
+												oninput={(e) =>
 													patchSocialRow(i, { platformCustom: e.currentTarget.value })}
 											/>
 										</div>
@@ -465,13 +474,13 @@
 											value={row.url}
 											placeholder="https://…"
 											class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
-											on:input={(e) => patchSocialRow(i, { url: e.currentTarget.value })}
+											oninput={(e) => patchSocialRow(i, { url: e.currentTarget.value })}
 										/>
 									</div>
 									<button
 										type="button"
 										class="text-sm text-red-600 hover:text-red-800 px-2 py-1"
-										on:click={() => removeSocialRow(i)}
+										onclick={() => removeSocialRow(i)}
 									>
 										Remove
 									</button>
@@ -482,12 +491,13 @@
 					<button
 						type="button"
 						class="text-sm px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
-						on:click={addSocialRow}
+						onclick={addSocialRow}
 					>
 						Add link
 					</button>
 				{:else if field.type === 'featureList' || field.type === 'albumPicker'}
 					<!-- Complex types that would need custom components - show placeholder for now -->
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-1">
 						{field.label}
 						{#if field.required}
@@ -522,7 +532,7 @@
 							id="mpf-place-h"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
 							value={placeH}
-							on:change={(e) =>
+							onchange={(e) =>
 								setPlacementAxis('horizontal', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
 						>
 							{#each placementAxisOptions as opt}
@@ -536,7 +546,7 @@
 							id="mpf-place-v"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
 							value={placeV}
-							on:change={(e) =>
+							onchange={(e) =>
 								setPlacementAxis('vertical', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
 						>
 							{#each placementAxisOptions as opt}
@@ -568,7 +578,7 @@
 							id="mpf-place-h2"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
 							value={placeH}
-							on:change={(e) =>
+							onchange={(e) =>
 								setPlacementAxis('horizontal', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
 						>
 							{#each placementAxisOptions as opt}
@@ -582,7 +592,7 @@
 							id="mpf-place-v2"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
 							value={placeV}
-							on:change={(e) =>
+							onchange={(e) =>
 								setPlacementAxis('vertical', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
 						>
 							{#each placementAxisOptions as opt}

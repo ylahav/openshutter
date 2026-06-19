@@ -226,6 +226,7 @@ import { t } from '$stores/i18n';
 										</div>
 										<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 											<div>
+												<!-- svelte-ignore a11y_label_has_associated_control -->
 												<label class="block text-xs font-medium text-gray-500 mb-0.5">
 													{$t('owner.themeLabel')}
 												</label>
@@ -237,6 +238,7 @@ import { t } from '$stores/i18n';
 												/>
 											</div>
 											<div>
+												<!-- svelte-ignore a11y_label_has_associated_control -->
 												<label class="block text-xs font-medium text-gray-500 mb-0.5">
 													{$t('owner.themeHref')}
 												</label>
@@ -248,6 +250,7 @@ import { t } from '$stores/i18n';
 												/>
 											</div>
 											<div>
+												<!-- svelte-ignore a11y_label_has_associated_control -->
 												<label class="block text-xs font-medium text-gray-500 mb-0.5">
 													{$t('owner.themeType')}
 												</label>
@@ -261,6 +264,7 @@ import { t } from '$stores/i18n';
 												</select>
 											</div>
 											<div>
+												<!-- svelte-ignore a11y_label_has_associated_control -->
 												<label class="block text-xs font-medium text-gray-500 mb-0.5">
 													{$t('owner.themeShowWhen')}
 												</label>

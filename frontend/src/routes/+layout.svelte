@@ -93,9 +93,8 @@
 		<PackFallbackBanner />
 		{#if publicShellPromise}
 			{#await publicShellPromise then mod}
-				<svelte:component this={mod.default}>
-					{@render children?.()}
-				</svelte:component>
+				{@const Shell = mod.default}
+				<Shell>{@render children?.()}</Shell>
 			{/await}
 		{/if}
 	{/if}

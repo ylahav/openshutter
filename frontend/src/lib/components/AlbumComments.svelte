@@ -213,7 +213,6 @@ const bodyClass = $derived(variant === 'dark' ? 'text-sm text-white/90 whitespac
 						{#if c.hidden}
 							<p class="mt-1 text-xs text-amber-300">{$t('albums.commentsHidden')}</p>
 						{/if}
-						<!-- svelte-ignore a11y-no-html -->
 						<p class={`${bodyClass} [&_a]:underline`}>
 							{@html linkifyCommentBody(c.body)}
 						</p>
@@ -262,7 +261,6 @@ const bodyClass = $derived(variant === 'dark' ? 'text-sm text-white/90 whitespac
 										{#if r.hidden}
 											<p class="mt-1 text-xs text-amber-300">{$t('albums.commentsHidden')}</p>
 										{/if}
-										<!-- svelte-ignore a11y-no-html -->
 										<p class={`${bodyClass} [&_a]:underline`}>
 											{@html linkifyCommentBody(r.body)}
 										</p>

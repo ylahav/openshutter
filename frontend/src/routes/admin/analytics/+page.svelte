@@ -303,8 +303,9 @@
 			<div class="mb-6 card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="flex flex-wrap items-center gap-4">
 					<div>
-						<label class="block text-sm font-medium text-(--color-surface-800-200) mb-1">{$t('admin.analyticsDateFrom')}</label>
+						<label for="analytics-date-from" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">{$t('admin.analyticsDateFrom')}</label>
 						<input
+							id="analytics-date-from"
 							type="date"
 							bind:value={dateFrom}
 							class="px-3 py-2 border border-surface-300-700 rounded-md text-sm"
@@ -312,8 +313,9 @@
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-(--color-surface-800-200) mb-1">{$t('admin.analyticsDateTo')}</label>
+						<label for="analytics-date-to" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">{$t('admin.analyticsDateTo')}</label>
 						<input
+							id="analytics-date-to"
 							type="date"
 							bind:value={dateTo}
 							class="px-3 py-2 border border-surface-300-700 rounded-md text-sm"
@@ -322,8 +324,9 @@
 					</div>
 					{#if activeTab === 'views' || activeTab === 'search'}
 						<div>
-							<label class="block text-sm font-medium text-(--color-surface-800-200) mb-1">{$t('admin.analyticsPeriod')}</label>
+							<label for="analytics-period" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">{$t('admin.analyticsPeriod')}</label>
 							<select
+								id="analytics-period"
 								bind:value={period}
 								class="px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 								onchange={() => loadTabData(activeTab)}

@@ -22,7 +22,7 @@
     margin: 10px auto;
     a {
       color: var(--bg)!important;
-      &::hover {
+      &:hover {
         opacity: 0.6;
       }
     }

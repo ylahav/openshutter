@@ -516,7 +516,5 @@
 		gap: 0.25rem;
 	}
 
-	.album-tree-node {
-		width: 100%;
-	}
+
 </style>

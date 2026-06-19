@@ -338,7 +338,7 @@
 								<div
 									class="h-full rounded-full bg-(--color-primary-600) transition-[width]"
 									style={`width: ${storagePct ?? 0}%`}
-								/>
+								></div>
 							</div>
 						{:else}
 							<p class="text-sm text-(--color-surface-600-400)">

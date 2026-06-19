@@ -29,7 +29,7 @@
 	const isSelected = $derived(selectedIds.has(node.item.id));
 </script>
 
-<li role="treeitem" aria-expanded={hasChildren ? isExpanded : undefined} class="list-none">
+<li role="treeitem" aria-expanded={hasChildren ? isExpanded : undefined} aria-selected={isSelected} class="list-none">
 	<div
 		class="flex items-center gap-2 rounded py-1.5 pr-2 hover:bg-(--color-surface-100-900)"
 		style="padding-left: {depth * 1.25 + 0.5}rem"

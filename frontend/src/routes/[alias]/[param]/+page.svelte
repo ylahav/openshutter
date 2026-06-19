@@ -43,7 +43,8 @@ const hasModules = $derived(modules.length > 0);
 
 {#if data.mode === 'pack-album'}
 	{#await getTemplatePack(data.packId) then pack}
-		<svelte:component this={pack.pages.Album} />
+		{@const Album = pack.pages.Album}
+		<Album />
 	{/await}
 {:else if hasModules && pageForCms}
 	<PageRenderer page={pageForCms} modules={modules} />

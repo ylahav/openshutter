@@ -26,7 +26,6 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { t } from '$stores/i18n';
-	import type { PageData } from './$types';
 	import type { MultiLangText, MultiLangHTML } from '$lib/types/multi-lang';
 	import {
 		TEMPLATE_BREAKPOINTS,
@@ -93,8 +92,6 @@
 	 */
 	const ADMIN_COLOR_HEX_INPUT_CLASS =
 		'input flex-1 min-w-0 bg-(--color-surface-50) text-(--color-surface-950) placeholder:text-(--color-surface-500) dark:bg-(--color-surface-900) dark:text-(--color-surface-50) dark:placeholder:text-(--color-surface-400)';
-
-	export let data: PageData;
 
 	$: themeId = $page.url.searchParams.get('themeId');
 
@@ -2587,7 +2584,7 @@ let draggedAlbumHeaderField: string | null = null;
 	<title>{themeEditorHeadingText} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-<svelte:window on:keydown={onThemePreviewModalKeydown} />
+<svelte:window onkeydown={onThemePreviewModalKeydown} />
 
 <div class="py-8">
 	<div class="max-w-[1600px] mx-auto px-4">
@@ -2607,7 +2604,7 @@ let draggedAlbumHeaderField: string | null = null;
 					<button
 						type="button"
 						disabled={loading || !activeTemplate}
-						on:click={() => (showThemePreviewModal = true)}
+						onclick={() => (showThemePreviewModal = true)}
 						class="{adminBtnSecondary} text-sm shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{$t('admin.openLivePreview')}
@@ -2615,7 +2612,7 @@ let draggedAlbumHeaderField: string | null = null;
 					{#if hasChanges}
 						<button
 							type="button"
-							on:click={openCancelEditsDialog}
+							onclick={openCancelEditsDialog}
 							class="{adminBtnSecondary} text-sm shrink-0"
 						>
 							{$t('admin.cancel')}
@@ -2624,7 +2621,7 @@ let draggedAlbumHeaderField: string | null = null;
 					{#if hasOverrides() && !themeId}
 							<button
 								type="button"
-								on:click={openResetOverridesDialog}
+								onclick={openResetOverridesDialog}
 								disabled={resetting}
 								class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 text-sm font-medium"
 							>
@@ -2637,7 +2634,7 @@ let draggedAlbumHeaderField: string | null = null;
 					{/if}
 					<button
 						type="button"
-						on:click={saveOverrides}
+						onclick={saveOverrides}
 						disabled={!hasChanges || saving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
@@ -2672,7 +2669,7 @@ let draggedAlbumHeaderField: string | null = null;
 					<nav class="-mb-px flex space-x-8">
 						<button
 							type="button"
-							on:click={() => (activeTab = 'colors')}
+							onclick={() => (activeTab = 'colors')}
 							class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'colors'
 								? 'border-(--color-primary-500) text-(--color-primary-600)'
 								: 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
@@ -2681,7 +2678,7 @@ let draggedAlbumHeaderField: string | null = null;
 						</button>
 						<button
 							type="button"
-							on:click={() => (activeTab = 'fonts')}
+							onclick={() => (activeTab = 'fonts')}
 							class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'fonts'
 								? 'border-(--color-primary-500) text-(--color-primary-600)'
 								: 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
@@ -2690,7 +2687,7 @@ let draggedAlbumHeaderField: string | null = null;
 						</button>
 						<button
 							type="button"
-							on:click={() => (activeTab = 'layout')}
+							onclick={() => (activeTab = 'layout')}
 							class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'layout'
 								? 'border-(--color-primary-500) text-(--color-primary-600)'
 								: 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
@@ -2734,7 +2731,7 @@ let draggedAlbumHeaderField: string | null = null;
 													<input
 														type="text"
 														value={colorField(row.lightKey)}
-														on:input={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
+														oninput={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
 														class={ADMIN_TEXT_INPUT_CLASS}
 														placeholder={(currentThemePack.colors as Record<string, string>)[row.lightKey] ?? ''}
 													/>
@@ -2745,7 +2742,7 @@ let draggedAlbumHeaderField: string | null = null;
 																<input
 																	type="color"
 																	value={colorField(row.lightKey)}
-																	on:input={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
+																	oninput={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
 																	class="h-9 w-11 cursor-pointer rounded border-0 bg-transparent p-0"
 																/>
 															</div>
@@ -2753,7 +2750,7 @@ let draggedAlbumHeaderField: string | null = null;
 														<input
 															type="text"
 															value={colorField(row.lightKey)}
-															on:input={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
+															oninput={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
 															class={ADMIN_COLOR_HEX_INPUT_CLASS}
 														/>
 													</div>
@@ -2764,7 +2761,7 @@ let draggedAlbumHeaderField: string | null = null;
 													<input
 														type="text"
 														value={colorField(row.darkKey)}
-														on:input={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
+														oninput={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
 														class={ADMIN_TEXT_INPUT_CLASS}
 														placeholder={(currentThemePack.colors as Record<string, string>)[row.darkKey] ?? ''}
 													/>
@@ -2775,7 +2772,7 @@ let draggedAlbumHeaderField: string | null = null;
 																<input
 																	type="color"
 																	value={colorField(row.darkKey)}
-																	on:input={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
+																	oninput={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
 																	class="h-9 w-11 cursor-pointer rounded border-0 bg-transparent p-0"
 																/>
 															</div>
@@ -2783,7 +2780,7 @@ let draggedAlbumHeaderField: string | null = null;
 														<input
 															type="text"
 															value={colorField(row.darkKey)}
-															on:input={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
+															oninput={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
 															class={ADMIN_COLOR_HEX_INPUT_CLASS}
 														/>
 													</div>
@@ -2817,7 +2814,7 @@ let draggedAlbumHeaderField: string | null = null;
 									{@const preset = PALETTE_PRESETS[key]}
 									<button
 										type="button"
-										on:click={() => applyPalette(key)}
+										onclick={() => applyPalette(key)}
 										class="btn btn-sm preset-outlined-surface-200-800 inline-flex items-center gap-2 shadow-sm"
 									>
 										<span class="flex gap-0.5" aria-hidden="true">
@@ -2886,7 +2883,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<input
 												type="color"
 												value={currentColor}
-												on:input={(e) => updateColor(colorInfo.type, (e.target as HTMLInputElement).value)}
+												oninput={(e) => updateColor(colorInfo.type, (e.target as HTMLInputElement).value)}
 												class="h-9 w-14 cursor-pointer rounded border-0 bg-transparent p-0"
 												title="Pick color"
 											/>
@@ -2894,7 +2891,7 @@ let draggedAlbumHeaderField: string | null = null;
 										<input
 											type="text"
 											value={currentColor}
-											on:input={(e) => updateColor(colorInfo.type, (e.target as HTMLInputElement).value)}
+											oninput={(e) => updateColor(colorInfo.type, (e.target as HTMLInputElement).value)}
 											placeholder={DEFAULT_COLOR_HEX[colorInfo.type] ?? '#3B82F6'}
 											autocomplete="off"
 											spellcheck="false"
@@ -2934,7 +2931,7 @@ let draggedAlbumHeaderField: string | null = null;
 													<input
 														type="color"
 														value={currentColor}
-														on:input={(e) =>
+														oninput={(e) =>
 															updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
 														class="h-9 w-14 cursor-pointer rounded border-0 bg-transparent p-0"
 														title="Pick color"
@@ -2944,7 +2941,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<input
 												type="text"
 												value={currentColor}
-												on:input={(e) =>
+												oninput={(e) =>
 													updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
 												placeholder={DEFAULT_COLOR_FALLBACK[colorInfo.key] ?? '#888888'}
 												autocomplete="off"
@@ -2989,7 +2986,7 @@ let draggedAlbumHeaderField: string | null = null;
 													<input
 														type="color"
 														value={currentColor}
-														on:input={(e) =>
+														oninput={(e) =>
 															updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
 														class="h-9 w-14 cursor-pointer rounded border-0 bg-transparent p-0"
 														title="Pick color"
@@ -2999,7 +2996,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<input
 												type="text"
 												value={currentColor}
-												on:input={(e) =>
+												oninput={(e) =>
 													updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
 												placeholder={DEFAULT_COLOR_FALLBACK[colorInfo.key] ?? '#888888'}
 												autocomplete="off"
@@ -3042,7 +3039,7 @@ let draggedAlbumHeaderField: string | null = null;
 													<input
 														type="color"
 														value={currentColor}
-														on:input={(e) =>
+														oninput={(e) =>
 															updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
 														class="h-9 w-14 cursor-pointer rounded border-0 bg-transparent p-0"
 														title="Pick color"
@@ -3052,7 +3049,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<input
 												type="text"
 												value={currentColor}
-												on:input={(e) =>
+												oninput={(e) =>
 													updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
 												placeholder={DEFAULT_COLOR_FALLBACK[colorInfo.key] ?? '#888888'}
 												autocomplete="off"
@@ -3107,7 +3104,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<td class="p-3 min-w-0">
 													<select
 														value={GOOGLE_FONT_NAMES.has(getEffectiveFont(role)) ? getEffectiveFont(role) : '__custom__'}
-														on:change={(e) => {
+														onchange={(e) => {
 															const v = (e.currentTarget as HTMLSelectElement).value;
 															if (v !== '__custom__') updateFontFamily(role, v);
 														}}
@@ -3122,7 +3119,7 @@ let draggedAlbumHeaderField: string | null = null;
 														<input
 															type="text"
 															value={getEffectiveFont(role)}
-															on:input={(e) => updateFontFamily(role, (e.currentTarget as HTMLInputElement).value)}
+															oninput={(e) => updateFontFamily(role, (e.currentTarget as HTMLInputElement).value)}
 															placeholder={atelierPackFontFamily(role)}
 															class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 														/>
@@ -3134,7 +3131,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<td class="p-3 align-middle">
 													<select
 														value={getFontSizeOverride(role)}
-														on:change={(e) => updateFontSize(role, (e.currentTarget as HTMLSelectElement).value)}
+														onchange={(e) => updateFontSize(role, (e.currentTarget as HTMLSelectElement).value)}
 														class="{ADMIN_SELECT_SM_CLASS} w-full min-w-[9rem]"
 													>
 														{#each FONT_SIZE_OPTIONS as opt}
@@ -3145,7 +3142,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<td class="p-3 align-middle">
 													<select
 														value={getFontWeightOverride(role)}
-														on:change={(e) => updateFontWeight(role, (e.currentTarget as HTMLSelectElement).value)}
+														onchange={(e) => updateFontWeight(role, (e.currentTarget as HTMLSelectElement).value)}
 														class="{ADMIN_SELECT_SM_CLASS} w-full min-w-[9rem]"
 													>
 														{#each FONT_WEIGHT_OPTIONS as opt}
@@ -3171,7 +3168,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<span class="label-text">Heading Font</span>
 									<select
 										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('heading')) ? getEffectiveFont('heading') : '__custom__'}
-										on:change={(e) => {
+										onchange={(e) => {
 											const v = (e.currentTarget as HTMLSelectElement).value;
 											if (v !== '__custom__') updateFontFamily('heading', v);
 										}}
@@ -3187,7 +3184,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="text"
 										value={getEffectiveFont('heading')}
-										on:input={(e) => updateFontFamily('heading', (e.currentTarget as HTMLInputElement).value)}
+										oninput={(e) => updateFontFamily('heading', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
 										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
@@ -3198,7 +3195,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Size</span>
 											<select
 												value={getFontSizeOverride('heading')}
-												on:change={(e) => updateFontSize('heading', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontSize('heading', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_SIZE_OPTIONS as opt}
@@ -3212,7 +3209,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Weight</span>
 											<select
 												value={getFontWeightOverride('heading')}
-												on:change={(e) => updateFontWeight('heading', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontWeight('heading', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_WEIGHT_OPTIONS as opt}
@@ -3229,7 +3226,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<span class="label-text">Body Font</span>
 									<select
 										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('body')) ? getEffectiveFont('body') : '__custom__'}
-										on:change={(e) => {
+										onchange={(e) => {
 											const v = (e.currentTarget as HTMLSelectElement).value;
 											if (v !== '__custom__') updateFontFamily('body', v);
 										}}
@@ -3245,7 +3242,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="text"
 										value={getEffectiveFont('body')}
-										on:input={(e) => updateFontFamily('body', (e.currentTarget as HTMLInputElement).value)}
+										oninput={(e) => updateFontFamily('body', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
 										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
@@ -3256,7 +3253,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Size</span>
 											<select
 												value={getFontSizeOverride('body')}
-												on:change={(e) => updateFontSize('body', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontSize('body', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3268,7 +3265,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Weight</span>
 											<select
 												value={getFontWeightOverride('body')}
-												on:change={(e) => updateFontWeight('body', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontWeight('body', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3283,7 +3280,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<span class="label-text">Links</span>
 									<select
 										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('links')) ? getEffectiveFont('links') : '__custom__'}
-										on:change={(e) => {
+										onchange={(e) => {
 											const v = (e.currentTarget as HTMLSelectElement).value;
 											if (v !== '__custom__') updateFontFamily('links', v);
 										}}
@@ -3299,7 +3296,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="text"
 										value={getEffectiveFont('links')}
-										on:input={(e) => updateFontFamily('links', (e.currentTarget as HTMLInputElement).value)}
+										oninput={(e) => updateFontFamily('links', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
 										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
@@ -3310,7 +3307,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Size</span>
 											<select
 												value={getFontSizeOverride('links')}
-												on:change={(e) => updateFontSize('links', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontSize('links', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3322,7 +3319,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Weight</span>
 											<select
 												value={getFontWeightOverride('links')}
-												on:change={(e) => updateFontWeight('links', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontWeight('links', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3337,7 +3334,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<span class="label-text">Lists</span>
 									<select
 										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('lists')) ? getEffectiveFont('lists') : '__custom__'}
-										on:change={(e) => {
+										onchange={(e) => {
 											const v = (e.currentTarget as HTMLSelectElement).value;
 											if (v !== '__custom__') updateFontFamily('lists', v);
 										}}
@@ -3353,7 +3350,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="text"
 										value={getEffectiveFont('lists')}
-										on:input={(e) => updateFontFamily('lists', (e.currentTarget as HTMLInputElement).value)}
+										oninput={(e) => updateFontFamily('lists', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
 										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
@@ -3364,7 +3361,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Size</span>
 											<select
 												value={getFontSizeOverride('lists')}
-												on:change={(e) => updateFontSize('lists', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontSize('lists', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3376,7 +3373,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Weight</span>
 											<select
 												value={getFontWeightOverride('lists')}
-												on:change={(e) => updateFontWeight('lists', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontWeight('lists', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3391,7 +3388,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<span class="label-text">Form inputs</span>
 									<select
 										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('formInputs')) ? getEffectiveFont('formInputs') : '__custom__'}
-										on:change={(e) => {
+										onchange={(e) => {
 											const v = (e.currentTarget as HTMLSelectElement).value;
 											if (v !== '__custom__') updateFontFamily('formInputs', v);
 										}}
@@ -3407,7 +3404,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="text"
 										value={getEffectiveFont('formInputs')}
-										on:input={(e) => updateFontFamily('formInputs', (e.currentTarget as HTMLInputElement).value)}
+										oninput={(e) => updateFontFamily('formInputs', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
 										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
@@ -3418,7 +3415,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Size</span>
 											<select
 												value={getFontSizeOverride('formInputs')}
-												on:change={(e) => updateFontSize('formInputs', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontSize('formInputs', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3430,7 +3427,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Weight</span>
 											<select
 												value={getFontWeightOverride('formInputs')}
-												on:change={(e) => updateFontWeight('formInputs', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontWeight('formInputs', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3445,7 +3442,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<span class="label-text">Form labels</span>
 									<select
 										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('formLabels')) ? getEffectiveFont('formLabels') : '__custom__'}
-										on:change={(e) => {
+										onchange={(e) => {
 											const v = (e.currentTarget as HTMLSelectElement).value;
 											if (v !== '__custom__') updateFontFamily('formLabels', v);
 										}}
@@ -3461,7 +3458,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="text"
 										value={getEffectiveFont('formLabels')}
-										on:input={(e) => updateFontFamily('formLabels', (e.currentTarget as HTMLInputElement).value)}
+										oninput={(e) => updateFontFamily('formLabels', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
 										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
@@ -3472,7 +3469,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Size</span>
 											<select
 												value={getFontSizeOverride('formLabels')}
-												on:change={(e) => updateFontSize('formLabels', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontSize('formLabels', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3484,7 +3481,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<span class="label-text opacity-80">Weight</span>
 											<select
 												value={getFontWeightOverride('formLabels')}
-												on:change={(e) => updateFontWeight('formLabels', (e.currentTarget as HTMLSelectElement).value)}
+												onchange={(e) => updateFontWeight('formLabels', (e.currentTarget as HTMLSelectElement).value)}
 												class={ADMIN_SELECT_SM_CLASS}
 											>
 												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
@@ -3528,7 +3525,7 @@ let draggedAlbumHeaderField: string | null = null;
 												aria-selected={editingBreakpoint === bp}
 												aria-controls="layout-panel-atelier-shell"
 												tabindex={editingBreakpoint === bp ? 0 : -1}
-												on:click={() => (editingBreakpoint = bp)}
+												onclick={() => (editingBreakpoint = bp)}
 												class="min-w-0 flex-1 sm:flex-none px-3 py-2.5 text-sm font-medium border-b-2 transition-colors rounded-t-md
 													{editingBreakpoint === bp
 														? 'border-(--color-primary-600) text-(--color-primary-700) bg-(--color-surface-50-950) border-b-(--color-primary-600) z-10'
@@ -3570,7 +3567,7 @@ let draggedAlbumHeaderField: string | null = null;
 																<input
 																	type="text"
 																	value={getEffectiveLayout(row.key)}
-																	on:input={(e) =>
+																	oninput={(e) =>
 																		updateLayout(row.key, (e.currentTarget as HTMLInputElement).value)}
 																	placeholder={atelierPackLayoutDefault(row.key)}
 																	autocomplete="off"
@@ -3623,7 +3620,7 @@ let draggedAlbumHeaderField: string | null = null;
 												aria-selected={editingBreakpoint === bp}
 												aria-controls="layout-panel-shell"
 												tabindex={editingBreakpoint === bp ? 0 : -1}
-												on:click={() => (editingBreakpoint = bp)}
+												onclick={() => (editingBreakpoint = bp)}
 												class="min-w-0 flex-1 sm:flex-none px-3 py-2.5 text-sm font-medium border-b-2 transition-colors rounded-t-md
 													{editingBreakpoint === bp
 														? 'border-(--color-primary-600) text-(--color-primary-700) bg-(--color-surface-50-950) border-b-(--color-primary-600) z-10'
@@ -3655,7 +3652,7 @@ let draggedAlbumHeaderField: string | null = null;
 													id="layout-mw-{editingBreakpoint}"
 													type="text"
 													value={getEffectiveLayout('maxWidth')}
-													on:input={(e) => updateLayout('maxWidth', (e.target as HTMLInputElement).value)}
+													oninput={(e) => updateLayout('maxWidth', (e.target as HTMLInputElement).value)}
 													placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].maxWidth}
 													class={ADMIN_TEXT_INPUT_CLASS}
 												/>
@@ -3671,7 +3668,7 @@ let draggedAlbumHeaderField: string | null = null;
 													id="layout-pad-{editingBreakpoint}"
 													type="text"
 													value={getEffectiveLayout('containerPadding')}
-													on:input={(e) => updateLayout('containerPadding', (e.target as HTMLInputElement).value)}
+													oninput={(e) => updateLayout('containerPadding', (e.target as HTMLInputElement).value)}
 													placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].containerPadding}
 													class={ADMIN_TEXT_INPUT_CLASS}
 												/>
@@ -3687,7 +3684,7 @@ let draggedAlbumHeaderField: string | null = null;
 													id="layout-gap-{editingBreakpoint}"
 													type="text"
 													value={getEffectiveLayout('gridGap')}
-													on:input={(e) => updateLayout('gridGap', (e.target as HTMLInputElement).value)}
+													oninput={(e) => updateLayout('gridGap', (e.target as HTMLInputElement).value)}
 													placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].gridGap}
 													class={ADMIN_TEXT_INPUT_CLASS}
 												/>
@@ -3728,7 +3725,7 @@ let draggedAlbumHeaderField: string | null = null;
 											aria-selected={editingPageType === pt}
 											aria-controls="pages-editor-panel"
 											tabindex={editingPageType === pt ? 0 : -1}
-											on:click={() => {
+											onclick={() => {
 												editingPageType = pt;
 												selectedCells = new Set();
 												assignedModuleType = '';
@@ -3760,7 +3757,7 @@ let draggedAlbumHeaderField: string | null = null;
 											aria-controls="pages-editor-panel"
 											tabindex={editingBreakpoint === bp ? 0 : -1}
 											disabled={sameGridToAllBreakpoints}
-											on:click={() => {
+											onclick={() => {
 												if (sameGridToAllBreakpoints) return;
 												editingBreakpoint = bp;
 											}}
@@ -3803,7 +3800,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="checkbox"
 										checked={sameGridToAllBreakpoints}
-										on:change={(e) =>
+										onchange={(e) =>
 											setSameGridToAllBreakpointsForEditingPage(
 												(e.currentTarget as HTMLInputElement).checked
 											)}
@@ -3835,7 +3832,7 @@ let draggedAlbumHeaderField: string | null = null;
 										min="1"
 										max="20"
 										value={pageGrid.gridRows}
-										on:input={(e) => updateGridForPageType(editingPageType, parseInt((e.target as HTMLInputElement).value) || 1, undefined)}
+										oninput={(e) => updateGridForPageType(editingPageType, parseInt((e.target as HTMLInputElement).value) || 1, undefined)}
 										class="w-full px-3 py-2 border border-surface-300-700 rounded-md"
 									/>
 								</div>
@@ -3850,7 +3847,7 @@ let draggedAlbumHeaderField: string | null = null;
 										min="1"
 										max="20"
 										value={pageGrid.gridColumns}
-										on:input={(e) => updateGridForPageType(editingPageType, undefined, parseInt((e.target as HTMLInputElement).value) || 1)}
+										oninput={(e) => updateGridForPageType(editingPageType, undefined, parseInt((e.target as HTMLInputElement).value) || 1)}
 										class="w-full px-3 py-2 border border-surface-300-700 rounded-md"
 									/>
 								</div>
@@ -3859,7 +3856,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<button
 									type="button"
 									title={$t('admin.applyCurrentBreakpointToAllBreakpointsHelp')}
-									on:click={() => applyCurrentBreakpointToAllForEditingPage()}
+									onclick={() => applyCurrentBreakpointToAllForEditingPage()}
 									class="mt-3 text-sm px-3 py-1.5 border border-surface-300-700 text-(--color-surface-900-100) rounded-md hover:bg-(--color-surface-100-900)"
 								>
 									{$t('admin.applyCurrentBreakpointToAllBreakpoints')}
@@ -3868,7 +3865,7 @@ let draggedAlbumHeaderField: string | null = null;
 							{#if editingPageType === 'home' && getModulesForPageType(editingPageType, editingBreakpoint).length === 0}
 								<button
 									type="button"
-									on:click={() => applyDefaultLayout(editingPageType)}
+									onclick={() => applyDefaultLayout(editingPageType)}
 									class="mt-3 text-sm px-3 py-1.5 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] text-(--color-primary-700) rounded hover:bg-[color-mix(in_oklab,var(--color-primary-500)_28%,transparent)]"
 								>
 									Use default (2 rows × 1 col: Hero + Albums Grid)
@@ -3909,7 +3906,7 @@ let draggedAlbumHeaderField: string | null = null;
 												title="Move this row up (swap with row above)"
 												class="px-1.5 py-0.5 text-[11px] rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-40"
 												disabled={rIdx === 0}
-												on:click|stopPropagation={() => movePageGridRow(editingPageType, rIdx, rIdx - 1)}
+												onclick={() => movePageGridRow(editingPageType, rIdx, rIdx - 1)}
 											>
 												↑
 											</button>
@@ -3918,7 +3915,7 @@ let draggedAlbumHeaderField: string | null = null;
 												title="Move this row down (swap with row below)"
 												class="px-1.5 py-0.5 text-[11px] rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-40"
 												disabled={rIdx >= pageGrid.gridRows - 1}
-												on:click|stopPropagation={() => movePageGridRow(editingPageType, rIdx, rIdx + 1)}
+												onclick={() => movePageGridRow(editingPageType, rIdx, rIdx + 1)}
 											>
 												↓
 											</button>
@@ -3927,7 +3924,7 @@ let draggedAlbumHeaderField: string | null = null;
 												title="Insert empty row above this band"
 												class="px-1.5 py-0.5 text-[11px] rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-40"
 												disabled={pageGrid.gridRows >= 20}
-												on:click|stopPropagation={() => insertPageGridRow(editingPageType, rIdx)}
+												onclick={() => insertPageGridRow(editingPageType, rIdx)}
 											>
 												+↑
 											</button>
@@ -3936,7 +3933,7 @@ let draggedAlbumHeaderField: string | null = null;
 												title="Insert empty row below this band"
 												class="px-1.5 py-0.5 text-[11px] rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-40"
 												disabled={pageGrid.gridRows >= 20}
-												on:click|stopPropagation={() => insertPageGridRow(editingPageType, rIdx + 1)}
+												onclick={() => insertPageGridRow(editingPageType, rIdx + 1)}
 											>
 												+↓
 											</button>
@@ -3946,7 +3943,7 @@ let draggedAlbumHeaderField: string | null = null;
 												class="px-1.5 py-0.5 text-[11px] rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-red-500/15 hover:border-red-400/60 dark:hover:border-red-500/50 disabled:opacity-40 inline-flex items-center justify-center"
 												disabled={pageGrid.gridRows <= 1}
 												aria-label="Delete row"
-												on:click|stopPropagation={() => deletePageGridRow(editingPageType, rIdx)}
+												onclick={() => deletePageGridRow(editingPageType, rIdx)}
 											>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
@@ -3986,13 +3983,13 @@ let draggedAlbumHeaderField: string | null = null;
 													value={getLayoutShellRef(mod.props)}
 													placeholder="e.g. site_header"
 													class="mt-1 w-full px-2 py-1 text-xs border border-surface-300-700 rounded bg-(--color-surface-50-950)"
-													on:input={(e) =>
+													oninput={(e) =>
 														updateLayoutShellPresetKeyInline(
 															editingPageType,
 															modIdx,
 															(e.currentTarget as HTMLInputElement).value
 														)}
-													on:click|stopPropagation
+													onclick={(e) => e.stopPropagation()}
 												/>
 											{/if}
 											{#if rs > 1 || cs > 1}
@@ -4002,7 +3999,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<button
 													type="button"
 													class="text-xs text-(--color-primary-600) hover:text-(--color-primary-800) font-medium"
-													on:click|stopPropagation={() => {
+													onclick={() => {
 														layoutShellPresetKeyError = '';
 														// Deep clone the module to avoid mutating the original
 														editingModule = JSON.parse(JSON.stringify(mod));
@@ -4276,7 +4273,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<button
 													type="button"
 													class="text-xs text-red-600 hover:text-red-800 font-medium"
-													on:click|stopPropagation={() => removeModuleFromCell(editingPageType, r, c)}
+													onclick={() => removeModuleFromCell(editingPageType, r, c)}
 												>
 													Remove
 												</button>
@@ -4299,7 +4296,10 @@ let draggedAlbumHeaderField: string | null = null;
 												class="border rounded-lg p-3 min-h-[80px] transition-colors flex flex-col
 													{selected ? 'ring-2 ring-(--color-primary-500) bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)]' : 'border-surface-300-700 bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950) cursor-pointer'}"
 												style="grid-column: {col + 2}; grid-row: {row + 1}"
-												on:click|stopPropagation={() => { if (!selected) toggleCell(row, col); }}
+												role="button"
+												tabindex="0"
+												onclick={(e) => { e.stopPropagation(); if (!selected) toggleCell(row, col); }}
+												onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); if (!selected) toggleCell(row, col); } }}
 											>
 												{#if selected}
 													<div class="flex-1 flex flex-col items-center justify-center gap-2 p-1">
@@ -4307,7 +4307,7 @@ let draggedAlbumHeaderField: string | null = null;
 														<select
 															bind:value={assignedModuleType}
 															class="text-xs border-2 border-(--color-primary-500) rounded-md px-2 py-2 w-full bg-(--color-surface-50-950) shadow-md focus:outline-none focus:ring-2 focus:ring-(--color-primary-500) font-medium cursor-pointer text-(--color-surface-950-50)"
-															on:change={(e) => {
+															onchange={(e) => {
 																e.stopPropagation();
 																const v = (e.currentTarget as HTMLSelectElement).value;
 																logger.debug('[Overrides] Dropdown changed:', { value: v, assignedModuleType });
@@ -4315,8 +4315,8 @@ let draggedAlbumHeaderField: string | null = null;
 																	handleAssignToSelected(v);
 																}
 															}}
-															on:click={(e) => e.stopPropagation()}
-															on:mousedown={(e) => e.stopPropagation()}
+															onclick={(e) => e.stopPropagation()}
+															onmousedown={(e) => e.stopPropagation()}
 														>
 															<option value="">Assign module...</option>
 															{#each getAssignableModulesForPageType(editingPageType) as m}
@@ -4337,7 +4337,7 @@ let draggedAlbumHeaderField: string | null = null;
 														role="button"
 														tabindex="0"
 														class="flex-1 flex items-center justify-center"
-														on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCell(row, col); } }}
+														onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCell(row, col); } }}
 													>
 														<span class="text-xs text-(--color-surface-600-400) font-medium">Click to select</span>
 													</div>
@@ -4352,7 +4352,7 @@ let draggedAlbumHeaderField: string | null = null;
 							<div class="flex flex-wrap items-center gap-3 border-t border-surface-200-800 pt-4 mt-4">
 								<button
 									type="button"
-									on:click={selectAllEmptyCells}
+									onclick={selectAllEmptyCells}
 									class="text-sm text-(--color-surface-600-400) hover:text-(--color-surface-950-50)"
 								>
 									Select all
@@ -4375,7 +4375,7 @@ let draggedAlbumHeaderField: string | null = null;
 									</select>
 									<button
 										type="button"
-										on:click={() => handleAssignToSelected()}
+										onclick={() => handleAssignToSelected()}
 										disabled={!assignedModuleType}
 										class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 									>
@@ -4383,7 +4383,7 @@ let draggedAlbumHeaderField: string | null = null;
 									</button>
 									<button
 										type="button"
-										on:click={clearSelection}
+										onclick={clearSelection}
 										class="text-sm text-(--color-surface-600-400) hover:text-(--color-surface-950-50)"
 									>
 										Clear selection
@@ -4414,12 +4414,13 @@ let draggedAlbumHeaderField: string | null = null;
 			type="button"
 			class="absolute inset-0 w-full h-full bg-black/50 border-0 p-0 cursor-pointer"
 			aria-label={$t('admin.close')}
-			on:click={() => (showThemePreviewModal = false)}
+			onclick={() => (showThemePreviewModal = false)}
 		></button>
 		<div
 			class="relative flex flex-col w-full max-w-[min(100vw-1.5rem,1400px)] max-h-[min(92vh,56rem)] card preset-outlined-surface-200-800 bg-surface-50-950 shadow-2xl overflow-hidden pointer-events-auto"
-			on:click|stopPropagation
-			role="document"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+			role="presentation"
 		>
 			<div class="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-surface-200-800 bg-(--color-surface-50-950) shrink-0">
 				<h2 id="theme-preview-modal-title" class="text-lg font-semibold text-(--color-surface-950-50)">
@@ -4427,7 +4428,7 @@ let draggedAlbumHeaderField: string | null = null;
 				</h2>
 				<button
 					type="button"
-					on:click={() => (showThemePreviewModal = false)}
+					onclick={() => (showThemePreviewModal = false)}
 					class="ml-auto px-3 py-1.5 text-sm font-medium text-(--color-surface-800-200) border border-surface-300-700 rounded-md bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950)"
 				>
 					{$t('admin.close')}
@@ -4442,7 +4443,7 @@ let draggedAlbumHeaderField: string | null = null;
 						{#each PREVIEW_DEVICE_ORDER as devId}
 							<button
 								type="button"
-								on:click={() => (previewDeviceId = devId)}
+								onclick={() => (previewDeviceId = devId)}
 								class="px-2.5 py-1 rounded-md text-xs font-medium border transition-colors {previewDeviceId === devId
 									? 'border-(--color-primary-500) text-(--color-primary-700) bg-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)]'
 									: 'bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-300-700 hover:bg-(--color-surface-50-950)'}"
@@ -4460,7 +4461,7 @@ let draggedAlbumHeaderField: string | null = null;
 							{@const pageKey = p as typeof previewPageType}
 							<button
 								type="button"
-								on:click={() => (previewPageType = pageKey)}
+								onclick={() => (previewPageType = pageKey)}
 								class="px-2 py-1 text-xs rounded border transition-colors {previewPageType === pageKey
 									? 'border-(--color-primary-500) text-(--color-primary-700) bg-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)]'
 									: 'bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900)'}"
@@ -4517,7 +4518,7 @@ let draggedAlbumHeaderField: string | null = null;
 				</h2>
 				<button
 					type="button"
-					on:click={() => editingModule = null}
+					onclick={() => editingModule = null}
 					class="text-(--color-surface-400-600) hover:text-(--color-surface-600-400)"
 					aria-label="Close"
 				>
@@ -4555,7 +4556,7 @@ let draggedAlbumHeaderField: string | null = null;
 						class={ADMIN_TEXT_INPUT_CLASS}
 						value={editingModule.props?.className || ''}
 						placeholder="e.g. tpl-home-hero"
-						on:input={(e) => {
+						oninput={(e) => {
 							editingModule = {
 								...editingModule,
 								props: { ...editingModule.props, className: (e.currentTarget as HTMLInputElement).value }
@@ -4583,7 +4584,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class={ADMIN_TEXT_INPUT_CLASS}
 								value={getLayoutShellRef(editingModule.props)}
 								placeholder="e.g. site_header"
-								on:input={(e) => {
+								oninput={(e) => {
 									const v = (e.currentTarget as HTMLInputElement).value;
 									editingModule = { ...editingModule, props: { ...editingModule.props, presetKey: v, instanceRef: v } };
 									layoutShellUseExistingSelection = false;
@@ -4603,7 +4604,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="layout-shell-reuse"
 								class="{ADMIN_SELECT_CLASS} w-full"
 								bind:value={layoutShellReusePick}
-								on:change={() => {
+								onchange={() => {
 									if (!layoutShellReusePick) return;
 									editingModule = {
 										...editingModule,
@@ -4628,7 +4629,7 @@ let draggedAlbumHeaderField: string | null = null;
 									type="button"
 									class="px-3 py-1.5 text-xs rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
 									disabled={!layoutShellActivePresetExists || layoutShellCurrentPresetUsage.length > 0}
-									on:click={() => {
+									onclick={() => {
 										if (!layoutShellActivePresetKey) return;
 										openDeleteLayoutInstanceDialog(layoutShellActivePresetKey);
 									}}
@@ -4639,7 +4640,7 @@ let draggedAlbumHeaderField: string | null = null;
 									type="button"
 									class="px-3 py-1.5 text-xs rounded border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
 									disabled={layoutShellUnusedPresetKeys.length === 0}
-									on:click={() => {
+									onclick={() => {
 										openDeleteAllUnusedLayoutDialog();
 									}}
 								>
@@ -4681,7 +4682,7 @@ let draggedAlbumHeaderField: string | null = null;
 											max="12"
 											class={`mt-1 ${ADMIN_TEXT_INPUT_CLASS}`}
 											value={shell?.gridRows ?? 1}
-											on:input={(e) => {
+											oninput={(e) => {
 												const gr = parseInt((e.currentTarget as HTMLInputElement).value, 10);
 												updateLayoutShellPresetGrid(pk, gr, shell?.gridColumns ?? 1);
 											}}
@@ -4695,7 +4696,7 @@ let draggedAlbumHeaderField: string | null = null;
 											max="12"
 											class={`mt-1 ${ADMIN_TEXT_INPUT_CLASS}`}
 											value={shell?.gridColumns ?? 1}
-											on:input={(e) => {
+											oninput={(e) => {
 												const gc = parseInt((e.currentTarget as HTMLInputElement).value, 10);
 												updateLayoutShellPresetGrid(pk, shell?.gridRows ?? 1, gc);
 											}}
@@ -4714,6 +4715,7 @@ let draggedAlbumHeaderField: string | null = null;
 													Row {rIdx + 1}
 												</div>
 												<div class="mt-1">
+													<!-- svelte-ignore a11y_label_has_associated_control -->
 													<label class="text-[11px] text-(--color-surface-600-400)">
 														Columns template
 													</label>
@@ -4722,7 +4724,7 @@ let draggedAlbumHeaderField: string | null = null;
 														class={`mt-1 ${ADMIN_TEXT_INPUT_CLASS}`}
 														value={(shell as any)?.rowTemplateColumnsByRow?.[String(rIdx)] ?? ''}
 														placeholder="e.g. 1-3-1 or auto 1fr auto"
-														on:input={(e) =>
+														oninput={(e) =>
 															updateLayoutShellRowTemplate(
 																pk,
 																rIdx,
@@ -4736,7 +4738,7 @@ let draggedAlbumHeaderField: string | null = null;
 													type="button"
 													class="px-2 py-1 text-xs rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-50"
 													disabled={rIdx === 0}
-													on:click={() => moveLayoutInstanceRow(pk, rIdx, rIdx - 1)}
+													onclick={() => moveLayoutInstanceRow(pk, rIdx, rIdx - 1)}
 												>
 													Up
 												</button>
@@ -4744,7 +4746,7 @@ let draggedAlbumHeaderField: string | null = null;
 													type="button"
 													class="px-2 py-1 text-xs rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-50"
 													disabled={rIdx >= (shell?.gridRows ?? 1) - 1}
-													on:click={() => moveLayoutInstanceRow(pk, rIdx, rIdx + 1)}
+													onclick={() => moveLayoutInstanceRow(pk, rIdx, rIdx + 1)}
 												>
 													Down
 												</button>
@@ -4752,7 +4754,7 @@ let draggedAlbumHeaderField: string | null = null;
 													type="button"
 													class="px-2 py-1 text-xs rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-50"
 													disabled={(shell?.gridRows ?? 1) >= 12}
-													on:click={() => insertLayoutInstanceRow(pk, rIdx)}
+													onclick={() => insertLayoutInstanceRow(pk, rIdx)}
 												>
 													Insert above
 												</button>
@@ -4760,7 +4762,7 @@ let draggedAlbumHeaderField: string | null = null;
 													type="button"
 													class="px-2 py-1 text-xs rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-50"
 													disabled={(shell?.gridRows ?? 1) >= 12}
-													on:click={() => insertLayoutInstanceRow(pk, rIdx + 1)}
+													onclick={() => insertLayoutInstanceRow(pk, rIdx + 1)}
 												>
 													Insert below
 												</button>
@@ -4801,7 +4803,7 @@ let draggedAlbumHeaderField: string | null = null;
 														<button
 															type="button"
 															class="text-[10px] text-(--color-primary-600) hover:text-(--color-primary-800) font-medium"
-															on:click|stopPropagation={() => {
+															onclick={() => {
 									pushEditingModuleContext();
 																const cloned = JSON.parse(JSON.stringify(mod)) as Record<
 																	string,
@@ -4820,7 +4822,7 @@ let draggedAlbumHeaderField: string | null = null;
 														<button
 															type="button"
 															class="text-[10px] text-red-600 hover:text-red-800 font-medium"
-															on:click|stopPropagation={() => removeModuleFromLayoutInstance(pk, idx)}
+															onclick={() => removeModuleFromLayoutInstance(pk, idx)}
 														>
 															Remove
 														</button>
@@ -4846,7 +4848,10 @@ let draggedAlbumHeaderField: string | null = null;
 																? 'ring-2 ring-(--color-primary-500) bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)]'
 																: 'border-surface-300-700 bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950) cursor-pointer'}"
 														style="grid-column: {col + 1}; grid-row: {row + 1}"
-														on:click|stopPropagation={() => innerToggleCell(pk, row, col)}
+														role="button"
+														tabindex="0"
+														onclick={() => innerToggleCell(pk, row, col)}
+														onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') innerToggleCell(pk, row, col); }}
 													>
 														<div class="text-[10px] text-(--color-surface-600-400)">
 															Row {row + 1}, Col {col + 1}
@@ -4871,7 +4876,7 @@ let draggedAlbumHeaderField: string | null = null;
 											type="button"
 											class="mt-5 {adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 											disabled={!layoutShellInnerSelectionBounds || !layoutShellInnerAssignedModuleType}
-											on:click={() => {
+											onclick={() => {
 												if (!layoutShellInnerSelectionBounds) return;
 												if (!layoutShellInnerAssignedModuleType) return;
 												addModuleToLayoutInstance(
@@ -4890,7 +4895,7 @@ let draggedAlbumHeaderField: string | null = null;
 										<button
 											type="button"
 											class="mt-5 px-3 py-1.5 text-xs font-medium rounded-md bg-(--color-surface-50-950) text-(--color-surface-800-200) border border-surface-200-800 hover:bg-(--color-surface-100-900)"
-											on:click={() => clearLayoutShellInnerSelection()}
+											onclick={() => clearLayoutShellInnerSelection()}
 										>
 											Clear selection
 										</button>
@@ -4920,7 +4925,7 @@ let draggedAlbumHeaderField: string | null = null;
 											type="button"
 											class="mt-5 {adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 											disabled={layoutShellInnerSelectedCells.size === 0}
-											on:click={() =>
+											onclick={() =>
 												setLayoutShellSelectedCellsPlacement(
 													pk,
 													layoutShellInnerAlignHorizontal,
@@ -4948,7 +4953,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="edit-album-source"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.albumSource ?? 'root'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, albumSource: (e.currentTarget as HTMLSelectElement).value }
@@ -4982,7 +4987,7 @@ let draggedAlbumHeaderField: string | null = null;
 										<input
 											type="checkbox"
 											checked={editingModule.props?.showAlbumPageTitle !== false}
-											on:change={(e) => {
+											onchange={(e) => {
 												editingModule = {
 													...editingModule,
 													props: { ...editingModule.props, showAlbumPageTitle: (e.currentTarget as HTMLInputElement).checked }
@@ -4995,7 +5000,7 @@ let draggedAlbumHeaderField: string | null = null;
 										<input
 											type="checkbox"
 											checked={editingModule.props?.showAlbumPageDescription !== false}
-											on:change={(e) => {
+											onchange={(e) => {
 												editingModule = {
 													...editingModule,
 													props: { ...editingModule.props, showAlbumPageDescription: (e.currentTarget as HTMLInputElement).checked }
@@ -5008,7 +5013,7 @@ let draggedAlbumHeaderField: string | null = null;
 										<input
 											type="checkbox"
 											checked={editingModule.props?.showAlbumPageStats !== false}
-											on:change={(e) => {
+											onchange={(e) => {
 												editingModule = {
 													...editingModule,
 													props: { ...editingModule.props, showAlbumPageStats: (e.currentTarget as HTMLInputElement).checked }
@@ -5020,24 +5025,26 @@ let draggedAlbumHeaderField: string | null = null;
 								</div>
 
 								<div>
+									<!-- svelte-ignore a11y_label_has_associated_control -->
 									<label class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Album header order (drag to reorder)</label>
 									<div class="space-y-2">
 										{#each (Array.isArray(editingModule.props?.albumHeaderFieldOrder)
 											? editingModule.props.albumHeaderFieldOrder
 											: ['albumTitle', 'albumDescription', 'albumStats']) as fieldKey, idx (fieldKey)}
 											<div
+												role="listitem"
 												class="flex items-center justify-between px-3 py-2 border border-surface-300-700 rounded-md bg-(--color-surface-50-950) cursor-move"
 												draggable="true"
-												on:dragstart={(e) => {
+												ondragstart={(e) => {
 													draggedAlbumHeaderField = fieldKey;
 													e.dataTransfer?.setData('text/plain', fieldKey);
 													e.dataTransfer!.effectAllowed = 'move';
 												}}
-												on:dragend={() => {
+												ondragend={() => {
 													draggedAlbumHeaderField = null;
 												}}
-												on:dragover={(e) => e.preventDefault()}
-												on:drop={(e) => {
+												ondragover={(e) => e.preventDefault()}
+												ondrop={(e) => {
 													e.preventDefault();
 													const fromKey =
 														e.dataTransfer?.getData('text/plain') || draggedAlbumHeaderField || null;
@@ -5079,7 +5086,7 @@ let draggedAlbumHeaderField: string | null = null;
 									id="edit-card-data-type"
 									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 									value={editingModule.props?.cardDataType ?? 'both'}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, cardDataType: (e.currentTarget as HTMLSelectElement).value }
@@ -5099,7 +5106,7 @@ let draggedAlbumHeaderField: string | null = null;
 											id="edit-mixed-display-mode"
 											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 											value={editingModule.props?.mixedDisplayMode ?? 'grouped'}
-											on:change={(e) => {
+											onchange={(e) => {
 												editingModule = {
 													...editingModule,
 													props: { ...editingModule.props, mixedDisplayMode: (e.currentTarget as HTMLSelectElement).value }
@@ -5114,7 +5121,7 @@ let draggedAlbumHeaderField: string | null = null;
 										<input
 											type="checkbox"
 											checked={editingModule.props?.showSectionLabels !== false}
-											on:change={(e) => {
+											onchange={(e) => {
 												editingModule = {
 													...editingModule,
 													props: { ...editingModule.props, showSectionLabels: (e.currentTarget as HTMLInputElement).checked }
@@ -5133,7 +5140,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showCover !== false}
-										on:change={(e) => {
+										onchange={(e) => {
 											editingModule = {
 												...editingModule,
 												props: { ...editingModule.props, showCover: (e.currentTarget as HTMLInputElement).checked }
@@ -5151,7 +5158,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showAlbumTitle ?? true}
-													on:change={(e) => {
+													onchange={(e) => {
 														editingModule = {
 															...editingModule,
 															props: { ...editingModule.props, showAlbumTitle: (e.currentTarget as HTMLInputElement).checked }
@@ -5164,7 +5171,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showAlbumDescription ?? true}
-													on:change={(e) => {
+													onchange={(e) => {
 														editingModule = {
 															...editingModule,
 															props: { ...editingModule.props, showAlbumDescription: (e.currentTarget as HTMLInputElement).checked }
@@ -5177,7 +5184,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showPhotoCount !== false}
-													on:change={(e) => {
+													onchange={(e) => {
 														editingModule = {
 															...editingModule,
 															props: { ...editingModule.props, showPhotoCount: (e.currentTarget as HTMLInputElement).checked }
@@ -5190,7 +5197,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showAlbumFeaturedBadge ?? true}
-													on:change={(e) => {
+													onchange={(e) => {
 														editingModule = {
 															...editingModule,
 															props: { ...editingModule.props, showAlbumFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
@@ -5209,7 +5216,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showPhotoTitle ?? true}
-													on:change={(e) => {
+													onchange={(e) => {
 														editingModule = {
 															...editingModule,
 															props: { ...editingModule.props, showPhotoTitle: (e.currentTarget as HTMLInputElement).checked }
@@ -5222,7 +5229,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showPhotoDescription ?? true}
-													on:change={(e) => {
+													onchange={(e) => {
 														editingModule = {
 															...editingModule,
 															props: { ...editingModule.props, showPhotoDescription: (e.currentTarget as HTMLInputElement).checked }
@@ -5235,7 +5242,7 @@ let draggedAlbumHeaderField: string | null = null;
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showPhotoFeaturedBadge ?? true}
-													on:change={(e) => {
+													onchange={(e) => {
 														editingModule = {
 															...editingModule,
 															props: { ...editingModule.props, showPhotoFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
@@ -5254,7 +5261,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showCover !== false}
-										on:change={(e) => {
+										onchange={(e) => {
 											editingModule = {
 												...editingModule,
 												props: { ...editingModule.props, showCover: (e.currentTarget as HTMLInputElement).checked }
@@ -5267,7 +5274,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showDescription !== false}
-										on:change={(e) => {
+										onchange={(e) => {
 											editingModule = {
 												...editingModule,
 												props: { ...editingModule.props, showDescription: (e.currentTarget as HTMLInputElement).checked }
@@ -5280,7 +5287,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showPhotoCount !== false}
-										on:change={(e) => {
+										onchange={(e) => {
 											editingModule = {
 												...editingModule,
 												props: { ...editingModule.props, showPhotoCount: (e.currentTarget as HTMLInputElement).checked }
@@ -5293,7 +5300,7 @@ let draggedAlbumHeaderField: string | null = null;
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showFeaturedBadge !== false}
-										on:change={(e) => {
+										onchange={(e) => {
 											editingModule = {
 												...editingModule,
 												props: { ...editingModule.props, showFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
@@ -5312,7 +5319,7 @@ let draggedAlbumHeaderField: string | null = null;
 									id="edit-cover-aspect"
 									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 									value={editingModule.props?.coverAspect ?? 'video'}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, coverAspect: (e.currentTarget as HTMLSelectElement).value }
@@ -5334,7 +5341,7 @@ let draggedAlbumHeaderField: string | null = null;
 									max="6"
 									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 									value={String(editingModule.props?.descriptionLines ?? 2)}
-									on:input={(e) => {
+									oninput={(e) => {
 										const parsed = Math.max(1, Math.min(6, Number((e.currentTarget as HTMLInputElement).value) || 2));
 										editingModule = {
 											...editingModule,
@@ -5345,6 +5352,7 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 
 							<div>
+								<!-- svelte-ignore a11y_label_has_associated_control -->
 								<label class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Album card content order (drag to reorder)</label>
 								<div class="space-y-2">
 									{#each (Array.isArray(editingModule.props?.albumCardFieldOrder)
@@ -5353,13 +5361,14 @@ let draggedAlbumHeaderField: string | null = null;
 											? editingModule.props.cardFieldOrder
 										: ['cover', 'title', 'description', 'photoCount', 'featuredBadge']) as fieldKey, idx (fieldKey)}
 										<div
+											role="listitem"
 											class="flex items-center justify-between px-3 py-2 border border-surface-300-700 rounded-md bg-(--color-surface-50-950) cursor-move"
 											draggable="true"
-											on:dragstart={() => {
+											ondragstart={() => {
 												draggedAlbumField = fieldKey;
 											}}
-											on:dragover={(e) => e.preventDefault()}
-											on:drop={(e) => {
+											ondragover={(e) => e.preventDefault()}
+											ondrop={(e) => {
 												e.preventDefault();
 												if (!draggedAlbumField || draggedAlbumField === fieldKey) return;
 												const current = Array.isArray(editingModule.props?.albumCardFieldOrder)
@@ -5393,24 +5402,26 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 							{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
 								<div>
+									<!-- svelte-ignore a11y_label_has_associated_control -->
 									<label class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Photo card content order (drag to reorder)</label>
 									<div class="space-y-2">
 										{#each (Array.isArray(editingModule.props?.photoCardFieldOrder)
 											? editingModule.props.photoCardFieldOrder
 											: ['cover', 'title', 'description', 'featuredBadge']) as fieldKey, idx (fieldKey)}
 											<div
+												role="listitem"
 												class="flex items-center justify-between px-3 py-2 border border-surface-300-700 rounded-md bg-(--color-surface-50-950) cursor-move"
 												draggable="true"
-										on:dragstart={(e) => {
+										ondragstart={(e) => {
 											draggedPhotoField = fieldKey;
 											e.dataTransfer?.setData('text/plain', fieldKey);
 											e.dataTransfer!.effectAllowed = 'move';
 										}}
-										on:dragend={() => {
+										ondragend={() => {
 											draggedPhotoField = null;
 										}}
-												on:dragover={(e) => e.preventDefault()}
-												on:drop={(e) => {
+												ondragover={(e) => e.preventDefault()}
+												ondrop={(e) => {
 													e.preventDefault();
 											const fromKey =
 												e.dataTransfer?.getData('text/plain') || draggedPhotoField || null;
@@ -5450,7 +5461,7 @@ let draggedAlbumHeaderField: string | null = null;
 									id="edit-sort-by"
 									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 									value={editingModule.props?.sortBy ?? 'manual'}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, sortBy: (e.currentTarget as HTMLSelectElement).value }
@@ -5472,7 +5483,7 @@ let draggedAlbumHeaderField: string | null = null;
 									id="edit-sort-direction"
 									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 									value={editingModule.props?.sortDirection ?? 'asc'}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, sortDirection: (e.currentTarget as HTMLSelectElement).value }
@@ -5494,7 +5505,7 @@ let draggedAlbumHeaderField: string | null = null;
 								max="60"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={String(editingModule.props?.limit ?? 12)}
-								on:input={(e) => {
+								oninput={(e) => {
 									const parsed = Math.max(1, Math.min(60, Number((e.currentTarget as HTMLInputElement).value) || 12));
 									editingModule = {
 										...editingModule,
@@ -5533,7 +5544,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.showTitle !== false}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, showTitle: (e.currentTarget as HTMLInputElement).checked }
@@ -5548,7 +5559,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.showSubtitle !== false}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, showSubtitle: (e.currentTarget as HTMLInputElement).checked }
@@ -5566,7 +5577,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="page-title-align"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.align === 'left' ? 'left' : 'center'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, align: (e.currentTarget as HTMLSelectElement).value }
@@ -5585,7 +5596,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.showFlags !== false}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, showFlags: (e.currentTarget as HTMLInputElement).checked }
@@ -5601,7 +5612,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.showNativeNames !== false}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, showNativeNames: (e.currentTarget as HTMLInputElement).checked }
@@ -5617,7 +5628,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.compact === true}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, compact: (e.currentTarget as HTMLInputElement).checked }
@@ -5638,7 +5649,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.className || ''}
 								placeholder="e.g., ml-4"
-								on:input={(e) => {
+								oninput={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, className: (e.currentTarget as HTMLInputElement).value }
@@ -5657,7 +5668,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="logo-size"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.size ?? 'md'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, size: (e.currentTarget as HTMLSelectElement).value as 'sm' | 'md' | 'lg' }
@@ -5675,7 +5686,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.fallbackIcon !== false}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, fallbackIcon: (e.currentTarget as HTMLInputElement).checked }
@@ -5692,7 +5703,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.linkToHome !== false}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, linkToHome: (e.currentTarget as HTMLInputElement).checked }
@@ -5709,7 +5720,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.showSiteTitle === true}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, showSiteTitle: (e.currentTarget as HTMLInputElement).checked }
@@ -5728,7 +5739,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="logo-title-position"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.titlePosition ?? 'right'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: {
@@ -5756,7 +5767,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.showAsLink !== false}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, showAsLink: (e.currentTarget as HTMLInputElement).checked }
@@ -5779,7 +5790,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="menu-orientation"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.orientation ?? 'horizontal'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, orientation: (e.currentTarget as HTMLSelectElement).value as 'horizontal' | 'vertical' }
@@ -5805,7 +5816,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="divider-thickness"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.thickness ?? 'thin'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: {
@@ -5827,7 +5838,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="divider-margin"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.margin ?? 'sm'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: {
@@ -5852,7 +5863,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="divider-line-style"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.lineStyle ?? 'solid'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: {
@@ -5877,7 +5888,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.className ?? ''}
 								placeholder="e.g. opacity-60"
-								on:input={(e) => {
+								oninput={(e) => {
 									editingModule = {
 										...editingModule,
 										props: {
@@ -5899,7 +5910,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="theme-toggle-variant"
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.variant ?? 'icons'}
-								on:change={(e) => {
+								onchange={(e) => {
 									const v = (e.currentTarget as HTMLSelectElement).value as 'icons' | 'text' | 'both';
 									const rest = { ...(editingModule.props || {}) };
 									if (v === 'icons') {
@@ -5934,7 +5945,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.greeting || 'Hello'}
 								placeholder="Hello"
-								on:input={(e) => {
+								oninput={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, greeting: (e.currentTarget as HTMLInputElement).value }
@@ -5948,7 +5959,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									type="checkbox"
 									checked={editingModule.props?.showEmail === true}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: { ...editingModule.props, showEmail: (e.currentTarget as HTMLInputElement).checked }
@@ -5969,7 +5980,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.className || ''}
 								placeholder="e.g., text-(--color-surface-600-400)"
-								on:input={(e) => {
+								oninput={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, className: (e.currentTarget as HTMLInputElement).value }
@@ -5990,7 +6001,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.loginLabel || 'Login'}
 								placeholder="Login"
-								on:input={(e) => {
+								oninput={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, loginLabel: (e.currentTarget as HTMLInputElement).value }
@@ -6008,7 +6019,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.logoutLabel || 'Logout'}
 								placeholder="Logout"
-								on:input={(e) => {
+								oninput={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, logoutLabel: (e.currentTarget as HTMLInputElement).value }
@@ -6026,7 +6037,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.loginUrl || '/login'}
 								placeholder="/login"
-								on:input={(e) => {
+								oninput={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, loginUrl: (e.currentTarget as HTMLInputElement).value }
@@ -6044,7 +6055,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.containerClass || 'flex items-center gap-2'}
 								placeholder="flex items-center gap-2"
-								on:input={(e) => {
+								oninput={(e) => {
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, containerClass: (e.currentTarget as HTMLInputElement).value }
@@ -6078,7 +6089,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="override-blog-category-alias"
 								class={ADMIN_TEXT_INPUT_CLASS}
 								value={editingModule.props?.categoryAlias ?? ''}
-								on:change={(e) => {
+								onchange={(e) => {
 									const v = (e.currentTarget as HTMLSelectElement).value.trim();
 									const next = { ...editingModule.props };
 									if (v) next.categoryAlias = v;
@@ -6108,7 +6119,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="override-blog-category-layout"
 								class={ADMIN_TEXT_INPUT_CLASS}
 								value={editingModule.props?.layout ?? 'chips'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: {
@@ -6128,7 +6139,7 @@ let draggedAlbumHeaderField: string | null = null;
 									type="checkbox"
 									class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
 									checked={editingModule.props?.showCount === true}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: {
@@ -6153,7 +6164,7 @@ let draggedAlbumHeaderField: string | null = null;
 								max="100"
 								class={ADMIN_TEXT_INPUT_CLASS}
 								value={editingModule.props?.maxItems ?? 10}
-								on:input={(e) => {
+								oninput={(e) => {
 									const n = parseInt((e.currentTarget as HTMLInputElement).value, 10);
 									const maxItems = Number.isFinite(n) ? Math.min(100, Math.max(1, n)) : 10;
 									editingModule = {
@@ -6171,7 +6182,7 @@ let draggedAlbumHeaderField: string | null = null;
 								id="override-blog-category-sort"
 								class={ADMIN_TEXT_INPUT_CLASS}
 								value={editingModule.props?.sortBy ?? 'name'}
-								on:change={(e) => {
+								onchange={(e) => {
 									editingModule = {
 										...editingModule,
 										props: {
@@ -6191,7 +6202,7 @@ let draggedAlbumHeaderField: string | null = null;
 									type="checkbox"
 									class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
 									checked={editingModule.props?.linkToArticles === true}
-									on:change={(e) => {
+									onchange={(e) => {
 										editingModule = {
 											...editingModule,
 											props: {
@@ -6215,7 +6226,7 @@ let draggedAlbumHeaderField: string | null = null;
 								class={ADMIN_TEXT_INPUT_CLASS}
 								value={editingModule.props?.articlesListPath ?? '/blog'}
 								placeholder="/blog"
-								on:input={(e) => {
+								oninput={(e) => {
 									editingModule = {
 										...editingModule,
 										props: {
@@ -6245,7 +6256,7 @@ let draggedAlbumHeaderField: string | null = null;
 			<div class="sticky bottom-0 bg-(--color-surface-50-950) border-t border-surface-200-800 px-6 py-4 flex justify-end gap-2">
 				<button
 					type="button"
-					on:click={() => {
+					onclick={() => {
 						closeEditingModuleEditor();
 					}}
 					class="{adminBtnSecondary} text-sm shrink-0"
@@ -6254,7 +6265,7 @@ let draggedAlbumHeaderField: string | null = null;
 				</button>
 				<button
 					type="button"
-					on:click={saveModuleChanges}
+					onclick={saveModuleChanges}
 					class="{adminBtnPrimarySm} {adminRingPrimary}"
 				>
 					Save Changes

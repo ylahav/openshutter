@@ -325,7 +325,7 @@
 
 <style lang="scss">
 	.pb-templateSelector {
-		#{unquote('position')}: relative;
+		position: relative;
 		color: var(--tp-fg);
 	}
 
@@ -392,7 +392,7 @@
 	}
 
 	.pb-templateSelector__backdrop {
-		#{unquote('position')}: fixed;
+		position: fixed;
 		inset: 0;
 	}
 

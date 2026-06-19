@@ -428,6 +428,7 @@ import { t } from '$stores/i18n';
 						</p>
 						<div class="space-y-4">
 							<div>
+								<!-- svelte-ignore a11y_label_has_associated_control -->
 								<label class="block text-sm font-medium text-gray-700 mb-1">{$t('owner.heroTitleLabel')}</label>
 								<MultiLangInput
 									bind:value={formData.hero.title}
@@ -436,6 +437,7 @@ import { t } from '$stores/i18n';
 								/>
 							</div>
 							<div>
+								<!-- svelte-ignore a11y_label_has_associated_control -->
 								<label class="block text-sm font-medium text-gray-700 mb-1">{$t('owner.heroSubtitleLabel')}</label>
 								<MultiLangInput
 									bind:value={formData.hero.subtitle}
@@ -444,6 +446,7 @@ import { t } from '$stores/i18n';
 								/>
 							</div>
 							<div>
+								<!-- svelte-ignore a11y_label_has_associated_control -->
 								<label class="block text-sm font-medium text-gray-700 mb-1">{$t('owner.heroCtaLabel')}</label>
 								<MultiLangInput
 									bind:value={formData.hero.ctaLabel}
@@ -452,7 +455,7 @@ import { t } from '$stores/i18n';
 								/>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">{$t('owner.heroCtaUrlLabel')}</label>
+								<label for="owner-hero-cta-url" class="block text-sm font-medium text-gray-700 mb-1">{$t('owner.heroCtaUrlLabel')}</label>
 								<input
 									type="text"
 									bind:value={formData.hero.ctaUrl}
@@ -461,7 +464,7 @@ import { t } from '$stores/i18n';
 								/>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">{$t('owner.heroBackgroundLabel')}</label>
+								<label for="owner-hero-bg-style" class="block text-sm font-medium text-gray-700 mb-1">{$t('owner.heroBackgroundLabel')}</label>
 								<select
 									bind:value={formData.hero.backgroundStyle}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -474,10 +477,11 @@ import { t } from '$stores/i18n';
 							</div>
 							{#if formData.hero.backgroundStyle === 'image'}
 								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-1">
+									<label for="owner-hero-bg-image" class="block text-sm font-medium text-gray-700 mb-1">
 										{$t('owner.heroBackgroundImageUrl')}
 									</label>
 									<input
+										id="owner-hero-bg-image"
 										type="url"
 										bind:value={formData.hero.backgroundImage}
 										class="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -541,10 +545,11 @@ import { t } from '$stores/i18n';
 								</div>
 							{/if}
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">
+								<label for="owner-hero-layout" class="block text-sm font-medium text-gray-700 mb-1">
 									{$t('owner.heroLayoutLabel')}
 								</label>
 								<select
+									id="owner-hero-layout"
 									bind:value={formData.hero.heroLayout}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md"
 								>
@@ -567,10 +572,11 @@ import { t } from '$stores/i18n';
 								<p class="text-xs text-gray-600 mb-3">{$t('owner.heroSplitSizingHelp')}</p>
 								<div class="space-y-3">
 									<div>
-										<label class="block text-xs font-medium text-gray-700 mb-1">
+										<label for="owner-hero-split-lead" class="block text-xs font-medium text-gray-700 mb-1">
 											{$t('owner.heroSplitLeadLabel')}
 										</label>
 										<select
+											id="owner-hero-split-lead"
 											bind:value={formData.hero.heroSplitLead}
 											class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
 										>
@@ -579,10 +585,11 @@ import { t } from '$stores/i18n';
 										</select>
 									</div>
 									<div>
-										<label class="block text-xs font-medium text-gray-700 mb-1">
+										<label for="owner-hero-split-cols" class="block text-xs font-medium text-gray-700 mb-1">
 											{$t('owner.heroSplitGridColumns')}
 										</label>
 										<input
+											id="owner-hero-split-cols"
 											type="text"
 											bind:value={formData.hero.heroSplitGridColumns}
 											class="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
@@ -591,10 +598,11 @@ import { t } from '$stores/i18n';
 									</div>
 									<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 										<div>
-											<label class="block text-xs font-medium text-gray-700 mb-1">
+											<label for="owner-hero-split-min-h" class="block text-xs font-medium text-gray-700 mb-1">
 												{$t('owner.heroSplitMinHeight')}
 											</label>
 											<input
+												id="owner-hero-split-min-h"
 												type="text"
 												bind:value={formData.hero.heroSplitMinHeight}
 												class="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
@@ -602,10 +610,11 @@ import { t } from '$stores/i18n';
 											/>
 										</div>
 										<div>
-											<label class="block text-xs font-medium text-gray-700 mb-1">
+											<label for="owner-hero-split-media-h" class="block text-xs font-medium text-gray-700 mb-1">
 												{$t('owner.heroSplitMediaMinHeight')}
 											</label>
 											<input
+												id="owner-hero-split-media-h"
 												type="text"
 												bind:value={formData.hero.heroSplitMediaMinHeight}
 												class="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
@@ -629,6 +638,7 @@ import { t } from '$stores/i18n';
 						<p class="text-sm text-gray-600 mb-3">{$t('owner.seoHelp')}</p>
 						<div class="space-y-4">
 							<div>
+								<!-- svelte-ignore a11y_label_has_associated_control -->
 								<label class="block text-sm font-medium text-gray-700 mb-1">
 									{$t('owner.seoMetaTitle')}
 								</label>
@@ -639,6 +649,7 @@ import { t } from '$stores/i18n';
 								/>
 							</div>
 							<div>
+								<!-- svelte-ignore a11y_label_has_associated_control -->
 								<label class="block text-sm font-medium text-gray-700 mb-1">
 									{$t('owner.seoMetaDescription')}
 								</label>
@@ -660,12 +671,13 @@ import { t } from '$stores/i18n';
 						</h3>
 						<div class="space-y-4">
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">
+								<label for="owner-contact-email" class="block text-sm font-medium text-gray-700 mb-1">
 									{$t('owner.contactEmail')}
 								</label>
-								<input type="email" bind:value={formData.contact.email} class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="contact@example.com" />
+								<input id="owner-contact-email" type="email" bind:value={formData.contact.email} class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="contact@example.com" />
 							</div>
 							<div>
+								<!-- svelte-ignore a11y_label_has_associated_control -->
 								<label class="block text-sm font-medium text-gray-700 mb-2">
 									{$t('owner.socialLinks')}
 								</label>

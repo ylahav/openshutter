@@ -14,5 +14,6 @@
 const packPromise = $derived(getTemplatePack($activeTemplate));</script>
 
 {#await packPromise then pack}
-	<svelte:component this={pack.pages.Search} {initialQuery} {variant} />
+	{@const Search = pack.pages.Search}
+	<Search {initialQuery} {variant} />
 {/await}

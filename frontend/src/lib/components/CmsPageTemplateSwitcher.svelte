@@ -14,5 +14,6 @@
 const packPromise = $derived(getTemplatePack($activeTemplate));</script>
 
 {#await packPromise then pack}
-	<svelte:component this={pack.pages.CmsPage} {page} {error} />
+	{@const CmsPage = pack.pages.CmsPage}
+	<CmsPage {page} {error} />
 {/await}

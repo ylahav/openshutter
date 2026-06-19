@@ -129,6 +129,7 @@
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="storage-restore-albums-preview-title"
+			tabindex="-1"
 			onpointerdown={(e) => e.stopPropagation()}
 		>
 			<div class="border-b border-surface-200-800 px-6 py-4">
