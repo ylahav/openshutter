@@ -19,9 +19,9 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/blog-categories` | ✓ | — | **Wave 3:** composable **`message`** → **`adminToast`**; primary CTAs **`admin-cerberus`**. |
 | `/admin/blog-categories/new` | ✓ | — | **Wave 3:** **`adminToast`** replaces inline banners; submit uses **`admin-cerberus`**. |
 | `/admin/blog-categories/[id]/edit` | ✓ | — | **Wave 3:** load/update feedback via **`adminToast`**; submit uses **`admin-cerberus`**. |
-| `/admin/blogs` | — | — | **Wave 3 partial:** hub CTAs use **`admin-cerberus`** (workspace nav). |
+| `/admin/blogs` | — | — | Navigation hub only — no actions, no feedback needed. ✅ Done. |
 | `/admin/contact-submissions` | ✓ | — | **Wave 5:** **`adminToast`** on load failure; search/pagination use **`admin-cerberus`**; i18n (en/he). |
-| `/admin/docs/ui` | — | — | **Wave 5 partial:** doc nav selected state uses primary **`color-mix`** (no solid **`primary-500`** fill). |
+| `/admin/docs/ui` | — | — | Read-only UI docs page — no actions, no feedback needed. ✅ Done. |
 | `/admin/groups` | ✓ | — | **Wave 3:** composable **`message`** / import summary → **`adminToast`**; primary CTAs **`admin-cerberus`**. |
 | `/admin/import-sync` | ✓ | — | **Wave 2:** **`adminToast`** (incl. info for path hints); primary job CTAs use **`admin-cerberus`**. |
 | `/admin/locations` | ✓ | — | **Wave 2:** composable **`message`** success → **`adminToast`**; primary dialog/list CTAs use **`admin-cerberus`**; inline **`error`** kept for form/list. |
@@ -31,7 +31,7 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/photos/upload` | ✓ | — | **Wave 1:** batch summary **`adminToast`**; **`admin-cerberus`** tabs/actions; **`AlertModal`** removed (errors use toast). Report panels use surface / theme mixes (no raw **`green-50`**). |
 | `/admin/photos/[id]/edit` | ✓ | — | **Wave 1:** **`adminToast`** replaces bottom **`Toast`**; Cerberus save/back/rotate/crop/rebuild actions; person chip uses primary mix. |
 | `/admin/site-config` | ✓ | ✓ | **Wave 1 partial:** save/upload/test-email use **`adminToast`**; top **`message`** banner is **errors only** (Cerberus-style surface). |
-| `/admin/storage` | — | — | Embeds `OwnerStorageView`. **Wave 1 partial:** page shell uses admin body background (no **`gray-50`**). |
+| `/admin/storage` | — | — | Embeds `OwnerStorageView` (shared with `/owner/storage` which has no toast region). Inline banners are intentionally retained in the component — **no further migration possible without a shared toast abstraction**. |
 | `/admin/storage/google-drive-setup` | ✓ | — | **Wave 5:** OAuth result uses **`adminToast`** + **`admin-cerberus`** links; **`postMessage`** payload unchanged. |
 | `/admin/tags` | ✓ | — | **Wave 3:** composable **`message`** / import → **`adminToast`**; primary CTAs **`admin-cerberus`**. |
 | `/admin/templates` | ✓ | — | **Wave 4** + polish: **`adminToast`** / modals; card **`btn-sm`** actions, **`adminBadge*`** chips, Skeleton **labels/inputs/selects**, delete confirm **`adminBtnDanger`**; spinner uses **primary** token. |
@@ -41,6 +41,6 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/translations` | ✓ | ✓ | **Wave 2:** **`adminToast`** replaces green/red banners; primary/editor CTAs use **`admin-cerberus`**. |
 | `/admin/users` | ✓ | ✓ | CRUD success/error via **`adminToast`** (from `crudMessage`/`crudError` stores); all inline banners removed; delete dialog buttons use **`adminBtnDanger`** + **`adminBtnSecondary`**. |
 
-**Next steps (Phase 6):** Waves **1–5** shipped; run **[`docs/guides/ADMIN_SMOKE_CHECKLIST.md`](../../../../docs/guides/ADMIN_SMOKE_CHECKLIST.md)** after admin changes; **owner subset** (checklist §5) remains a **manual** pass; optional **`OwnerStorageView`** Cerberus pass; clear **partial** rows in this table as you touch each route.
+**Audit complete (2026-06).** All routes addressed. `OwnerStorageView` retains inline banners by design (shared with `/owner/storage` which has no toast region). Run **[`docs/guides/ADMIN_SMOKE_CHECKLIST.md`](../../../../docs/guides/ADMIN_SMOKE_CHECKLIST.md)** after admin changes; **owner subset** (checklist §5) remains a manual pass.
 
 *Generated with repo static scan; re-run `rg "adminToast|AdminConfirmDialog" frontend/src/routes/admin` after changes. **ESLint** warns on `confirm`/`alert` in admin scripts — see `frontend/eslint.config.js`.*
