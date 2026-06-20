@@ -319,7 +319,7 @@
 							{/if}
 							<button
 								type="button"
-								onclick={(e) => { e.stopPropagation(); () => onEdit(page)(e); }}
+								onclick={(e) => { e.stopPropagation(); onEdit(page); }}
 								class="p-1.5 text-(--color-surface-600-400) hover:text-(--color-primary-600) rounded"
 								aria-label="Edit page"
 								title="Edit"
