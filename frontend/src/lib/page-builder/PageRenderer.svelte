@@ -48,30 +48,6 @@
 	} = $props();
 
 	const layoutPresetsPreviewStore: Writable<Record<string, unknown> | null> = writable(null);
-	const moduleMapStore: Writable<Record<string, unknown>> = writable({});
-
-	setContext('pbLayoutPresetsPreview', layoutPresetsPreviewStore);
-	setContext('pbModuleMap', moduleMapStore);
-	setContext('pbNestDepth', 0);
-
-	$effect(() => {
-		layoutPresetsPreviewStore.set(
-			layoutPresetsPreview && typeof layoutPresetsPreview === 'object'
-				? layoutPresetsPreview
-				: null
-		);
-	});
-
-	const routeParams = $derived(($pageStore.params || {}) as Record<string, string | undefined>);
-	const routeAlias = $derived(
-		routeParams?.albumAlias || routeParams?.alias || routeParams?.id || null
-	);
-	const pageContext = $derived({
-		alias: routeAlias || page?.alias || null,
-		albumAlias: routeParams?.albumAlias || routeParams?.alias || null,
-		params: routeParams,
-		page
-	});
 
 	const baseModuleMap: Record<string, unknown> = {
 		hero: HeroModule,
@@ -102,6 +78,31 @@
 		searchForm: SearchFormModule,
 		searchResults: SearchResultsModule
 	};
+
+	const moduleMapStore: Writable<Record<string, unknown>> = writable(baseModuleMap);
+
+	setContext('pbLayoutPresetsPreview', layoutPresetsPreviewStore);
+	setContext('pbModuleMap', moduleMapStore);
+	setContext('pbNestDepth', 0);
+
+	$effect(() => {
+		layoutPresetsPreviewStore.set(
+			layoutPresetsPreview && typeof layoutPresetsPreview === 'object'
+				? layoutPresetsPreview
+				: null
+		);
+	});
+
+	const routeParams = $derived(($pageStore.params || {}) as Record<string, string | undefined>);
+	const routeAlias = $derived(
+		routeParams?.albumAlias || routeParams?.alias || routeParams?.id || null
+	);
+	const pageContext = $derived({
+		alias: routeAlias || page?.alias || null,
+		albumAlias: routeParams?.albumAlias || routeParams?.alias || null,
+		params: routeParams,
+		page
+	});
 
 	const moduleMap = $derived({
 		...baseModuleMap,
