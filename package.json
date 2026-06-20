@@ -24,7 +24,7 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.0",
     "concurrently": "^10.0.3"
   },
   "keywords": [
