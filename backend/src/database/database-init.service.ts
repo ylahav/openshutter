@@ -419,6 +419,60 @@ function isLegacyFlatHeaderModules(pm: unknown): boolean {
   return Array.isArray(header);
 }
 
+// ---------------------------------------------------------------------------
+// P4 — migration helpers for flat → breakpoint format
+// ---------------------------------------------------------------------------
+
+const BP_KEYS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
+
+/**
+ * Convert a flat `pageLayout` record (pk → {gridRows,gridColumns}) to a per-breakpoint
+ * map (pk → {xs:{},sm:{},...xl:{}}). Returns `null` when already fully migrated.
+ * Idempotent: skips any pk that already has breakpoint keys.
+ */
+function convertPageLayoutToBreakpointMap(pl: Record<string, unknown>): Record<string, unknown> | null {
+  let changed = false;
+  const result: Record<string, unknown> = {};
+  for (const [pk, val] of Object.entries(pl)) {
+    if (!val || typeof val !== 'object' || Array.isArray(val)) {
+      result[pk] = val;
+      continue;
+    }
+    const v = val as Record<string, unknown>;
+    const isBpMap = BP_KEYS.some(
+      (bp) => v[bp] && typeof v[bp] === 'object' && typeof (v[bp] as Record<string, unknown>).gridRows === 'number',
+    );
+    if (isBpMap) {
+      result[pk] = val;
+    } else if (typeof v.gridRows === 'number') {
+      changed = true;
+      result[pk] = { xs: { ...v }, sm: { ...v }, md: { ...v }, lg: { ...v }, xl: { ...v } };
+    } else {
+      result[pk] = val;
+    }
+  }
+  return changed ? result : null;
+}
+
+/**
+ * Convert flat `pageModules` arrays to `{activeBreakpoints:false, modules:[...]}`.
+ * Flat arrays preserve all existing module config — same modules shown on every breakpoint.
+ * Returns `null` when already fully migrated.
+ */
+function convertPageModulesToResponsive(pm: Record<string, unknown>): Record<string, unknown> | null {
+  let changed = false;
+  const result: Record<string, unknown> = {};
+  for (const [pk, val] of Object.entries(pm)) {
+    if (Array.isArray(val)) {
+      changed = true;
+      result[pk] = { activeBreakpoints: false, modules: val };
+    } else {
+      result[pk] = val;
+    }
+  }
+  return changed ? result : null;
+}
+
 @Injectable()
 export class DatabaseInitService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DatabaseInitService.name);
@@ -477,6 +531,7 @@ export class DatabaseInitService implements OnApplicationBootstrap {
       await this.initializeDefaultStorageConfigs();
       await ownerStorageConfigService.ensureIndexes();
       await this.initializeDefaultThemes();
+      await this.migrateTemplateFormats();
       await this.ensurePageRolePackIndex();
       await this.initializeReservedPages();
       
@@ -666,6 +721,65 @@ export class DatabaseInitService implements OnApplicationBootstrap {
         this.logger.error(`Stack trace: ${error.stack}`);
       }
       throw error;
+    }
+  }
+
+  /**
+   * P4 — Migrate all themes and site_config template from flat pageLayout/pageModules to the
+   * canonical per-breakpoint format. Idempotent: only patches documents that still hold flat data.
+   * Custom theme module content is preserved — flat arrays become { activeBreakpoints:false, modules:[...] }.
+   */
+  async migrateTemplateFormats(): Promise<void> {
+    try {
+      const db = this.connection.db;
+      if (!db) return;
+      const now = new Date();
+
+      // Migrate all themes
+      const themes = await db.collection('themes').find({}).toArray();
+      let themesUpdated = 0;
+      for (const theme of themes) {
+        const patch: Record<string, unknown> = {};
+        if (theme.pageLayout && typeof theme.pageLayout === 'object') {
+          const converted = convertPageLayoutToBreakpointMap(theme.pageLayout as Record<string, unknown>);
+          if (converted) patch.pageLayout = converted;
+        }
+        if (theme.pageModules && typeof theme.pageModules === 'object') {
+          const converted = convertPageModulesToResponsive(theme.pageModules as Record<string, unknown>);
+          if (converted) patch.pageModules = converted;
+        }
+        if (Object.keys(patch).length > 0) {
+          patch.updatedAt = now;
+          await db.collection('themes').updateOne({ _id: theme._id }, { $set: patch });
+          themesUpdated++;
+        }
+      }
+      if (themesUpdated > 0) {
+        this.logger.log(`  P4 migration: updated ${themesUpdated} theme(s) to breakpoint format`);
+      }
+
+      // Migrate site_config.template
+      const sc = await db.collection('site_config').findOne({});
+      if (sc?.template) {
+        const t = sc.template as Record<string, unknown>;
+        const scPatch: Record<string, unknown> = {};
+        if (t.pageLayout && typeof t.pageLayout === 'object') {
+          const converted = convertPageLayoutToBreakpointMap(t.pageLayout as Record<string, unknown>);
+          if (converted) scPatch['template.pageLayout'] = converted;
+        }
+        if (t.pageModules && typeof t.pageModules === 'object') {
+          const converted = convertPageModulesToResponsive(t.pageModules as Record<string, unknown>);
+          if (converted) scPatch['template.pageModules'] = converted;
+        }
+        if (Object.keys(scPatch).length > 0) {
+          scPatch.updatedAt = now;
+          await db.collection('site_config').updateOne({ _id: sc._id }, { $set: scPatch });
+          this.logger.log('  P4 migration: updated site_config template to breakpoint format');
+          SiteConfigService.getInstance().invalidateCache();
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`P4 template format migration: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
