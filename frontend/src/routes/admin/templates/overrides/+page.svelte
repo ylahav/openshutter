@@ -52,7 +52,12 @@
 		type TemplateBreakpointId,
 		type ShellLayout
 	} from '$lib/template/breakpoints';
-	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
+	import {
+		DEFAULT_PAGE_LAYOUTS,
+		DEFAULT_PAGE_MODULES,
+		DEFAULT_PAGE_LAYOUT_BY_BP,
+		DEFAULT_PAGE_MODULE_BY_BP
+	} from '$lib/constants/default-page-layouts';
 	import {
 		DEFAULT_TEMPLATE_COLOR_EXTENDED,
 		EXTENDED_COLOR_FIELD_META
@@ -397,7 +402,7 @@
 				firstHomeModuleProps: Array.isArray(migrated.home) ? migrated.home?.[0]?.props : undefined
 			});
 			const pageModules =
-				Object.keys(migrated).length > 0 ? migrated : (DEFAULT_PAGE_MODULES as Record<string, unknown>);
+				Object.keys(migrated).length > 0 ? migrated : undefined;
 			const rawPl =
 				editingTheme.pageLayout && Object.keys(editingTheme.pageLayout).length > 0
 					? (JSON.parse(JSON.stringify(editingTheme.pageLayout)) as Record<string, unknown>)
@@ -446,7 +451,7 @@
 			};
 		} else {
 			const sitePm = migratePageModules(siteTemplateOverrides.pageModules as Record<string, unknown> | undefined);
-			const basePm = Object.keys(sitePm).length > 0 ? sitePm : (DEFAULT_PAGE_MODULES as Record<string, unknown>);
+			const basePm = Object.keys(sitePm).length > 0 ? sitePm : undefined;
 			const rawPl =
 				siteTemplateOverrides.pageLayout && Object.keys(siteTemplateOverrides.pageLayout).length > 0
 					? (JSON.parse(JSON.stringify(siteTemplateOverrides.pageLayout)) as Record<string, unknown>)
@@ -553,6 +558,17 @@
 		PAGE_MODULE_TYPES.filter((m) => m.type !== 'layoutShell')
 	);
 
+	function getDefaultModulesForBp(pt: string, bp: TemplateBreakpointId): unknown[] {
+		const entry = DEFAULT_PAGE_MODULE_BY_BP[pt];
+		if (!entry) return DEFAULT_PAGE_MODULES[pt] ?? [];
+		if (entry.activeBreakpoints && entry.breakpoints) {
+			const bpMods = (entry.breakpoints as Record<string, unknown[]>)[bp];
+			if (Array.isArray(bpMods)) return bpMods;
+			return (entry.breakpoints as Record<string, unknown[]>).lg ?? (entry.breakpoints as Record<string, unknown[]>).xs ?? [];
+		}
+		return (entry as { modules: unknown[] }).modules ?? [];
+	}
+
 	function migratePageModules(pm: Record<string, unknown> | undefined): Record<string, unknown> {
 		if (!pm) return {};
 		const out: Record<string, unknown> = {};
@@ -650,7 +666,7 @@
 		if (resolved.length > 0) return resolved as any[];
 		const hasAnyPageModulesConfig = lo.pageModules?.[pt] != null;
 		if (hasAnyPageModulesConfig) return resolved as any[];
-		return (DEFAULT_PAGE_MODULES[pt] || []) as any[];
+		return getDefaultModulesForBp(pt, bp) as any[];
 	})();
 
 	/** Drives layout grid {#key} so row swaps re-render even when module count is unchanged. */
@@ -697,7 +713,7 @@
 		const hasAnyPageModulesConfig =
 			localOverrides.pageModules?.[pt] != null;
 		if (hasAnyPageModulesConfig) return resolved;
-		return DEFAULT_PAGE_MODULES[pt] || [];
+		return getDefaultModulesForBp(pt, bp);
 	}
 
 	function getGridForPageType(pt: string, bp: TemplateBreakpointId): { gridRows: number; gridColumns: number } {
@@ -1909,8 +1925,11 @@ let draggedAlbumHeaderField: string | null = null;
 
 	function applyDefaultLayout(pageType: string) {
 		const bp = editingBreakpoint;
-		const defaultModules = DEFAULT_PAGE_MODULES[pageType] || [];
-		const defaultLayout = DEFAULT_PAGE_LAYOUTS[pageType] || { gridRows: 3, gridColumns: 1 };
+		const defaultModules = getDefaultModulesForBp(pageType, bp);
+		const defaultLayout =
+			DEFAULT_PAGE_LAYOUT_BY_BP[pageType]?.[bp] ??
+			DEFAULT_PAGE_LAYOUTS[pageType] ??
+			{ gridRows: 3, gridColumns: 1 };
 		const plBy = { ...(localOverrides.pageLayoutByBreakpoint || {}) };
 		const fullRowDef = mergePageLayoutRowForBreakpointEdit(
 			{

@@ -12,7 +12,9 @@ import * as bcrypt from 'bcryptjs';
 import { noirFooterLayoutShellInstances, noirFooterPageModules } from '../template/noir-footer-shell';
 
 // Default page layouts and modules for all themes
-const DEFAULT_PAGE_LAYOUTS = {
+
+/** Flat fallback grids — used by initializeReservedPages and as a base reference. */
+const DEFAULT_PAGE_LAYOUTS_FLAT = {
   home: { gridRows: 2, gridColumns: 1 },
   gallery: { gridRows: 1, gridColumns: 1 },
   album: { gridRows: 1, gridColumns: 1 },
@@ -24,6 +26,36 @@ const DEFAULT_PAGE_LAYOUTS = {
   header: { gridRows: 1, gridColumns: 5 },
   footer: { gridRows: 2, gridColumns: 1 }
 };
+
+/** Per-breakpoint grids seeded into themes — header uses responsive column counts. */
+const DEFAULT_PAGE_LAYOUTS = {
+  home:            { xs: { gridRows: 2, gridColumns: 1 }, sm: { gridRows: 2, gridColumns: 1 }, md: { gridRows: 2, gridColumns: 1 }, lg: { gridRows: 2, gridColumns: 1 }, xl: { gridRows: 2, gridColumns: 1 } },
+  gallery:         { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+  album:           { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+  login:           { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+  search:          { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+  blog:            { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+  'blog-category': { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+  'blog-article':  { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+  header: { xs: { gridRows: 1, gridColumns: 3 }, sm: { gridRows: 1, gridColumns: 3 }, md: { gridRows: 1, gridColumns: 4 }, lg: { gridRows: 1, gridColumns: 5 }, xl: { gridRows: 1, gridColumns: 5 } },
+  footer:          { xs: { gridRows: 2, gridColumns: 1 }, sm: { gridRows: 2, gridColumns: 1 }, md: { gridRows: 2, gridColumns: 1 }, lg: { gridRows: 2, gridColumns: 1 }, xl: { gridRows: 2, gridColumns: 1 } },
+};
+
+/** Header module lists per breakpoint. */
+const HEADER_MODULES_XS = [
+  { _id: 'mod_default_header_logo',  type: 'logo',      props: { showAsLink: true }, rowOrder: 0, columnIndex: 0, rowSpan: 1, colSpan: 1 },
+  { _id: 'mod_default_header_title', type: 'siteTitle', props: { showAsLink: true }, rowOrder: 0, columnIndex: 1, rowSpan: 1, colSpan: 1 },
+  { _id: 'mod_default_header_menu',  type: 'menu',      props: {},                  rowOrder: 0, columnIndex: 2, rowSpan: 1, colSpan: 1 },
+];
+const HEADER_MODULES_MD = [
+  ...HEADER_MODULES_XS,
+  { _id: 'mod_default_header_theme', type: 'themeToggle', props: {}, rowOrder: 0, columnIndex: 3, rowSpan: 1, colSpan: 1 },
+];
+const HEADER_MODULES_LG = [
+  ...HEADER_MODULES_XS,
+  { _id: 'mod_default_header_language', type: 'languageSelector', props: { showFlags: true, showNativeNames: true, compact: false }, rowOrder: 0, columnIndex: 3, rowSpan: 1, colSpan: 1 },
+  { _id: 'mod_default_header_theme',    type: 'themeToggle',      props: {},                                                          rowOrder: 0, columnIndex: 4, rowSpan: 1, colSpan: 1 },
+];
 
 const DEFAULT_PAGE_MODULES = {
   home: [
@@ -133,57 +165,16 @@ const DEFAULT_PAGE_MODULES = {
       colSpan: 1
     }
   ],
-  header: [
-    {
-      _id: 'mod_default_header_logo',
-      type: 'logo',
-      props: { showAsLink: true },
-      rowOrder: 0,
-      columnIndex: 0,
-      rowSpan: 1,
-      colSpan: 1
+  header: {
+    activeBreakpoints: true,
+    breakpoints: {
+      xs: HEADER_MODULES_XS,
+      sm: HEADER_MODULES_XS,
+      md: HEADER_MODULES_MD,
+      lg: HEADER_MODULES_LG,
+      xl: HEADER_MODULES_LG,
     },
-    {
-      _id: 'mod_default_header_title',
-      type: 'siteTitle',
-      props: { showAsLink: true },
-      rowOrder: 0,
-      columnIndex: 1,
-      rowSpan: 1,
-      colSpan: 1
-    },
-    {
-      _id: 'mod_default_header_menu',
-      type: 'menu',
-      props: {},
-      rowOrder: 0,
-      columnIndex: 2,
-      rowSpan: 1,
-      colSpan: 1
-    },
-    {
-      _id: 'mod_default_header_language',
-      type: 'languageSelector',
-      props: {
-        showFlags: true,
-        showNativeNames: true,
-        compact: false
-      },
-      rowOrder: 0,
-      columnIndex: 3,
-      rowSpan: 1,
-      colSpan: 1
-    },
-    {
-      _id: 'mod_default_header_theme',
-      type: 'themeToggle',
-      props: {},
-      rowOrder: 0,
-      columnIndex: 4,
-      rowSpan: 1,
-      colSpan: 1
-    }
-  ],
+  },
   footer: [
     {
       _id: 'mod_default_footer_social',
@@ -293,7 +284,7 @@ const BUILT_IN_THEMES = [
     pageModules: NOIR_PAGE_MODULES,
     pageLayout: {
       ...DEFAULT_PAGE_LAYOUTS,
-      footer: { gridRows: 1, gridColumns: 1 },
+      footer: { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
     },
     layoutShellInstances: noirFooterLayoutShellInstances,
     layoutPresets: noirFooterLayoutShellInstances,
@@ -412,6 +403,21 @@ const RESERVED_PAGES = [
   { role: 'blog-category', alias: 'blog-category', category: 'system' as const, routeParams: ['categoryAlias'] },
   { role: 'blog-article', alias: 'blog-article', category: 'system' as const, routeParams: ['articleAlias'] },
 ] as const;
+
+/** Returns true when `pageLayout` is still the old flat format (header key has gridRows directly). */
+function isLegacyFlatPageLayout(pl: unknown): boolean {
+  if (!pl || typeof pl !== 'object') return true;
+  const header = (pl as Record<string, unknown>).header;
+  if (!header || typeof header !== 'object') return true;
+  return typeof (header as Record<string, unknown>).gridRows === 'number';
+}
+
+/** Returns true when `pageModules.header` is a flat array (not yet a PageModulesResponsiveEntry). */
+function isLegacyFlatHeaderModules(pm: unknown): boolean {
+  if (!pm || typeof pm !== 'object') return true;
+  const header = (pm as Record<string, unknown>).header;
+  return Array.isArray(header);
+}
 
 @Injectable()
 export class DatabaseInitService implements OnApplicationBootstrap {
@@ -636,6 +642,18 @@ export class DatabaseInitService implements OnApplicationBootstrap {
             updatedAt: now,
           });
           this.logger.log(`  Created theme: ${theme.name}`);
+        } else {
+          // Update pageLayout/pageModules to per-breakpoint format if still using legacy flat shape.
+          // Only these two fields are patched — custom colors, fonts, and other admin changes are preserved.
+          const needsLayoutUpdate = isLegacyFlatPageLayout(existing.pageLayout);
+          const needsModulesUpdate = isLegacyFlatHeaderModules(existing.pageModules);
+          if (needsLayoutUpdate || needsModulesUpdate) {
+            const patch: Record<string, unknown> = { updatedAt: now };
+            if (needsLayoutUpdate) patch.pageLayout = theme.pageLayout;
+            if (needsModulesUpdate) patch.pageModules = theme.pageModules;
+            await collection.updateOne({ _id: existing._id }, { $set: patch });
+            this.logger.log(`  Updated built-in theme "${theme.name}" to per-breakpoint layout/modules format`);
+          }
         }
       }
 
@@ -718,13 +736,14 @@ export class DatabaseInitService implements OnApplicationBootstrap {
           updatedBy: adminUser._id,
           createdAt: now,
           updatedAt: now,
-          layout: DEFAULT_PAGE_LAYOUTS[page.role as keyof typeof DEFAULT_PAGE_LAYOUTS] || { gridRows: 1, gridColumns: 1, zones: ['main'] },
+          layout: DEFAULT_PAGE_LAYOUTS_FLAT[page.role as keyof typeof DEFAULT_PAGE_LAYOUTS_FLAT] || { gridRows: 1, gridColumns: 1, zones: ['main'] },
         };
         const routeParams = 'routeParams' in page ? page.routeParams : undefined;
         if (routeParams?.length) pageDoc.routeParams = [...routeParams];
 
         const insertResult = await pagesCollection.insertOne(pageDoc);
-        const defaultModules = DEFAULT_PAGE_MODULES[page.role as keyof typeof DEFAULT_PAGE_MODULES] || [];
+        const defaultModulesRaw = DEFAULT_PAGE_MODULES[page.role as keyof typeof DEFAULT_PAGE_MODULES];
+        const defaultModules = Array.isArray(defaultModulesRaw) ? defaultModulesRaw : [];
         if (defaultModules.length) {
           await modulesCollection.insertMany(
             defaultModules.map((mod) => {

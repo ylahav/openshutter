@@ -2,7 +2,12 @@
  * Template shell + page builder: responsive breakpoints (mobile-first min-widths, Tailwind-aligned).
  */
 
-import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
+import {
+	DEFAULT_PAGE_LAYOUTS,
+	DEFAULT_PAGE_MODULES,
+	DEFAULT_PAGE_LAYOUT_BY_BP,
+	DEFAULT_PAGE_MODULE_BY_BP
+} from '$lib/constants/default-page-layouts';
 
 export const TEMPLATE_BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 export type TemplateBreakpointId = (typeof TEMPLATE_BREAKPOINTS)[number];
@@ -313,6 +318,12 @@ function defaultGridForPage(pk: string): PageGrid {
 	return d ? { ...d } : { gridRows: 3, gridColumns: 1 };
 }
 
+function defaultGridForPageAtBp(pk: string, bp: TemplateBreakpointId): PageGrid {
+	const row = DEFAULT_PAGE_LAYOUT_BY_BP[pk];
+	if (row?.[bp]) return { ...row[bp] };
+	return defaultGridForPage(pk);
+}
+
 /**
  * Coerce one page’s layout row to a full `xs`…`xl` map for Mongo (`pageLayout` / `pageLayoutByBreakpoint`).
  * Legacy flat `{ gridRows, gridColumns }` (often stored under the page key by mistake) is expanded to all breakpoints.
@@ -404,6 +415,8 @@ export function seedPageLayoutByBreakpoint(
 	for (const pk of pageKeys) {
 		const rawL = legacyLayout?.[pk];
 		const rawM = legacyModules?.[pk];
+		const hasRawL = rawL != null && typeof rawL === 'object' && Object.keys(rawL as object).length > 0;
+		const hasRawM = rawM != null;
 		const lg = pickPageGridFromLayoutEntry(rawL, pk);
 		const flatMods = pickModulesFlatFromEntry(rawM, pk);
 		const exLRaw = existingByBp?.pageLayoutByBreakpoint?.[pk];
@@ -429,7 +442,9 @@ export function seedPageLayoutByBreakpoint(
 					? fromMapL
 					: exLFull?.[bp]
 						? { ...lg, ...exLFull[bp]! }
-						: { ...lg };
+						: hasRawL
+							? { ...lg }
+							: defaultGridForPageAtBp(pk, bp);
 
 			const fromMapM = (() => {
 				if (isPageModulesResponsiveEntry(rawM) && rawM.activeBreakpoints && rawM.breakpoints) {
@@ -446,7 +461,20 @@ export function seedPageLayoutByBreakpoint(
 					? fromMapM
 					: exM?.[bp] !== undefined
 						? (exM[bp] as unknown[])
-						: flatMods;
+						: (() => {
+								if (!hasRawM) {
+									const entry = DEFAULT_PAGE_MODULE_BY_BP[pk];
+									if (entry) {
+										if (entry.activeBreakpoints && entry.breakpoints) {
+											const bpMods = (entry.breakpoints as Record<string, unknown>)[bp];
+											if (Array.isArray(bpMods)) return bpMods as unknown[];
+										} else if (!entry.activeBreakpoints && Array.isArray((entry as { modules?: unknown[] }).modules)) {
+											return (entry as { modules: unknown[] }).modules;
+										}
+									}
+								}
+								return flatMods;
+							})();
 			pageModulesByBreakpoint[pk]![bp] = cloneModules(modForBp);
 		}
 	}

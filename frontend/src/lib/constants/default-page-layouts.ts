@@ -196,3 +196,60 @@ export const DEFAULT_PAGE_MODULES: Record<string, DefaultPageModule[]> = {
 		}
 	]
 };
+
+// ---------------------------------------------------------------------------
+// P3 — Breakpoint-aware defaults
+// ---------------------------------------------------------------------------
+
+/** Header modules for xs/sm viewports: logo (col 0), title (col 1), menu (col 2). */
+export const HEADER_MODULES_XS: DefaultPageModule[] = [
+	{ ...DEFAULT_PAGE_MODULES.header[0] },
+	{ ...DEFAULT_PAGE_MODULES.header[1] },
+	{ ...DEFAULT_PAGE_MODULES.header[2] }
+];
+
+/** Header modules for md viewports: 3-col + themeToggle (col 3). */
+export const HEADER_MODULES_MD: DefaultPageModule[] = [
+	{ ...DEFAULT_PAGE_MODULES.header[0] },
+	{ ...DEFAULT_PAGE_MODULES.header[1] },
+	{ ...DEFAULT_PAGE_MODULES.header[2] },
+	{ ...DEFAULT_PAGE_MODULES.header[4], columnIndex: 3 }
+];
+
+/** Header modules for lg/xl viewports: full 5-col set. */
+export const HEADER_MODULES_LG: DefaultPageModule[] = DEFAULT_PAGE_MODULES.header.map((m) => ({ ...m }));
+
+/** Per-page grid defaults by breakpoint. Used as seed fallback when DB has no layout data. */
+export const DEFAULT_PAGE_LAYOUT_BY_BP: Record<string, Record<string, { gridRows: number; gridColumns: number }>> = {
+	home:    { xs: { gridRows: 2, gridColumns: 1 }, sm: { gridRows: 2, gridColumns: 1 }, md: { gridRows: 2, gridColumns: 1 }, lg: { gridRows: 2, gridColumns: 1 }, xl: { gridRows: 2, gridColumns: 1 } },
+	gallery: { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+	album:   { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+	search:  { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+	login:   { xs: { gridRows: 1, gridColumns: 1 }, sm: { gridRows: 1, gridColumns: 1 }, md: { gridRows: 1, gridColumns: 1 }, lg: { gridRows: 1, gridColumns: 1 }, xl: { gridRows: 1, gridColumns: 1 } },
+	header:  { xs: { gridRows: 1, gridColumns: 3 }, sm: { gridRows: 1, gridColumns: 3 }, md: { gridRows: 1, gridColumns: 4 }, lg: { gridRows: 1, gridColumns: 5 }, xl: { gridRows: 1, gridColumns: 5 } },
+	footer:  { xs: { gridRows: 2, gridColumns: 1 }, sm: { gridRows: 2, gridColumns: 1 }, md: { gridRows: 2, gridColumns: 1 }, lg: { gridRows: 2, gridColumns: 1 }, xl: { gridRows: 2, gridColumns: 1 } }
+};
+
+/** Canonical per-page module defaults in `PageModulesResponsiveEntry` format. */
+export const DEFAULT_PAGE_MODULE_BY_BP: Record<string, {
+	activeBreakpoints: boolean;
+	modules?: DefaultPageModule[];
+	breakpoints?: Record<string, DefaultPageModule[]>;
+}> = {
+	home:    { activeBreakpoints: false, modules: DEFAULT_PAGE_MODULES.home },
+	gallery: { activeBreakpoints: false, modules: DEFAULT_PAGE_MODULES.gallery },
+	album:   { activeBreakpoints: false, modules: DEFAULT_PAGE_MODULES.album },
+	search:  { activeBreakpoints: false, modules: DEFAULT_PAGE_MODULES.search },
+	login:   { activeBreakpoints: false, modules: DEFAULT_PAGE_MODULES.login },
+	header:  {
+		activeBreakpoints: true,
+		breakpoints: {
+			xs: HEADER_MODULES_XS,
+			sm: HEADER_MODULES_XS,
+			md: HEADER_MODULES_MD,
+			lg: HEADER_MODULES_LG,
+			xl: HEADER_MODULES_LG
+		}
+	},
+	footer:  { activeBreakpoints: false, modules: DEFAULT_PAGE_MODULES.footer }
+};
