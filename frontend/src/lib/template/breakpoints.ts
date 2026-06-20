@@ -431,10 +431,16 @@ export function seedPageLayoutByBreakpoint(
 						? { ...lg, ...exLFull[bp]! }
 						: { ...lg };
 
-			const fromMapM =
-				isPageModulesBreakpointMapForPage(rawM) && rawM[bp] !== undefined
-					? (rawM[bp] as unknown[])
-					: undefined;
+			const fromMapM = (() => {
+				if (isPageModulesResponsiveEntry(rawM) && rawM.activeBreakpoints && rawM.breakpoints) {
+					const bpMods = (rawM.breakpoints as Record<string, unknown>)[bp];
+					if (Array.isArray(bpMods)) return bpMods;
+				}
+				if (isPageModulesBreakpointMapForPage(rawM) && rawM[bp] !== undefined) {
+					return rawM[bp] as unknown[];
+				}
+				return undefined;
+			})();
 			const modForBp =
 				fromMapM !== undefined
 					? fromMapM
