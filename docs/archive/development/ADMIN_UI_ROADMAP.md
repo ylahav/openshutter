@@ -139,12 +139,12 @@ For each migrated page:
 
 | # | Task | Notes |
 |---|------|--------|
-| 1 | **Product decision: owner entry point** | Either allow **`/admin`** for owners (dashboard as home) or keep **`/owner`** (or equivalent) as the only home and link “insights” there—align with multi-owner / white-label expectations. |
-| 2 | **`ownerCanAccess` + redirects** | If owners should see the dashboard: include pathname **`/admin`** (and optionally **`/admin/`**) in `ownerCanAccess`, and re-check any redirects (e.g. storage / `useAdminConfig`) so owners are not bounced unexpectedly. |
-| 3 | **Backend: scoped dashboard summary** | For **`role === owner`**, return counts and “recent albums” filtered by **`createdBy`** (and photos constrained to those albums—or the same ownership rules as `AlbumsAdminController`). Reuse patterns from existing **AdminOrOwnerGuard** endpoints. |
-| 4 | **Guards and proxy** | Expose summary under **`AdminOrOwnerGuard`** (or a dedicated guard) instead of **`AdminGuard`** only; mirror auth in **`frontend/src/routes/api/admin/dashboard/+server.ts`** and **`admin/+page.server.ts`** so owners can SSR-load data when allowed. |
-| 5 | **Alerts and storage for owners** | **Featured / public / storage** alerts and totals: define whether they are **owner-scoped** or hidden until an owner has a dedicated quota story (optional **`STORAGE_QUOTA_BYTES`** per owner is not in scope unless product asks). |
-| 6 | **QA** | With owner login on a owner-site context, smoke-test dashboard, sidebar links, and that no cross-owner data appears in stats or recent lists. |
+| 1 | **Product decision: owner entry point** | ✅ **Decision (2026-06): `/owner` is the owner home.** Admins go to `/admin`; owners go to `/owner`. The `/owner` layout guard now redirects any admin to `/admin`. The `/owner/+page.svelte` is owner-only (admin-specific cards removed). |
+| 2 | **`ownerCanAccess` + redirects** | N/A — owners do not access `/admin` routes. No change needed. |
+| 3 | **Backend: scoped dashboard summary** | N/A — owners use `/owner` dashboard which calls owner-specific APIs, not the admin summary endpoint. |
+| 4 | **Guards and proxy** | N/A — `/owner` layout uses owner-only guard; `/admin` remains admin-only. |
+| 5 | **Alerts and storage for owners** | The `/owner` dashboard shows a Storage card only when the owner has dedicated or custom storage (existing `showStorageManagementCard` logic). No quota story needed yet. |
+| 6 | **QA** | Smoke-test: owner login → lands at `/owner`; admin login → lands at `/admin`; navigating to `/owner` as admin redirects to `/admin`; no admin-only cards visible on the owner dashboard. |
 
 ## Relationship to other docs
 
