@@ -16,7 +16,8 @@
 	import UserForm from './components/UserForm.svelte';
 	import OwnerDomainsSection from './components/OwnerDomainsSection.svelte';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
-	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
+	import { adminBtnPrimarySm, adminBtnSecondary, adminBtnDanger, adminRingPrimary } from '$lib/admin/admin-cerberus';
+	import { adminToast } from '$lib/admin/adminToast';
 
 	let { data }: { data: PageData } = $props();
 
@@ -99,7 +100,6 @@
 	let groups: Group[] = $state([]);
 	let loadingGroups = $state(false);
 	let loadingOwnerDomains = $state(false);
-	let error = $state('');
 	let searchTerm = $state(untrack(() => data.filters?.search ?? ''));
 	let roleFilter = $state(untrack(() => data.filters?.role ?? 'all'));
 	let blockedFilter = $state(untrack(() => data.filters?.blocked ?? 'all'));
@@ -129,7 +129,8 @@
 		isDeleting: false,
 	});
 
-$effect(() => { if ($crudError) error = $crudError; });
+$effect(() => { if ($crudMessage) { adminToast.success({ title: $crudMessage }); crudMessage.set(''); } });
+$effect(() => { if ($crudError) { adminToast.error({ title: $crudError }); crudError.set(''); } });
 
 	// Form state
 	let formData: UserFormData = $state({
@@ -413,14 +414,6 @@ $effect(() => { if ($crudError) error = $crudError; });
 				<p class="text-(--color-surface-600-400) mt-2">{$t('admin.manageUsersRoles')}</p>
 			</div>
 
-			{#if $crudMessage}
-				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700">{$crudMessage}</div>
-			{/if}
-
-			{#if error}
-				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
-			{/if}
-
 			<!-- Search and Filters -->
 			<UserFilters
 				bind:searchTerm
@@ -472,10 +465,6 @@ $effect(() => { if ($crudError) error = $crudError; });
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.addNewUser')}</h2>
 
-			{#if error}
-				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
-			{/if}
-
 			<div class="space-y-4">
 				<UserForm
 					bind:formData
@@ -523,10 +512,6 @@ $effect(() => { if ($crudError) error = $crudError; });
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.editUser')}</h2>
-
-			{#if error}
-				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
-			{/if}
 
 			<div class="space-y-4">
 				<UserForm
@@ -598,10 +583,6 @@ $effect(() => { if ($crudError) error = $crudError; });
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.deleteUser')}</h2>
 
-			{#if error}
-				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
-			{/if}
-
 			<div class="space-y-4">
 				<p class="text-(--color-surface-600-400)">
 					{$t('admin.confirmDeleteUser')
@@ -622,7 +603,7 @@ $effect(() => { if ($crudError) error = $crudError; });
 							closeAllDialogs();
 							userToDelete = null;
 						}}
-						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+						class="{adminBtnSecondary} {adminRingPrimary}"
 					>
 						{$t('admin.cancel')}
 					</button>
@@ -630,7 +611,7 @@ $effect(() => { if ($crudError) error = $crudError; });
 						type="button"
 						onclick={handleDelete}
 						disabled={$crudSaving}
-						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnDanger} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if $crudSaving}
 							{$t('admin.deletingUser')}

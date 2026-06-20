@@ -350,7 +350,12 @@
 		{/if}
 
 		{#if error}
-			<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 mb-4 p-6 text-center">
+				<p class="text-(--color-surface-600-400) mb-3">{error}</p>
+				<button type="button" onclick={() => loadAnalytics()} class="{adminBtnPrimarySm} {adminRingPrimary}">
+					{$t('admin.retry')}
+				</button>
+			</div>
 		{/if}
 
 		{#if loading}

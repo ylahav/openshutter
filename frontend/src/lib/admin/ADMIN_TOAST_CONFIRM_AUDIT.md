@@ -10,7 +10,7 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/albums` | ✓ | ✓ | Wave 1; **partial:** empty-state **Create album** uses **`admin-cerberus`**. |
 | `/admin/albums/[id]` | ✓ | ✓ | **Wave 1 partial:** **`adminToast`** for successes; bulk dialogs use **`admin-cerberus`**; red banner kept for **`error`**. |
 | `/admin/albums/[id]/edit` | ✓ | — | **Wave 1 partial:** save / leading-photo feedback via **`adminToast`**; removed **`NotificationDialog`**; Cerberus primary/secondary actions. |
-| `/admin/analytics` | — | — | **Wave 2 partial:** CSV export CTA uses **`admin-cerberus`**. |
+| `/admin/analytics` | — | — | **Wave 2 partial:** CSV export CTA uses **`admin-cerberus`**; load-error replaced with retry card (surface tokens). No transient actions → no toast needed. |
 | `/admin/audit-logs` | ✓ | — | **Wave 5:** load/export via **`adminToast`**; filter/export/pagination use **`admin-cerberus`**; retry card when load fails (no red banner). |
 | `/admin/backup-restore` | ✓ | ✓ | **Wave 2:** success/error via **`adminToast`**; backup actions use **`admin-cerberus`** (`restore` keeps caution label styling). |
 | `/admin/blog-articles` | ✓ | ✓ | **Wave 3:** list errors via **`adminToast`**; status chips theme **`color-mix`**; CTAs **`admin-cerberus`**. |
@@ -25,7 +25,7 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/groups` | ✓ | — | **Wave 3:** composable **`message`** / import summary → **`adminToast`**; primary CTAs **`admin-cerberus`**. |
 | `/admin/import-sync` | ✓ | — | **Wave 2:** **`adminToast`** (incl. info for path hints); primary job CTAs use **`admin-cerberus`**. |
 | `/admin/locations` | ✓ | — | **Wave 2:** composable **`message`** success → **`adminToast`**; primary dialog/list CTAs use **`admin-cerberus`**; inline **`error`** kept for form/list. |
-| `/admin/marketplace` | — | ✓ | **Wave 2 partial:** approval badges use theme **`color-mix`** (no raw **`green-100`**). |
+| `/admin/marketplace` | ✓ | ✓ | Action errors (approve/unapprove, featured, tags, delete) via **`adminToast.error`**; load-error replaced with retry card. |
 | `/admin/pages` | ✓ | — | **Wave 3:** composable + inline successes → **`adminToast`**; primary actions **`admin-cerberus`** (see **`PageFilters`**). |
 | `/admin/people` | ✓ | — | **Wave 3:** composable **`message`** / import → **`adminToast`**; primary CTAs **`admin-cerberus`**. |
 | `/admin/photos/upload` | ✓ | — | **Wave 1:** batch summary **`adminToast`**; **`admin-cerberus`** tabs/actions; **`AlertModal`** removed (errors use toast). Report panels use surface / theme mixes (no raw **`green-50`**). |
@@ -39,7 +39,7 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/templates/overrides` | ✓ | ✓ | **Wave 4:** save/load/reset feedback via **`adminToast`**; toolbar and layout-editor primaries use **`admin-cerberus`**; preview device/page toggles use primary **`color-mix`** selected state. |
 | `/admin/theme-layout` | ✓ | — | **Wave 4:** **`adminToast`** replaces alert strips; save/reset use **`admin-cerberus`**. |
 | `/admin/translations` | ✓ | ✓ | **Wave 2:** **`adminToast`** replaces green/red banners; primary/editor CTAs use **`admin-cerberus`**. |
-| `/admin/users` | — | ✓ | **Wave 1 partial:** create/edit dialog footers use **`admin-cerberus`**. |
+| `/admin/users` | ✓ | ✓ | CRUD success/error via **`adminToast`** (from `crudMessage`/`crudError` stores); all inline banners removed; delete dialog buttons use **`adminBtnDanger`** + **`adminBtnSecondary`**. |
 
 **Next steps (Phase 6):** Waves **1–5** shipped; run **[`docs/guides/ADMIN_SMOKE_CHECKLIST.md`](../../../../docs/guides/ADMIN_SMOKE_CHECKLIST.md)** after admin changes; **owner subset** (checklist §5) remains a **manual** pass; optional **`OwnerStorageView`** Cerberus pass; clear **partial** rows in this table as you touch each route.
 

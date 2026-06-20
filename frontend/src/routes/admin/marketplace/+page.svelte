@@ -4,6 +4,8 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { logger } from '$lib/utils/logger';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
+	import { adminToast } from '$lib/admin/adminToast';
 
 	interface Listing {
 		_id: string;
@@ -87,7 +89,7 @@
 			else fetchListings();
 		} catch (e) {
 			logger.error('Toggle approve:', e);
-			error = handleError(e, 'Failed to update');
+			adminToast.error({ title: handleError(e, 'Failed to update') });
 		} finally {
 			togglingId = null;
 		}
@@ -106,7 +108,7 @@
 			else fetchListings();
 		} catch (e) {
 			logger.error('Toggle featured:', e);
-			error = handleError(e, 'Failed to update');
+			adminToast.error({ title: handleError(e, 'Failed to update') });
 		} finally {
 			togglingId = null;
 		}
@@ -140,7 +142,7 @@
 			}
 		} catch (e) {
 			logger.error('Save tags:', e);
-			error = handleError(e, 'Failed to save tags');
+			adminToast.error({ title: handleError(e, 'Failed to save tags') });
 		} finally {
 			savingTagsId = null;
 		}
@@ -183,7 +185,7 @@
 			}
 		} catch (e) {
 			logger.error('Delete listing:', e);
-			error = handleError(e, 'Failed to delete');
+			adminToast.error({ title: handleError(e, 'Failed to delete') });
 			deleteListingDialog = { ...deleteListingDialog, isDeleting: false };
 		} finally {
 			deletingId = null;
@@ -217,7 +219,10 @@
 	</div>
 
 	{#if error}
-		<div class="rounded-md bg-red-50 p-4 text-red-700 text-sm">{error}</div>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 text-center">
+			<p class="text-(--color-surface-600-400) mb-3">{error}</p>
+			<button type="button" onclick={fetchListings} class="{adminBtnPrimarySm} {adminRingPrimary}">Retry</button>
+		</div>
 	{/if}
 
 	{#if loading}
