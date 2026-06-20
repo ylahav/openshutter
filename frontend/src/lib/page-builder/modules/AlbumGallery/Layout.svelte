@@ -583,7 +583,7 @@
 							else if (cardDataType === 'photos') albums = photos;
 							else albums = [...subAlbums, ...photos];
 							if (albums.some((item) => item.cardType === 'subAlbum')) {
-								await fetchCoverImages();
+								void fetchCoverImages();
 							}
 						}
 					} else if (response.status === 404) {
@@ -618,7 +618,7 @@
 				);
 
 				if (albums.length > 0) {
-					await fetchCoverImages();
+					void fetchCoverImages();
 				}
 			} else {
 				currentAlbum = null;
@@ -680,7 +680,7 @@
 				}
 
 				if (albums.length > 0) {
-					await fetchCoverImages();
+					void fetchCoverImages();
 				}
 			}
 		} catch (err) {

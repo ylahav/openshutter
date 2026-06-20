@@ -48,10 +48,10 @@
 
 	// Client refresh + auth (site config already hydrated from layout `data` above)
 	onMount(() => {
-		// Only load site config if not on login page
-		if ($page.url.pathname !== '/login') {
+		// Skip re-fetch when rendering a theme preview — the SSR override must not be overwritten.
+		const isPreview = $page.url.searchParams.has('preview-theme-id');
+		if ($page.url.pathname !== '/login' && !isPreview) {
 			siteConfig.load().catch((err) => {
-				// Silently fail - site config is not critical for login page
 				logger.warn('Failed to load site config:', err);
 			});
 		}

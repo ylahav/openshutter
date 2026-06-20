@@ -11,7 +11,6 @@
 	import { applyThemeById } from '$lib/services/apply-theme';
 	import ThemePackPreviewThumb from '$lib/components/admin/ThemePackPreviewThumb.svelte';
 	import {
-		adminBadgeCaution,
 		adminBadgePrimary,
 		adminBtnDanger,
 		adminBtnPrimarySm,
@@ -65,8 +64,12 @@
 	let duplicateThemeId: string | null = $state(null);
 	let deleteThemeId: string | null = $state(null);
 	let applyThemeId: string | null = $state(null);
-	let previewTemplate: string | null = $state(null);
 	let previewThemeId: string | null = $state(null);
+	let showPreviewModal = $state(false);
+
+	const previewModalTheme = $derived(
+		previewThemeId ? (themes.find((th) => th._id === previewThemeId) ?? null) : null
+	);
 
 	const BASE_TEMPLATE_PREVIEW: Record<
 		string,
@@ -202,19 +205,8 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 	}
 
 	function previewTheme(theme: Theme): void {
-		previewTemplate = theme.baseTemplate;
 		previewThemeId = theme._id;
-		adminToast.info({ title: $t('admin.templatesPreviewModeOn').replace('{name}', theme.name) });
-	}
-
-	function clearPreview(): void {
-		previewTemplate = null;
-		previewThemeId = null;
-		adminToast.info({ title: $t('admin.templatesPreviewCleared') });
-	}
-
-	function openApplyPreview(): void {
-		if (previewThemeId) applyThemeId = previewThemeId;
+		showPreviewModal = true;
 	}
 
 </script>
@@ -244,13 +236,6 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 					>
 						{$t('admin.templatesPreviewHint')}
 					</p>
-					{#if previewTemplate}
-						<p
-							class="mt-2 max-w-xl rounded-md border border-[color-mix(in_oklab,#d97706_28%,transparent)] bg-[color-mix(in_oklab,#d97706_8%,transparent)] px-2 py-1.5 text-xs text-amber-950 dark:text-amber-100"
-						>
-							{$t('admin.templatesPreviewModeBanner').replace('{pack}', previewTemplate)}
-						</p>
-					{/if}
 				</div>
 				<div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
 					<button
@@ -263,28 +248,6 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 					<a href="/admin/templates/overrides" class="{adminBtnPrimarySm} {adminRingPrimary} shrink-0 text-center no-underline">
 						{$t('admin.themeBuilder')}
 					</a>
-					{#if previewTemplate && previewThemeId}
-						<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-							<button
-								type="button"
-								onclick={openApplyPreview}
-								class="{adminBtnPrimarySm} {adminRingPrimary} shrink-0"
-								title={$t('admin.applyPreview')}
-							>
-								{$t('admin.applyPreview')}
-							</button>
-						</div>
-					{/if}
-					{#if previewTemplate}
-						<button
-							type="button"
-							onclick={clearPreview}
-							class="{adminBtnSecondary} text-sm shrink-0"
-							title={$t('admin.revertPreview')}
-						>
-							{$t('admin.revertPreview')}
-						</button>
-					{/if}
 				</div>
 			</div>
 
@@ -315,11 +278,6 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 									{#if liveThemeId ? liveThemeId === theme._id : theme.baseTemplate === frontendTemplate}
 										<span class={adminBadgePrimary}>
 											{$t('admin.defaultThemeBadge')}
-										</span>
-									{/if}
-									{#if previewTemplate === theme.baseTemplate}
-										<span class={adminBadgeCaution}>
-											{$t('admin.templatesPreviewingBadge')}
 										</span>
 									{/if}
 								</div>
@@ -513,6 +471,54 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 				</button>
 			</div>
 		</div>
+	</div>
+{/if}
+
+<!-- Theme preview modal — full-screen iframe of the live site with the preview theme applied -->
+{#if showPreviewModal && previewThemeId}
+	<div
+		class="fixed inset-0 z-50 flex flex-col bg-black/70"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="preview-theme-title"
+	>
+		<!-- toolbar -->
+		<div class="flex items-center gap-3 px-4 py-2 bg-surface-50-950 border-b border-surface-200-800 shrink-0">
+			<h2 id="preview-theme-title" class="text-sm font-semibold text-(--color-surface-950-50) min-w-0 truncate">
+				{previewModalTheme?.name ?? '…'}
+				<span class="ml-1.5 text-xs font-normal text-(--color-surface-600-400)">{previewModalTheme?.baseTemplate ?? ''}</span>
+			</h2>
+			<div class="flex items-center gap-2 ml-auto shrink-0">
+				<button
+					type="button"
+					onclick={() => { if (previewModalTheme) applyThemeId = previewModalTheme._id; }}
+					class="{adminBtnSmPrimary} {adminRingPrimary}"
+				>
+					{$t('admin.setAsDefaultTheme')}
+				</button>
+				{#if previewModalTheme}
+					<a
+						href="/admin/templates/overrides?themeId={previewModalTheme._id}"
+						class="{adminBtnSmSecondary} no-underline"
+					>
+						{$t('admin.edit')}
+					</a>
+				{/if}
+				<button
+					type="button"
+					onclick={() => { showPreviewModal = false; previewThemeId = null; }}
+					class="{adminBtnSecondary} text-sm"
+				>
+					{$t('admin.close')}
+				</button>
+			</div>
+		</div>
+		<!-- live preview iframe -->
+		<iframe
+			src="/?preview-theme-id={previewThemeId}"
+			title="Theme preview"
+			class="flex-1 min-h-0 w-full border-0 bg-white"
+		></iframe>
 	</div>
 {/if}
 
