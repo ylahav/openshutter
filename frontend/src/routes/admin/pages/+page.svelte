@@ -2383,7 +2383,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 <!-- Create Dialog -->
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Add New Page</h2>
 
 			{#if error}
@@ -2676,7 +2676,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 <!-- Module Edit Dialog -->
 {#if showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-70">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' || moduleForm.type === 'albumView' || moduleForm.type === 'socialMedia' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' || moduleForm.type === 'albumView' || moduleForm.type === 'socialMedia' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Edit Module</h2>
 
 			{#if modulesError}
@@ -3415,7 +3415,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 <!-- Edit Dialog -->
 {#if showEditDialog && editingPage}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Edit Page</h2>
 
 			{#if error}
@@ -3689,7 +3689,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 <!-- Module Edit Dialog -->
 {#if false && showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Edit Module</h2>
 
 			{#if modulesError}
@@ -4158,7 +4158,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 <!-- Layout Shell Instance Editor -->
 {#if showLayoutShellEditorDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-2">Edit layoutShell instance</h2>
 			<p class="text-sm text-(--color-surface-600-400) mb-4">
 				Instance: <code>{layoutShellEditorKey}</code>
@@ -4384,7 +4384,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 <!-- Menu Instance Editor -->
 {#if showMenuEditorDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-2">Edit menu instance</h2>
 			<p class="text-sm text-(--color-surface-600-400) mb-4">
 				Instance: <code>{menuEditorKey}</code>
@@ -4571,7 +4571,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 <!-- Module Edit Dialog -->
 {#if false && showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Edit Module</h2>
 
 			{#if modulesError}
