@@ -153,11 +153,14 @@ export async function handleApiErrorResponse(response: Response): Promise<never>
 				? nestMessage.map(String).join(' ')
 				: undefined;
 
+	// SvelteKit proxies (e.g. /api/albums/+server.ts) return { error: "..." }, so include
+	// errorData.error in the user-facing fallback chain — otherwise real backend messages
+	// (bad bucket name, alias collision, etc.) get masked by the generic status default.
 	const error = new ApiError(
 		response.status,
 		errorData.code || 'HTTP_ERROR',
 		messageFromBackend || errorData.error || response.statusText || `HTTP ${response.status}`,
-		errorData.userMessage || messageFromBackend || getDefaultUserMessage(response.status),
+		errorData.userMessage || messageFromBackend || errorData.error || getDefaultUserMessage(response.status),
 		errorData.details
 	);
 

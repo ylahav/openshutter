@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
-	import { handleError } from '$lib/utils/errorHandler';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
 	import {
 		adminBtnPrimarySm,
@@ -219,12 +219,11 @@
 				body: JSON.stringify(formData)
 			});
 
-			const result = await response.json().catch(() => ({}));
-
 			if (!response.ok) {
-				error = result.error || result.message || $t('admin.failedToCreateAlbum');
-				return;
+				await handleApiErrorResponse(response);
 			}
+
+			const result = await response.json();
 
 			if (result.success && result.data) {
 				success = $t('admin.albumCreatedSuccessfully');
