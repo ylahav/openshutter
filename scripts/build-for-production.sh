@@ -386,60 +386,50 @@ chmod +x "$DEPLOY_DIR/build.sh"
 cat > "$DEPLOY_DIR/start.sh" << 'EOF'
 #!/bin/bash
 # Production start script for OpenShutter
-# This script starts both backend and frontend services
-# Ports are read from environment files created by build.sh
+# Each service is launched in its own subshell so its .env file is sourced
+# into a clean environment (no cross-pollution between backend and frontend).
 
 set -e
 
-# Load backend port from backend/.env file
-if [ -f "backend/.env" ]; then
-    export $(grep -v '^#' backend/.env | grep -E '^PORT=' | xargs)
-    BACKEND_PORT=${PORT:-5000}
-    echo "📋 Loaded backend port from backend/.env: ${BACKEND_PORT}"
-else
-    BACKEND_PORT=${PORT:-5000}
-    echo "⚠️  backend/.env not found, using default port: ${BACKEND_PORT}"
-fi
+# Forward signals to children so PM2 / Ctrl-C can shut things down cleanly
+trap 'kill -TERM $BACKEND_PID $FRONTEND_PID 2>/dev/null' TERM INT
 
-# Load frontend port from frontend/.env.production file
-if [ -f "frontend/.env.production" ]; then
-    export $(grep -v '^#' frontend/.env.production | grep -E '^PORT=' | xargs)
-    FRONTEND_PORT=${PORT:-4000}
-    echo "📋 Loaded frontend port from frontend/.env.production: ${FRONTEND_PORT}"
-else
-    FRONTEND_PORT=${PORT:-4000}
-    echo "⚠️  frontend/.env.production not found, using default port: ${FRONTEND_PORT}"
-fi
-
-echo ""
 echo "🚀 Starting OpenShutter services..."
-echo "   Backend port: ${BACKEND_PORT}"
-echo "   Frontend port: ${FRONTEND_PORT}"
-echo ""
 
-# Start backend
-echo "Starting backend on port ${BACKEND_PORT}..."
-cd backend
-PORT=${BACKEND_PORT} node dist/main.js &
+# --- Backend ---
+(
+    cd backend
+    if [ -f .env ]; then
+        set -a; . ./.env; set +a
+        echo "📋 Loaded backend/.env"
+    else
+        echo "⚠️  backend/.env not found"
+    fi
+    : "${PORT:=5000}"
+    echo "Starting backend on port ${PORT}..."
+    exec node dist/main.js
+) &
 BACKEND_PID=$!
 
-# Wait for backend to start
+# Give the backend a moment to bind before the frontend starts proxying
 sleep 3
 
-# Start frontend (SvelteKit)
-echo "Starting frontend on port ${FRONTEND_PORT}..."
-cd ../frontend
-# Load environment variables from .env.production if it exists
-if [ -f ".env.production" ]; then
-    export $(grep -v '^#' .env.production | grep -v '^$' | xargs)
-    echo "📋 Loaded environment variables from .env.production"
-fi
-# PORT must be set as environment variable (adapter-node defaults to 3000 if not set)
-# Use build/index.js (not just 'build') for ES module compatibility
-PORT=${FRONTEND_PORT} node build/index.js &
+# --- Frontend (SvelteKit / adapter-node) ---
+(
+    cd frontend
+    if [ -f .env.production ]; then
+        set -a; . ./.env.production; set +a
+        echo "📋 Loaded frontend/.env.production"
+    else
+        echo "⚠️  frontend/.env.production not found"
+    fi
+    : "${PORT:=4000}"
+    echo "Starting frontend on port ${PORT}..."
+    # Use build/index.js (not just 'build') for ES module compatibility
+    exec node build/index.js
+) &
 FRONTEND_PID=$!
 
-# Wait for both processes
 wait $BACKEND_PID $FRONTEND_PID
 EOF
 
