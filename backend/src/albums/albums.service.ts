@@ -238,7 +238,9 @@ export class AlbumsService {
       }
     }
 
-    const storagePath = parentPath ? `${parentPath}/${createData.alias}` : `/${createData.alias}`;
+    // No leading slash: S3-compatible providers (B2/S3/Wasabi) treat a leading "/" as
+    // an empty path segment, which scatters objects into a phantom root folder.
+    const storagePath = parentPath ? `${parentPath}/${createData.alias}` : createData.alias;
 
     const existingAlbum = await db.collection('albums').findOne({ alias: createData.alias.toLowerCase() });
     if (existingAlbum) {

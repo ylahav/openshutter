@@ -116,8 +116,10 @@ export class AlbumsAdminController {
 				}
 			}
 
-			// Generate storage path
-			const storagePath = parentPath ? `${parentPath}/${createData.alias}` : `/${createData.alias}`;
+			// Generate storage path.
+			// No leading slash: S3-compatible providers (B2/S3/Wasabi) treat a leading "/" as
+			// an empty path segment, which scatters objects into a phantom root folder.
+			const storagePath = parentPath ? `${parentPath}/${createData.alias}` : createData.alias;
 
 			// Check if alias already exists
 			const existingAlbum = await db.collection('albums').findOne({ alias: createData.alias.toLowerCase() });
@@ -455,12 +457,6 @@ export class AlbumsAdminController {
 			}
 
 			// Convert ObjectIds to strings for JSON serialization
-			const albumCreatedByStr =
-				album.createdBy != null
-					? album.createdBy.toString
-						? album.createdBy.toString()
-						: String(album.createdBy)
-					: '';
 			const serializedPhotos = photos.map((photo: any) => {
 				const photoStorageOwnerStr =
 					photo.storage?.storageOwnerId != null
@@ -468,7 +464,7 @@ export class AlbumsAdminController {
 							? photo.storage.storageOwnerId.toString()
 							: String(photo.storage.storageOwnerId)
 						: '';
-				const resolvedStorageOwnerId = (photoStorageOwnerStr || albumCreatedByStr || '').trim() || undefined;
+				const resolvedStorageOwnerId = photoStorageOwnerStr.trim() || undefined;
 				const serialized: any = {
 					...photo,
 					_id: photo._id.toString(),

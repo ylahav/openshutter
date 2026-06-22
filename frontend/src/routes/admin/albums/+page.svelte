@@ -599,7 +599,7 @@
 			</div>
 			<div class="flex items-center gap-3">
 				<a
-					href="/albums/new"
+					href="/admin/albums/new"
 					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
 				>
 					+ {$t('admin.createAlbum')}
@@ -735,7 +735,7 @@
 					{$t('admin.getStartedByCreatingFirstAlbum')}
 				</p>
 				<a
-					href="/albums/new"
+					href="/admin/albums/new"
 					class="{adminBtnPrimarySm} px-6 py-3 {adminRingPrimary}"
 				>
 					{$t('admin.createAlbum')}

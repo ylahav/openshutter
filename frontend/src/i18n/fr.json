@@ -900,7 +900,19 @@
     "enterCategoryTitle": "Entrez le titre de la catégorie",
     "enterCategoryDescription": "Entrez la description de la catégorie",
     "editCategoryDescription": "Modifier la description de la catégorie",
-    "sortOrderHelp": "Les nombres inférieurs apparaissent en premier"
+    "sortOrderHelp": "Les nombres inférieurs apparaissent en premier",
+    "albumSettings": "Paramètres de l'album",
+    "publicAlbum": "Album public",
+    "publicAlbumHelp": "Visible par tous les utilisateurs",
+    "featuredAlbum": "Album en vedette",
+    "featuredAlbumHelp": "Mis en avant sur la page d'accueil",
+    "folderStructurePreview": "Aperçu de la structure des dossiers",
+    "storagePath": "Chemin de stockage",
+    "goToStorageSettings": "Aller aux paramètres de stockage",
+    "successTitle": "Succès",
+    "albumCreatedSuccessfully": "Album créé avec succès !",
+    "failedToCreateAlbum": "Échec de la création de l'album.",
+    "failedToLoadStorageOptions": "Échec du chargement des options de stockage. Vérifiez votre configuration."
   },
   "pagination": {
     "previous": "Précédent",

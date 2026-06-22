@@ -738,7 +738,7 @@
 						<a href="/admin/photos/upload?albumId={albumId}" class={btnGhost}>
 							{$t('admin.uploadPhotos')}
 						</a>
-						<a href="/albums/new?parentAlbumId={albumId}" class={btnGhost}>
+						<a href="/admin/albums/new?parentAlbumId={albumId}" class={btnGhost}>
 							{$t('admin.createSubAlbum')}
 						</a>
 						<a href="/admin/albums/{albumId}/edit" class={btnGhost}>
