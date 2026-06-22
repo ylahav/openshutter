@@ -145,7 +145,7 @@ import { t } from '$stores/i18n';
 					</button>
 					{#if canCreateAlbums(data.user)}
 						<button
-							onclick={() => goto('/albums/new')}
+							onclick={() => goto('/admin/albums/new')}
 							class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 						>
 							<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -174,7 +174,7 @@ import { t } from '$stores/i18n';
 					</p>
 					{#if canCreateAlbums(data.user)}
 						<button
-							onclick={() => goto('/albums/new')}
+							onclick={() => goto('/admin/albums/new')}
 							class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 						>
 							<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
