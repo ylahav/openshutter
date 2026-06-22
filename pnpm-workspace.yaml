@@ -38,6 +38,8 @@ minimumReleaseAgeExclude:
   - '@sveltejs/kit@2.65.1'
   - '@types/yauzl@3.4.0'
   - nodemailer@9.0.0
+  - '@testing-library/svelte-core@1.1.2'
+  - '@testing-library/svelte@5.4.1'
 
 onlyBuiltDependencies:
   - '@nestjs/core'
