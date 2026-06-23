@@ -107,6 +107,47 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 		await refreshThemes();
 	}
 
+	let exportingKit = $state(false);
+
+	/**
+	 * Snapshot the current pack's DB state (pages + page_modules + layoutShellInstances)
+	 * into a sibling kit JSON file via the browser download. Never overwrites the
+	 * authored <pack>.kit.json under frontend/src/templates/ — that's pack intent
+	 * and stays in code; this export is per-site state for git-versioning your
+	 * customizations or seeding a sister site (run install-template-kit.ts against it).
+	 */
+	async function exportKitForCurrentPack() {
+		const pack = String(frontendTemplate || '').trim().toLowerCase();
+		if (!pack) {
+			adminToast.error('No active pack to export.');
+			return;
+		}
+		exportingKit = true;
+		try {
+			const response = await fetch(`/api/admin/templates/${encodeURIComponent(pack)}/export-kit`);
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+				return;
+			}
+			const blob = await response.blob();
+			const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+			const filename = `${pack}.kit.exported.${stamp}.json`;
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			URL.revokeObjectURL(url);
+			adminToast.success(`Exported ${filename}`);
+		} catch (err) {
+			handleError(err, 'Export kit JSON');
+		} finally {
+			exportingKit = false;
+		}
+	}
+
 	async function createTheme() {
 		if (!createName.trim()) return;
 		createSubmitting = true;
@@ -244,6 +285,15 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 						class="{adminBtnSecondary} text-sm shrink-0"
 					>
 						+ {$t('admin.createNewTheme')}
+					</button>
+					<button
+						type="button"
+						onclick={exportKitForCurrentPack}
+						disabled={exportingKit}
+						class="{adminBtnSecondary} text-sm shrink-0"
+						title="Snapshot the current pack's pages + layout shells to a kit JSON. The authored kit file in /frontend/src/templates/{frontendTemplate}/ is NOT touched — this downloads a NEW sibling file you can review and commit."
+					>
+						{exportingKit ? 'Exporting…' : `Export ${frontendTemplate} as kit JSON`}
 					</button>
 					<a href="/admin/templates/overrides" class="{adminBtnPrimarySm} {adminRingPrimary} shrink-0 text-center no-underline">
 						{$t('admin.themeBuilder')}

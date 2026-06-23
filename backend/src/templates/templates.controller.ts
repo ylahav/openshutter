@@ -1,4 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Res, UseGuards, NotFoundException } from '@nestjs/common';
+import { Response } from 'express';
+import * as mongoose from 'mongoose';
 import { AdminGuard } from '../common/guards/admin.guard';
 import type { TemplateConfig, FontSetting } from '../types/template';
 
@@ -212,5 +214,127 @@ export class TemplatesController {
   async getTemplates(): Promise<TemplateConfig[]> {
     // Return all static templates
     return Object.values(staticTemplates);
+  }
+
+  /**
+   * Export the current DB state for a pack into a kit JSON file.
+   *
+   * Path: GET /api/admin/templates/:packId/export-kit
+   *
+   * Reads `pages` rows where frontendTemplates includes the pack (or legacy
+   * frontendTemplate matches), their associated `page_modules`, and the
+   * `site_config.template.layoutShellInstances` map. Emits a JSON in the same
+   * shape as `frontend/src/templates/<pack>/<pack>.kit.json` so the result
+   * can be diffed against / merged into the authored pack source by hand, or
+   * fed straight back into `install-template-kit.ts` to seed another site.
+   *
+   * Intentionally a NEW sibling file — the response is delivered as an
+   * attachment download, never written to the source tree. The authored
+   * `<pack>.kit.json` stays untouched (pack-intent vs site-state boundary).
+   */
+  @Get(':packId/export-kit')
+  async exportKit(@Param('packId') packId: string, @Res() res: Response): Promise<void> {
+    const safePack = String(packId || '').trim().toLowerCase();
+    if (!safePack || !/^[a-z0-9-]+$/.test(safePack)) {
+      throw new NotFoundException(`Invalid pack id: ${packId}`);
+    }
+
+    const db = mongoose.connection.db;
+    if (!db) throw new NotFoundException('Database not connected');
+
+    // 1. Pages owned by this pack — accept both the array field
+    //    (frontendTemplates) and the legacy scalar (frontendTemplate).
+    const pageRows = await db
+      .collection('pages')
+      .find({ $or: [{ frontendTemplates: safePack }, { frontendTemplate: safePack }] })
+      .sort({ pageRole: 1, alias: 1 })
+      .toArray();
+
+    // 2. Modules per page, keyed by pageId, ordered for stable diffs.
+    const pageIds = pageRows.map((p) => p._id).filter(Boolean);
+    const moduleRows = pageIds.length
+      ? await db
+          .collection('page_modules')
+          .find({ pageId: { $in: pageIds } })
+          .sort({ rowOrder: 1, columnIndex: 1, order: 1 })
+          .toArray()
+      : [];
+    const modulesByPageId = new Map<string, any[]>();
+    for (const m of moduleRows) {
+      const key = String(m.pageId);
+      const list = modulesByPageId.get(key) ?? [];
+      list.push(m);
+      modulesByPageId.set(key, list);
+    }
+
+    // 3. layoutShellInstances from site_config — ship all of them; consumers
+    //    can prune what their pages don't reference. (Filtering to only-used
+    //    is fragile when shells are renamed; over-include is the safe default.)
+    const siteConfig = await db.collection('site_config').findOne({});
+    const shells =
+      (siteConfig?.template as Record<string, unknown> | undefined)?.layoutShellInstances ?? {};
+
+    // 4. Pack-level meta: kitId is the packId; pageAliasPrefix from
+    //    site_config override or null (consumer falls back to PREFIX_BY_PACK).
+    const aliasPrefixes =
+      (siteConfig?.template as { pageAliasPrefixes?: Record<string, string> } | undefined)
+        ?.pageAliasPrefixes ?? {};
+
+    const kitPages = pageRows.map((p) => {
+      const modules = (modulesByPageId.get(String(p._id)) ?? []).map((m) => {
+        const out: Record<string, unknown> = {
+          type: m.type,
+          rowOrder: m.rowOrder ?? 0,
+          columnIndex: m.columnIndex ?? 0,
+          props: m.props ?? {},
+        };
+        if (m.zone && m.zone !== 'main') out.zone = m.zone;
+        else out.zone = 'main';
+        if (m.colSpan !== undefined && m.colSpan !== null) out.colSpan = m.colSpan;
+        if (m.rowSpan !== undefined && m.rowSpan !== null) out.rowSpan = m.rowSpan;
+        if (m.columnProportion !== undefined && m.columnProportion !== null) {
+          out.columnProportion = m.columnProportion;
+        }
+        return out;
+      });
+
+      const out: Record<string, unknown> = {
+        alias: p.alias,
+        slug: p.slug ?? p.alias,
+        category: p.category ?? 'system',
+        isPublished: p.isPublished ?? true,
+        layout: p.layout ?? { zones: ['main'] },
+        title: p.title ?? { en: '', he: '' },
+        modules,
+      };
+      if (p.pageRole) out.role = p.pageRole;
+      if (p.subtitle) out.subtitle = p.subtitle;
+      if (Array.isArray(p.frontendTemplates) && p.frontendTemplates.length > 0) {
+        out.frontendTemplates = p.frontendTemplates;
+      } else if (typeof p.frontendTemplate === 'string' && p.frontendTemplate) {
+        out.frontendTemplates = [p.frontendTemplate];
+      }
+      return out;
+    });
+
+    const kit = {
+      $exportedAt: new Date().toISOString(),
+      $exportedFrom: `OpenShutter DB snapshot for pack "${safePack}". Pack intent (the authored <pack>.kit.json) lives in code; this snapshot reflects per-site state at export time. Merge by hand or feed back into install-template-kit.ts to seed another site.`,
+      meta: {
+        kitId: safePack,
+        version: 'exported',
+        pageAliasPrefix: aliasPrefixes[safePack] ?? null,
+      },
+      theme: {
+        layoutShellInstances: shells,
+      },
+      pages: kitPages,
+    };
+
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `${safePack}.kit.exported.${stamp}.json`;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(JSON.stringify(kit, null, '\t'));
   }
 }
