@@ -3,8 +3,13 @@
 // Same class of issue as Noir: flex/grid parents need `min-width: 0` so split `1fr` columns keep the image track.
 
 .tpl-pack-studio {
+  // Escape the page-builder max-width wrapper so the hero spans the viewport,
+  // matching the studio.html reference where <section class="s-hero"> is full-bleed.
   .pbModuleCell.s-hero {
     min-width: 0;
+    width: 100vw;
+    max-width: 100vw;
+    margin-inline: calc(50% - 50vw);
   }
 
   .pbModuleCell.s-hero > .hero {

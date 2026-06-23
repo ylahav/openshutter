@@ -7,6 +7,10 @@
 @use './contactForm';
 @use './searchForm';
 @use './albumsGrid';
+@use './cta';
+@use './layoutShell';
+@use './personBio';
+@use './contactInfo';
 
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500&display=swap');
 
@@ -104,7 +108,10 @@ body {
 .s-header {
   background: var(--surf);
   border-bottom: 1px solid var(--bdr);
-  position: fixed; top: 0; z-index: 100;
+  // Sticky lives on the outer .pbModuleCell.s-header (see _layoutShell.scss) — the
+  // inner <section> doesn't need its own positioning. Previously this was `fixed`,
+  // which pulled the header out of flow and caused the next module (e.g. a pageTitle
+  // banner) to sit at top:0 under the fixed header.
   transition: background $t, border-color $t;
 
   > div {

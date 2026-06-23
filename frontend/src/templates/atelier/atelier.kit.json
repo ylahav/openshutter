@@ -1,0 +1,492 @@
+{
+	"$comment": "OpenShutter template kit — Atelier. Editorial portfolio pack with Cormorant Garamond display + Jost body, centered hero, generous serif. Pages use the pack prefix `a-` to coexist with default fallbacks per TEMPLATING.md §4 alias resolution.",
+
+	"$comment_packaging": "DATA ONLY — see studio.kit.json for the full packaging convention. Atelier's SCSS already exists under frontend/src/templates/atelier/; this kit hooks the DB layer to it. Header className is `atelier-header` (NOT `a-header`) so layout-shell-header.scss's `:not(.a-header)` selector matches and the generic flex header path applies instead of the legacy BEM-positioned variant.",
+
+	"meta": {
+		"kitId": "atelier",
+		"version": "0.1.0",
+		"name": "Atelier",
+		"description": "Editorial portfolio with serif display, centered hero, and generous spacing.",
+		"pageAliasPrefix": "a"
+	},
+
+	"theme": {
+		"displayName": "Atelier",
+		"pageAliasPrefix": "a",
+
+		"$comment_layoutShellInstances": "Preset keys end in `_header` / `_footer` so layout-shell-*.scss selectors with `[data-layout-preset$=\"header\"]` match. The atelier_header is a 3-row editorial layout (matches templates-reference/atelier.html): top row = auth (left) + logo (center) + theme/lang (right), middle row = site title (center), bottom row = menu (center). The 6-col grid is set by gridRows × gridColumns; placement props (horizontal/vertical) tell the page-builder cell wrapper how to align its module within the column track. SCSS in _layout-shell-header.scss reinforces the row/col placement with !important so this layout is robust to inline-style overrides from PageBuilderGrid.",
+		"layoutShellInstances": {
+			"atelier_header": {
+				"gridRows": 3,
+				"gridColumns": 6,
+				"modules": [
+					{
+						"_id": "mod_atelier_header_auth",
+						"type": "authButtons",
+						"props": {
+							"className": "atelier-header-auth",
+							"placement": { "horizontal": "start", "vertical": "center" }
+						},
+						"rowOrder": 0, "columnIndex": 0, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_atelier_header_logo",
+						"type": "logo",
+						"props": {
+							"showSiteTitle": false,
+							"className": "atelier-header-logo",
+							"placement": { "horizontal": "center", "vertical": "center" }
+						},
+						"rowOrder": 0, "columnIndex": 2, "rowSpan": 1, "colSpan": 2
+					},
+					{
+						"_id": "mod_atelier_header_theme",
+						"type": "themeToggle",
+						"props": {
+							"variant": "icons",
+							"className": "atelier-header-theme",
+							"placement": { "horizontal": "end", "vertical": "center" }
+						},
+						"rowOrder": 0, "columnIndex": 4, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_atelier_header_lang",
+						"type": "languageSelector",
+						"props": {
+							"variant": "dropdown",
+							"className": "atelier-header-lang",
+							"placement": { "horizontal": "end", "vertical": "center" }
+						},
+						"rowOrder": 0, "columnIndex": 5, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_atelier_header_title",
+						"type": "siteTitle",
+						"props": {
+							"className": "atelier-header-title",
+							"placement": { "horizontal": "center", "vertical": "center" }
+						},
+						"rowOrder": 1, "columnIndex": 0, "rowSpan": 1, "colSpan": 6
+					},
+					{
+						"_id": "mod_atelier_header_menu",
+						"type": "menu",
+						"props": {
+							"orientation": "horizontal",
+							"className": "atelier-header-menu",
+							"placement": { "horizontal": "center", "vertical": "center" },
+							"items": [
+								{ "label": "Home", "href": "/", "type": "link" },
+								{ "label": "Albums", "href": "/albums", "type": "link" },
+								{ "label": "About", "href": "/about", "type": "link" },
+								{ "label": "Contact", "href": "/contact", "type": "link" }
+							]
+						},
+						"rowOrder": 2, "columnIndex": 0, "rowSpan": 1, "colSpan": 6
+					}
+				]
+			},
+			"atelier_footer": {
+				"gridRows": 3,
+				"gridColumns": 1,
+				"modules": [
+					{
+						"_id": "mod_atelier_footer_brand",
+						"type": "richText",
+						"props": {
+							"title": {},
+							"body": {
+								"en": "<div class=\"ft-name\">Yair Lahav</div><div class=\"ft-tag\">Photography · OpenShutter</div>",
+								"he": "<div class=\"ft-name\">יאיר להב</div><div class=\"ft-tag\">צילום · OpenShutter</div>"
+							},
+							"background": "transparent",
+							"className": "atelier-footer-brand"
+						},
+						"rowOrder": 0, "columnIndex": 0, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"$comment": "Social links omitted on purpose — SocialMedia module pulls from siteConfig.contact.socialMedia when no `links` prop is set.",
+						"_id": "mod_atelier_footer_social",
+						"type": "socialMedia",
+						"props": {
+							"align": "center",
+							"orientation": "horizontal",
+							"linkDisplay": "text",
+							"className": "atelier-footer-social"
+						},
+						"rowOrder": 1, "columnIndex": 0, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_atelier_footer_copy",
+						"type": "richText",
+						"props": {
+							"title": {},
+							"body": {
+								"en": "<p>© 2026 Yair Lahav · All rights reserved</p>",
+								"he": "<p>© 2026 יאיר להב · כל הזכויות שמורות</p>"
+							},
+							"background": "transparent",
+							"className": "atelier-footer-copy"
+						},
+						"rowOrder": 2, "columnIndex": 0, "rowSpan": 1, "colSpan": 1
+					}
+				]
+			}
+		},
+
+		"colors": {
+			"primary": "#1a1a1a",
+			"secondary": "#8a7c6a",
+			"accent": "#8a7c6a",
+			"background": "#f8f5ef",
+			"text": "#1a1a1a",
+			"muted": "#6b6557",
+			"surfaceCard": "#ffffff",
+			"surfaceCardSecondary": "#f3efe6",
+			"surfaceCardTertiary": "#e8e1d3",
+			"textSubtle": "rgba(26,26,26,0.4)",
+			"borderSubtle": "#d8d0c0",
+			"lightBackground": "#f8f5ef",
+			"lightText": "#1a1a1a",
+			"lightMuted": "#6b6557",
+			"lightSurfaceCard": "#ffffff",
+			"lightSurfaceCardSecondary": "#f3efe6",
+			"lightSurfaceCardTertiary": "#e8e1d3",
+			"lightTextSubtle": "rgba(26,26,26,0.4)",
+			"lightBorderSubtle": "#d8d0c0"
+		},
+		"fonts": {
+			"heading": "Cormorant Garamond",
+			"body": "Jost",
+			"links": "Jost",
+			"lists": "Jost",
+			"formInputs": "Jost",
+			"formLabels": "Jost"
+		}
+	},
+
+	"newModules": [],
+
+	"pages": [
+		{
+			"alias": "a-home",
+			"slug": "a-home",
+			"role": "home",
+			"frontendTemplates": ["atelier"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "Home", "he": "בית" },
+			"subtitle": { "en": "documentary photography", "he": "צילום תיעודי" },
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "atelier_header",
+						"presetKey": "atelier_header",
+						"className": "atelier-header",
+						"gridTemplateColumns": "auto auto 1fr auto auto auto"
+					}
+				},
+				{
+					"type": "hero",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "a-hero",
+						"title": { "en": "The art of seeing", "he": "אמנות הראייה" },
+						"subtitle": { "en": "documentary photography", "he": "צילום תיעודי" },
+						"description": { "en": "heritage · travel · everyday life", "he": "מורשת · מסעות · חיי היומיום" },
+						"backgroundImage": "https://picsum.photos/seed/atelier-hero/1600/900",
+						"backgroundStyle": "image-dimmed",
+						"layoutVariant": "centered"
+					}
+				},
+				{
+					"type": "richText",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "a-intro",
+						"title": {},
+						"body": {
+							"en": "<p class=\"a-intro-text\">\"Photography is the art of frozen time — the ability to store emotion and feelings within a frame.\"</p>",
+							"he": "<p class=\"a-intro-text\">\"צילום הוא אמנות הזמן הקפוא — היכולת לאחסן רגש ותחושות בתוך מסגרת.\"</p>"
+						},
+						"background": "transparent"
+					}
+				},
+				{
+					"type": "albumsGrid",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "a-albums",
+						"title": { "en": "Selected work", "he": "עבודות נבחרות" },
+						"description": { "en": "photographic series", "he": "סדרות צילום" },
+						"albumSource": "root",
+						"limit": 3,
+						"sortBy": "manual",
+						"showCover": true,
+						"coverAspect": "video",
+						"showDescription": true,
+						"showPhotoCount": true,
+						"showFeaturedBadge": false,
+						"albumCardLayout": "stack"
+					}
+				},
+				{
+					"type": "cta",
+					"zone": "main",
+					"rowOrder": 4,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "a-cta",
+						"title": { "en": "", "he": "" },
+						"description": {
+							"en": "\"Every photograph is a certificate of presence — a way of saying 'I was here, I saw this, it mattered.'\"",
+							"he": "\"כל צילום הוא תעודת נוכחות — דרך לומר 'הייתי כאן, ראיתי את זה, זה היה חשוב.'\""
+						},
+						"primaryLabel": { "en": "view all albums", "he": "צפה בכל האלבומים" },
+						"primaryHref": "/albums"
+					}
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 5,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "atelier_footer",
+						"presetKey": "atelier_footer",
+						"className": "atelier-footer"
+					}
+				}
+			]
+		},
+
+		{
+			"alias": "a-gallery",
+			"slug": "a-gallery",
+			"role": "gallery",
+			"frontendTemplates": ["atelier"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "Albums", "he": "אלבומים" },
+			"subtitle": {
+				"en": "A collection of photographic series spanning travel, heritage, and everyday life.",
+				"he": "אוסף של סדרות צילום המקיפות מסעות, מורשת וחיי היומיום."
+			},
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "atelier_header",
+						"presetKey": "atelier_header",
+						"className": "atelier-header",
+						"gridTemplateColumns": "auto auto 1fr auto auto auto"
+					}
+				},
+				{
+					"type": "pageTitle",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": { "align": "center", "className": "a-gal-intro" }
+				},
+				{
+					"type": "albumsGrid",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "a-albums",
+						"title": { "en": "", "he": "" },
+						"description": { "en": "", "he": "" },
+						"albumSource": "root",
+						"sortBy": "manual",
+						"showCover": true,
+						"coverAspect": "portrait",
+						"showDescription": false,
+						"showPhotoCount": false,
+						"showFeaturedBadge": false,
+						"albumCardLayout": "stack"
+					}
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "atelier_footer",
+						"presetKey": "atelier_footer",
+						"className": "atelier-footer"
+					}
+				}
+			]
+		},
+
+		{
+			"alias": "a-about",
+			"slug": "a-about",
+			"role": "about",
+			"frontendTemplates": ["atelier"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "About", "he": "אודות" },
+			"subtitle": { "en": "the photographer", "he": "הצלם" },
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "atelier_header",
+						"presetKey": "atelier_header",
+						"className": "atelier-header",
+						"gridTemplateColumns": "auto auto 1fr auto auto auto"
+					}
+				},
+				{
+					"type": "pageTitle",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": { "align": "center", "className": "a-abt-hdr" }
+				},
+				{
+					"type": "personBio",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "a-abt-body",
+						"name": "Yair Lahav",
+						"portraitImage": "https://picsum.photos/seed/portrait-yair/520/693",
+						"paragraphs": [
+							{
+								"en": "A photographer based in Israel — documenting heritage sites, travel moments, and the quiet rhythm of everyday life through an unobtrusive lens.",
+								"he": "צלם המתגורר בישראל — מתעד אתרי מורשת, רגעי מסעות והקצב השקט של חיי היומיום מבעד לעדשה לא מתערבת."
+							},
+							{
+								"en": "Currently participating in the \"Photography Crazy\" group led by Tal Israel. Also participating in workshops with the Israel Heritage Preservation Council, documenting historical buildings with photographer Baruch Gian.",
+								"he": "משתתף כיום בקבוצת \"מטורפים בצילום\" בהובלת טל ישראל. גם משתתף בסדנאות עם המועצה לשימור אתרי מורשת בישראל, תיעוד מבנים היסטוריים יחד עם הצלם ברוך גיאן."
+							}
+						]
+					}
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "atelier_footer",
+						"presetKey": "atelier_footer",
+						"className": "atelier-footer"
+					}
+				}
+			]
+		},
+
+		{
+			"alias": "a-contact",
+			"slug": "a-contact",
+			"role": "contact",
+			"frontendTemplates": ["atelier"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "Contact", "he": "צרו קשר" },
+			"subtitle": { "en": "get in touch", "he": "ליצירת קשר" },
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "atelier_header",
+						"presetKey": "atelier_header",
+						"className": "atelier-header",
+						"gridTemplateColumns": "auto auto 1fr auto auto auto"
+					}
+				},
+				{
+					"type": "pageTitle",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": { "align": "center", "className": "a-ct-hdr" }
+				},
+				{
+					"$comment": "Row 2 splits 4/8: contactInfo (sidebar) + contactForm.",
+					"type": "contactInfo",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 4,
+					"props": {
+						"className": "a-ct-info",
+						"name": "Yair Lahav",
+						"email": "hello@yairl.com",
+						"links": [
+							{ "label": "instagram.com/yairl", "href": "https://www.instagram.com/" },
+							{ "label": "flickr.com/yairl", "href": "https://www.flickr.com/" }
+						]
+					}
+				},
+				{
+					"type": "contactForm",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 4,
+					"colSpan": 8,
+					"props": { "className": "a-ct-form" }
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "atelier_footer",
+						"presetKey": "atelier_footer",
+						"className": "atelier-footer"
+					}
+				}
+			]
+		}
+	]
+}

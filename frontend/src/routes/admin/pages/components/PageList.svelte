@@ -140,6 +140,14 @@
 		return page.category === 'system';
 	}
 
+	/** True only for the un-overrideable default variant — system + no template assignment. */
+	function isProtectedSystemPage(page: Page): boolean {
+		if (page.category !== 'system') return false;
+		const hasArray = Array.isArray(page.frontendTemplates) && page.frontendTemplates.length > 0;
+		const hasLegacy = typeof page.frontendTemplate === 'string' && page.frontendTemplate.trim().length > 0;
+		return !hasArray && !hasLegacy;
+	}
+
 	function isSystemGroup(pages: Page[]): boolean {
 		return pages.length > 0 && pages.every((p) => isSystemPage(p));
 	}
@@ -248,7 +256,7 @@
 					<button
 						type="button"
 						class="{adminBtnSecondary} text-xs shrink-0"
-						onclick={(e) => { e.stopPropagation(); e.preventDefault(); () => onAddVariant(group.pages)(e); }}
+						onclick={(e) => { e.stopPropagation(); e.preventDefault(); onAddVariant(group.pages); }}
 					>
 						+ {$t('admin.pagesListAddVariant')}
 					</button>
@@ -328,7 +336,7 @@
 									><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg
 								>
 							</button>
-							{#if isSystemPage(page)}
+							{#if isProtectedSystemPage(page)}
 								<button
 									type="button"
 									disabled
@@ -343,7 +351,7 @@
 							{:else}
 								<button
 									type="button"
-									onclick={(e) => { e.stopPropagation(); () => onDelete(page)(e); }}
+									onclick={(e) => { e.stopPropagation(); onDelete(page); }}
 									class="p-1.5 text-(--color-surface-600-400) hover:text-red-600 rounded"
 									aria-label="Delete page"
 									title="Delete"

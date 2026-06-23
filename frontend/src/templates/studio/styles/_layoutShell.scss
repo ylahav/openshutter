@@ -1,0 +1,125 @@
+// Studio header / footer chrome rendered via layoutShell module + the kit's studio_header /
+// studio_footer layoutShellInstances. The outer .s-header / .s-footer is the <section> emitted
+// by LayoutShellModule; its first child <div> is the inline-style grid from PageBuilderGrid.
+.tpl-pack-studio {
+	// Defensive centering for the outer page-builder container. The PageBuilderGrid uses Tailwind
+	// `max-w-(--os-max-width) mx-auto` on its grid wrapper, but in some builds the arbitrary-property
+	// classes don't surface, leaving the 1200px grid stuck to the left edge of the viewport.
+	.pb-page > div {
+		margin-inline: auto;
+		max-width: var(--os-max-width);
+	}
+
+	// Full-bleed: header/footer outer cells must escape the page max-width container.
+	// Same trick as .pbModuleCell.s-hero — width:100vw plus negative margin to viewport edge.
+	.pbModuleCell.s-header,
+	.pbModuleCell.s-footer {
+		width: 100vw;
+		max-width: 100vw;
+		margin-inline: calc(50% - 50vw);
+	}
+
+	// `position: sticky` lives on the OUTER grid cell (the page-level grid item), not the
+	// inner <section>, because a sticky element inside a CSS grid cell can't extend its
+	// "sticky range" beyond the cell's row track. Promoting it to the grid item itself
+	// gives it the page-level grid as its containing block, so it sticks until scrolled past
+	// the whole page. Matches the reference (where <header> is a direct child of <body>).
+	.pbModuleCell.s-header {
+		position: sticky;
+		top: 0;
+		z-index: 100;
+	}
+
+	.s-header {
+		background: var(--surf);
+		border-bottom: 1px solid var(--bdr);
+		transition: background 0.3s, border-color 0.3s;
+
+		// PageBuilderGrid renders the grid in an inline-style child div; align/contain it here.
+		// `align-content: center` centers the row track within the min-height container;
+		// `align-items: center` centers each cell within its row track. Both needed because
+		// the inline grid sets explicit columns but no row template, so the row auto-sizes
+		// shorter than min-height and items would otherwise hug the top of the 60px box.
+		> div {
+			max-width: var(--mw);
+			margin: 0 auto;
+			padding: 0 28px;
+			min-height: 60px;
+			align-items: center;
+			align-content: center;
+			gap: 24px;
+		}
+
+		// Each header item is a grid cell that ships with `pbModuleCell--align-self-start`
+		// from `placementGridCellClassNames` (the default vertical placement is 'start').
+		// `align-self` on a grid item overrides the container's `align-items`, so without
+		// this override the items hug the top of the 60px row track. Could also be fixed
+		// per-module in the kit JSON with `"placement": { "vertical": "center" }` on each
+		// header module — kept here so other studio shells can rely on center-by-default.
+		.pbModuleCell--shellGrid {
+			align-self: center;
+		}
+	}
+
+	.s-footer {
+		background: var(--ft-bg);
+		color: #94a3b8;
+		padding: 64px 0 28px;
+		margin-top: 48px;
+
+		> div {
+			max-width: var(--mw);
+			margin: 0 auto;
+			padding: 0 28px;
+			gap: 48px;
+			align-items: start;
+		}
+
+		.s-footer-brand {
+			.ft-mark {
+				font-family: 'Syne', sans-serif;
+				font-weight: 800;
+				font-size: 28px;
+				color: #fff;
+				margin-bottom: 8px;
+			}
+			.ft-name {
+				font-family: 'Syne', sans-serif;
+				font-weight: 700;
+				font-size: 16px;
+				color: #fff;
+				margin-bottom: 4px;
+			}
+			.ft-sub {
+				font-size: 13px;
+			}
+		}
+
+		.s-footer-col {
+			a {
+				display: block;
+				color: #94a3b8;
+				text-decoration: none;
+				font-size: 14px;
+				padding: 4px 0;
+				transition: color 0.15s;
+
+				&:hover {
+					color: #fff;
+				}
+			}
+		}
+
+		.s-footer-copy {
+			margin-top: 20px;
+			padding-top: 28px;
+			border-top: 1px solid #1e293b;
+			text-align: center;
+
+			p {
+				font-size: 12px;
+				color: #64748b;
+			}
+		}
+	}
+}

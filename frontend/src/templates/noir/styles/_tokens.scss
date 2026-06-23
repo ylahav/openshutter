@@ -26,9 +26,14 @@
   --bg-3:      var(--bg-card2);
 
   // ── Foreground ───────────────────────────────────────────────
+  // --fg-dimmer was 0.16 in dark mode, but `mix-blend-mode: difference`
+  // (applied to header children in _header.scss) effectively erases low-alpha
+  // sources on the dark canvas — the language selector and sign-in link were
+  // invisible. Bumped to 0.42 so dark-mode header cells stay legible while
+  // still reading as "subtler than --fg-dim".
   --fg:        var(--tp-fg, #f5f5f3);
   --fg-dim:    rgba(245, 245, 243, 0.38);
-  --fg-dimmer: rgba(245, 245, 243, 0.16);
+  --fg-dimmer: rgba(245, 245, 243, 0.42);
 
   // Aliases compatible with the global _tokens.scss naming
   --fg-mid:    var(--fg-dim);

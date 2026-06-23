@@ -96,4 +96,107 @@
       background: transparent;
     }
   }
+
+  // ─── Atelier multi-row header (atelier-header className) ─────────
+  // 3-row editorial layout from templates-reference/atelier.html:
+  //   row 1: [auth      ] [        logo        ] [theme  lang]
+  //   row 2: [             site title (centered)            ]
+  //   row 3: [             menu       (centered)            ]
+  //
+  // The atelier_header layoutShell preset declares gridRows: 3 + gridColumns: 6.
+  // PageBuilderGrid spanning mode then emits an inline-style grid with
+  // `repeat(6, minmax(0, 1fr))` columns and `repeat(3, auto)` rows. The kit
+  // already places each module at the correct rowOrder/columnIndex/colSpan;
+  // these rules just supply the chrome (background, padding, border) plus a
+  // few alignment safeguards that survive page-builder inline-style overrides.
+  .layout-shell.atelier-header {
+    background: var(--tp-header-bg, var(--bg));
+    border-bottom: var(--os-border-width, 1px) solid var(--tp-header-border, var(--bdr));
+    transition: background $t, border-color $t;
+    text-align: center;
+
+    > div {
+      padding: 28px 32px 20px !important;
+      row-gap: 12px !important;
+      column-gap: 16px !important;
+      align-items: center;
+    }
+
+    // Logo: editorial serif under a hairline rule (matches .a-header-logo styling
+    // already present in _header.scss). Reapply here because we're not under .a-header.
+    .atelier-header-logo .pb-logo {
+      border-bottom: 1px solid var(--gold, var(--fg-lt));
+      padding-bottom: 10px;
+
+      a, span {
+        font-family: 'Cormorant Garamond', Georgia, serif;
+        font-weight: 400;
+        font-size: 32px;
+        letter-spacing: 0.12em;
+        color: var(--fg);
+        text-decoration: none;
+      }
+    }
+
+    .atelier-header-title span,
+    .atelier-header-title {
+      @include serif(400, 13px);
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--fg-mid);
+    }
+
+    .atelier-header-menu nav {
+      display: flex;
+      gap: 28px;
+      justify-content: center;
+    }
+
+    .atelier-header-menu nav a {
+      @include small-caps(0.22em);
+      color: var(--fg-mid);
+      text-decoration: none;
+      transition: color 0.2s;
+
+      &:hover,
+      &[aria-current="page"],
+      &.active {
+        color: var(--fg);
+      }
+    }
+
+    // Auth (top-left): subtle small-caps link
+    .atelier-header-auth a,
+    .atelier-header-auth button {
+      @include small-caps(0.18em);
+      color: var(--fg-lt);
+      text-decoration: none;
+      border-bottom: 1px solid var(--bdr);
+      padding-bottom: 1px;
+      background: none;
+      transition: color 0.2s;
+
+      &:hover {
+        color: var(--fg);
+      }
+    }
+
+    // Theme + lang (top-right): hairline-bordered ghost buttons
+    .atelier-header-theme button,
+    .atelier-header-lang [data-language-selector="dropdown"] > button {
+      background: transparent;
+      border: 1px solid var(--bdr);
+      border-radius: 0;
+      color: var(--fg-lt);
+      padding: 4px 10px;
+      min-height: 0;
+      @include small-caps(0.14em);
+
+      &:hover {
+        color: var(--fg);
+        border-color: var(--fg-lt);
+        background: transparent;
+      }
+    }
+  }
 }

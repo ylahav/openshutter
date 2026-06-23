@@ -1,0 +1,22 @@
+// ============================================================
+// Noir — _layout.scss
+//
+// Noir is an edge-to-edge minimal pack: the album grid, hero,
+// and footer should span the viewport, not the 1200px content
+// max-width that PageBuilderGrid wraps every cell in by default.
+//
+// PageBuilderGrid emits its grid wrapper under .pb-page, classed
+// `w-full max-w-(--os-max-width) mx-auto px-(--os-padding)`. We
+// neutralize that constraint for the noir pack — text-content
+// modules (pageTitle, personBio) keep their own internal max-width
+// via their scoped styles, so prose stays readable.
+// ============================================================
+
+.tpl-pack-noir {
+	.pb-page > div {
+		max-width: none !important;
+		padding-inline: 0 !important;
+		margin-inline: 0 !important;
+		width: 100%;
+	}
+}

@@ -1,0 +1,17 @@
+// CTA block (about-strip on Home). Mirrors the s-abt-strip section from the design HTML
+// — full-bleed background tint with content centered inside the 1200px container.
+.tpl-pack-studio {
+	.pb-cta {
+		max-width: var(--mw);
+		margin: 0 auto;
+		padding: 28px;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		background: var(--blue-lt);
+		border: 1px solid var(--card-bd);
+		border-radius: 12px;
+	}
+}

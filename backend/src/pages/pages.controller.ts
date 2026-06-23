@@ -1056,9 +1056,23 @@ export class PagesController {
       }
 
       if (page.category === 'system') {
-        throw new BadRequestException('System pages cannot be deleted');
+        // System default page (no template assignment) is the fallback per TEMPLATING.md §4
+        // alias-resolution chain — deleting it would break the site. Template-specific variants
+        // (e.g. `s-home` with frontendTemplates=['studio']) can be removed and re-installed
+        // from a template kit.
+        const variantFromArray =
+          Array.isArray(page.frontendTemplates) && page.frontendTemplates.length > 0;
+        const variantFromLegacy =
+          typeof page.frontendTemplate === 'string' && page.frontendTemplate.trim().length > 0;
+        if (!variantFromArray && !variantFromLegacy) {
+          throw new BadRequestException(
+            'Default system pages cannot be deleted — only template-specific variants can be removed',
+          );
+        }
       }
 
+      // Cascade: drop page_modules belonging to this page before deleting the row.
+      await db.collection('page_modules').deleteMany({ pageId: page._id });
       await collection.deleteOne({ _id: new Types.ObjectId(id) });
 
       return { success: true, message: 'Page deleted successfully' };

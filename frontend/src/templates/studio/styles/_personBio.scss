@@ -1,0 +1,36 @@
+// Studio pack overrides for PersonBio (About page).
+// Targets the module's base classes (.pb-personBio*) so the kit module + scoped
+// styles stay portable; only studio typography + color tokens are overlaid here.
+// Reference: studio.html .s-abt-grid / .s-portrait / .s-abt-name / .s-bio.
+
+.tpl-pack-studio {
+	.pb-personBio {
+		max-width: var(--mw);
+		margin: 0 auto;
+		padding: 48px 28px;
+
+		[dir='rtl'] & {
+			direction: rtl;
+		}
+	}
+
+	.pb-personBio__portrait {
+		border-radius: 12px;
+	}
+
+	.pb-personBio__name {
+		font-family: 'Syne', sans-serif;
+		font-weight: 700;
+		font-size: 28px;
+		color: var(--ink);
+	}
+
+	.pb-personBio__paragraph {
+		font-family: 'Outfit', sans-serif;
+		font-weight: 400;
+		font-size: 15px;
+		line-height: 1.8;
+		color: var(--ink-mid);
+		margin-bottom: 28px;
+	}
+}

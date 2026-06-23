@@ -165,6 +165,12 @@ section.layout-shell.n-header > div > [class*="n-"] {
     border-radius: 0 !important;
     color: var(--fg-dim) !important;
     padding: 4px 10px !important;
+    // Without an explicit line-height, the <button> element inherits a default of
+    // ~1.4-1.5, making its content box taller than the menu/lang/signin siblings
+    // (which all set line-height: 1 via the n-mono mixin's host rules). Even with
+    // align-items: center on the grid container, that taller box shifts the visible
+    // glyphs a few px below the others — set line-height: 1 here to match.
+    line-height: 1;
     cursor: pointer;
     transition: color 0.2s, border-color 0.2s;
 
@@ -189,8 +195,14 @@ section.layout-shell.n-header > div > [class*="n-"] {
 }
 
 // Cell 5 - Language selector
+// `mix-blend-mode: difference` on the cell (set on `> div > *` in the shell rule)
+// erases low-alpha source pixels on a dark backdrop — the visible-text formula is
+// |bg − alpha·src|, which approaches zero when alpha is small. We turn the blend
+// off here and use `--fg-dim` directly so the lang/signin always render in their
+// own color regardless of the page background underneath.
 .n-langs {
   grid-column: 5;
+  mix-blend-mode: normal !important;
 
   > div { display: contents; }
 
@@ -204,7 +216,7 @@ section.layout-shell.n-header > div > [class*="n-"] {
     border-radius: 0 !important;
     box-shadow: none !important;
     padding: 0 14px 1px 0 !important;
-    color: var(--fg-dimmer) !important;
+    color: var(--fg-dim) !important;
     cursor: pointer;
     gap: 4px !important;
     outline: none;
@@ -218,7 +230,7 @@ section.layout-shell.n-header > div > [class*="n-"] {
     transition: color 0.2s;
 
     &:hover {
-      color: var(--fg-dim) !important;
+      color: var(--fg) !important;
       background: none !important;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='rgba(245,245,243,.35)'/%3E%3C/svg%3E") !important;
       background-repeat: no-repeat !important;
@@ -242,20 +254,21 @@ section.layout-shell.n-header > div > [class*="n-"] {
   }
 }
 
-// Cell 6 - Sign in link (optional)
+// Cell 6 - Sign in link (optional). Same blend-mode escape as n-langs.
 .n-signin {
   grid-column: 6;
+  mix-blend-mode: normal !important;
 
   a, button {
     @include n-mono(9px, 0.18em);
-    color: var(--fg-dimmer) !important;
+    color: var(--fg-dim) !important;
     text-decoration: none !important;
     border-bottom: 1px solid var(--border) !important;
     padding-bottom: 1px !important;
     background: none !important;
     transition: color 0.2s;
 
-    &:hover { color: var(--fg-dim) !important; }
+    &:hover { color: var(--fg) !important; }
   }
 }
 

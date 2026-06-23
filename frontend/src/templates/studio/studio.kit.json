@@ -1,0 +1,554 @@
+{
+	"$comment": "OpenShutter template kit — Studio. v0.1 spike: theme + Home page only. Installer maps `pages[]` into MongoDB `pages` rows and module entries into `page_modules`, and `theme` into the matching `themes` row + `site_config.template` defaults. Aliases use the pack prefix `s-` so they coexist with default unprefixed pages used as fallback (per TEMPLATING.md §4 alias resolution).",
+
+	"$comment_packaging": "IMPORTANT — this JSON file is DATA ONLY. It does NOT carry the SCSS or any module/component source. A complete 'template package' is THREE things shipped together, with parts 1 and 3 co-located under frontend/src/templates/<packId>/ so the pack can be migrated as one folder: (1) the pack's SCSS + Svelte under frontend/src/templates/<packId>/ (e.g. styles/_hero.scss, styles/_layoutShell.scss, styles/_cta.scss, plus any pack-specific module overrides registered via TEMPLATE_PAGE_BUILDER_OVERRIDES); (2) any NEW page-builder modules referenced in `newModules` below (e.g. heroStats, personBio, contactInfo) implemented under frontend/src/lib/page-builder/modules/<Name>/ and registered in PageRenderer.svelte's baseModuleMap — these live with the page-builder, not the pack, since they're reusable across packs; (3) this JSON file (frontend/src/templates/<packId>/<packId>.kit.json), fed to backend/src/scripts/install-template-kit.ts to write pages/page_modules/site_config. Workflow: code+SCSS must land in the frontend source tree and a frontend build/redeploy must run BEFORE the installer is invoked against a live DB — otherwise pages will reference classes/modules that don't exist in the deployed bundle. Future v0.2: decide between bundling SCSS as a runtime-loaded asset inside the kit, scaffolding pack files into the source tree from the installer, or restricting kits to base-CSS-only.",
+
+	"meta": {
+		"kitId": "studio",
+		"version": "0.1.0",
+		"name": "Studio",
+		"description": "Editorial portfolio with bold typography and dark hero.",
+		"pageAliasPrefix": "s"
+	},
+
+	"theme": {
+		"displayName": "Studio",
+		"pageAliasPrefix": "s",
+		"colors": {
+			"primary": "#2563eb",
+			"secondary": "#1d4ed8",
+			"accent": "#60a5fa",
+			"background": "#0f172a",
+			"text": "#f1f5f9",
+			"muted": "#94a3b8",
+			"surfaceCard": "#1e293b",
+			"surfaceCardSecondary": "#0f172a",
+			"surfaceCardTertiary": "#1e293b",
+			"textSubtle": "rgba(241,245,249,0.2)",
+			"borderSubtle": "#334155",
+			"lightBackground": "#f8fafc",
+			"lightText": "#0f172a",
+			"lightMuted": "#64748b",
+			"lightSurfaceCard": "#ffffff",
+			"lightSurfaceCardSecondary": "#f8fafc",
+			"lightSurfaceCardTertiary": "#f1f5f9",
+			"lightTextSubtle": "rgba(15,23,42,0.22)",
+			"lightBorderSubtle": "#e2e8f0",
+			"heroStrip": "#020617",
+			"footerStrip": "#020617",
+			"lightHeroStrip": "#0f172a",
+			"lightFooterStrip": "#0f172a"
+		},
+		"fonts": {
+			"heading": "Syne",
+			"body": "Outfit",
+			"links": "Outfit",
+			"lists": "Outfit",
+			"formInputs": "Outfit",
+			"formLabels": "Outfit"
+		},
+
+		"$comment_layoutShellInstances": "Registered under site_config.template.layoutShellInstances by the installer. Page modules of type layoutShell reference these by instanceRef. Modeled after backend/src/template/noir-footer-shell.ts.",
+		"layoutShellInstances": {
+			"studio_header": {
+				"gridRows": 1,
+				"gridColumns": 5,
+				"modules": [
+					{
+						"_id": "mod_studio_header_logo",
+						"type": "logo",
+						"props": { "showSiteTitle": true },
+						"rowOrder": 0, "columnIndex": 0, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_studio_header_menu",
+						"type": "menu",
+						"props": {
+							"orientation": "horizontal",
+							"items": [
+								{ "label": "Home", "href": "/", "type": "link" },
+								{ "label": "Albums", "href": "/albums", "type": "link" },
+								{ "label": "About", "href": "/about", "type": "link" },
+								{ "label": "Contact", "href": "/contact", "type": "link" }
+							]
+						},
+						"rowOrder": 0, "columnIndex": 1, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_studio_header_theme",
+						"type": "themeToggle",
+						"props": { "variant": "icons" },
+						"rowOrder": 0, "columnIndex": 2, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_studio_header_lang",
+						"type": "languageSelector",
+						"props": { "variant": "dropdown" },
+						"rowOrder": 0, "columnIndex": 3, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_studio_header_auth",
+						"type": "authButtons",
+						"props": {},
+						"rowOrder": 0, "columnIndex": 4, "rowSpan": 1, "colSpan": 1
+					}
+				]
+			},
+			"studio_footer": {
+				"gridRows": 2,
+				"gridColumns": 3,
+				"modules": [
+					{
+						"_id": "mod_studio_footer_brand",
+						"type": "richText",
+						"props": {
+							"title": {},
+							"body": {
+								"en": "<div class=\"ft-mark\">YL</div><div class=\"ft-name\">Yair Lahav</div><div class=\"ft-sub\">Photography · OpenShutter</div>",
+								"he": "<div class=\"ft-mark\">יל</div><div class=\"ft-name\">יאיר להב</div><div class=\"ft-sub\">צילום · OpenShutter</div>"
+							},
+							"background": "transparent",
+							"className": "s-footer-brand"
+						},
+						"rowOrder": 0, "columnIndex": 0, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_studio_footer_nav",
+						"type": "menu",
+						"props": {
+							"orientation": "vertical",
+							"items": [
+								{ "label": "Albums", "href": "/albums", "type": "link" },
+								{ "label": "About", "href": "/about", "type": "link" },
+								{ "label": "Contact", "href": "/contact", "type": "link" }
+							],
+							"containerClass": "s-footer-col"
+						},
+						"rowOrder": 0, "columnIndex": 1, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_studio_footer_social",
+						"type": "socialMedia",
+						"props": {
+							"align": "start",
+							"orientation": "vertical",
+							"linkDisplay": "text",
+							"links": [
+								{ "platform": "instagram", "url": "https://www.instagram.com/" },
+								{ "platform": "flickr", "url": "https://www.flickr.com/" }
+							]
+						},
+						"rowOrder": 0, "columnIndex": 2, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_studio_footer_copy",
+						"type": "richText",
+						"props": {
+							"title": {},
+							"body": {
+								"en": "<p>© 2026 Yair Lahav · Powered by OpenShutter</p>",
+								"he": "<p>© 2026 יאיר להב · מופעל על ידי OpenShutter</p>"
+							},
+							"background": "transparent",
+							"className": "s-footer-copy"
+						},
+						"rowOrder": 1, "columnIndex": 0, "rowSpan": 1, "colSpan": 3
+					}
+				]
+			}
+		}
+	},
+
+	"newModules": [
+		{
+			"type": "heroStats",
+			"description": "Inline stats strip under hero copy. Props: items[]{number,label}. Used on Studio Home — '3 Collections / 74 Photographs / 12+ Years shooting'.",
+			"props": {
+				"items": [
+					{ "number": "string", "label": "string" }
+				]
+			}
+		},
+		{
+			"type": "personBio",
+			"description": "Portrait image + name + multi-paragraph bio. Two-column on desktop. Used on About page.",
+			"props": {
+				"name": "string | MultiLangText",
+				"portraitImage": "string (url)",
+				"paragraphs": "Array<string | MultiLangHTML>"
+			}
+		},
+		{
+			"type": "contactInfo",
+			"description": "Branded info card with name + email + social links. Used on Contact page alongside ContactForm.",
+			"props": {
+				"name": "string | MultiLangText",
+				"email": "string",
+				"links": "Array<{ label: string; href: string; icon?: string }>"
+			}
+		}
+	],
+
+	"pages": [
+		{
+			"alias": "s-home",
+			"slug": "s-home",
+			"role": "home",
+			"frontendTemplates": ["studio"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "Home", "he": "בית" },
+			"subtitle": { "en": "Photography portfolio", "he": "תיק עבודות צילום" },
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "studio_header",
+						"presetKey": "studio_header",
+						"className": "s-header",
+						"gridTemplateColumns": "auto 1fr auto auto auto"
+					}
+				},
+				{
+					"type": "hero",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "s-hero",
+						"title": {
+							"en": "Moments worth\nremembering",
+							"he": "רגעים ששווה\nלזכור"
+						},
+						"subtitle": {
+							"en": "photography portfolio",
+							"he": "תיק עבודות צילום"
+						},
+						"description": {
+							"en": "Documenting heritage sites, travel stories, and the quiet rhythm of everyday life across Israel and beyond.",
+							"he": "תיעוד אתרי מורשת, סיפורי מסעות, והקצב השקט של חיי היומיום בישראל ומעבר לה."
+						},
+						"buttonLabel": { "en": "Browse albums →", "he": "עיון באלבומים ←" },
+						"buttonUrl": "/albums",
+						"button2Label": { "en": "About me ↗", "he": "עליי ↗" },
+						"button2Url": "/about",
+						"backgroundImage": "https://picsum.photos/seed/studio-hero/1600/800",
+						"backgroundStyle": "image-dimmed",
+						"layoutVariant": "split-with-thumbs",
+						"mediaSource": "selected",
+						"mediaArrangement": "stack-2",
+						"mediaMaxCount": 2,
+						"mediaImages": [
+							{ "url": "https://picsum.photos/seed/studio-v2/400/300" },
+							{ "url": "https://picsum.photos/seed/studio-v3/400/300" }
+						]
+					}
+				},
+				{
+					"type": "heroStats",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"items": [
+							{ "number": "3", "label": { "en": "Collections", "he": "אוספים" } },
+							{ "number": "74", "label": { "en": "Photographs", "he": "צילומים" } },
+							{ "number": "12+", "label": { "en": "Years shooting", "he": "שנות צילום" } }
+						]
+					}
+				},
+				{
+					"type": "albumsGrid",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"title": { "en": "Albums", "he": "אלבומים" },
+						"description": { "en": "Recent collections and series", "he": "אוספים ויצירות אחרונות" },
+						"albumSource": "root",
+						"limit": 3,
+						"sortBy": "manual",
+						"showCover": true,
+						"coverAspect": "video",
+						"showDescription": true,
+						"showPhotoCount": true,
+						"showFeaturedBadge": false,
+						"albumCardLayout": "stack",
+						"cardFieldOrder": ["cover", "title", "description", "photoCount"]
+					}
+				},
+				{
+					"type": "cta",
+					"zone": "main",
+					"rowOrder": 4,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"title": { "en": "", "he": "" },
+						"description": {
+							"en": "Yair Lahav is a photographer based in Israel, focusing on heritage preservation, travel storytelling, and documentary work.",
+							"he": "יאיר להב הוא צלם המתגורר בישראל, ומתמקד בשימור מורשת, סיפורי מסעות ועבודה תיעודית."
+						},
+						"primaryLabel": { "en": "Read more →", "he": "קרא עוד ←" },
+						"primaryHref": "/about"
+					}
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 5,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "studio_footer",
+						"presetKey": "studio_footer",
+						"className": "s-footer",
+						"gridTemplateColumns": "2fr 1fr 1fr"
+					}
+				}
+			]
+		},
+
+		{
+			"alias": "s-gallery",
+			"slug": "s-gallery",
+			"role": "gallery",
+			"frontendTemplates": ["studio"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "Albums", "he": "אלבומים" },
+			"subtitle": {
+				"en": "Recent collections and series",
+				"he": "אוספים ויצירות אחרונות"
+			},
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "studio_header",
+						"presetKey": "studio_header",
+						"className": "s-header",
+						"gridTemplateColumns": "auto 1fr auto auto auto"
+					}
+				},
+				{
+					"type": "pageTitle",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": { "align": "center", "className": "s-banner" }
+				},
+				{
+					"type": "albumsGrid",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "s-albumsGrid",
+						"title": { "en": "", "he": "" },
+						"description": { "en": "", "he": "" },
+						"albumSource": "root",
+						"sortBy": "manual",
+						"showCover": true,
+						"coverAspect": "video",
+						"showDescription": true,
+						"showPhotoCount": true,
+						"showFeaturedBadge": false,
+						"albumCardLayout": "stack",
+						"cardFieldOrder": ["cover", "title", "description", "photoCount"]
+					}
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "studio_footer",
+						"presetKey": "studio_footer",
+						"className": "s-footer",
+						"gridTemplateColumns": "2fr 1fr 1fr"
+					}
+				}
+			]
+		},
+
+		{
+			"alias": "s-about",
+			"slug": "s-about",
+			"role": "about",
+			"frontendTemplates": ["studio"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "About", "he": "אודות" },
+			"subtitle": {
+				"en": "The photographer behind the lens",
+				"he": "הצלם שמאחורי העדשה"
+			},
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "studio_header",
+						"presetKey": "studio_header",
+						"className": "s-header",
+						"gridTemplateColumns": "auto 1fr auto auto auto"
+					}
+				},
+				{
+					"type": "pageTitle",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": { "align": "center", "className": "s-banner" }
+				},
+				{
+					"type": "personBio",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "s-personBio",
+						"name": "Yair Lahav",
+						"portraitImage": "https://picsum.photos/seed/portrait-yair/600/800",
+						"paragraphs": [
+							{
+								"en": "A photographer based in Israel, focusing on heritage preservation, travel storytelling, and documentary work. Currently participating in the \"Photography Crazy\" group led by Tal Israel — meeting monthly in the field from north to south.",
+								"he": "צלם המתגורר בישראל, ומתמקד בשימור מורשת, סיפורי מסעות ועבודה תיעודית. משתתף כיום בקבוצת \"מטורפים בצילום\" בהובלת טל ישראל — נפגשים חודשית בשטח מצפון לדרום."
+							},
+							{
+								"en": "Workshops with the Israel Heritage Preservation Council, documenting historical buildings and sites with photographer Baruch Gian.",
+								"he": "סדנאות עם המועצה לשימור אתרי מורשת בישראל, תיעוד מבנים ואתרים היסטוריים יחד עם הצלם ברוך גיאן."
+							}
+						]
+					}
+				},
+				{
+					"type": "cta",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"title": { "en": "", "he": "" },
+						"description": { "en": "", "he": "" },
+						"primaryLabel": { "en": "Get in touch →", "he": "צרו קשר ←" },
+						"primaryHref": "/contact"
+					}
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 4,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "studio_footer",
+						"presetKey": "studio_footer",
+						"className": "s-footer",
+						"gridTemplateColumns": "2fr 1fr 1fr"
+					}
+				}
+			]
+		},
+
+		{
+			"alias": "s-contact",
+			"slug": "s-contact",
+			"role": "contact",
+			"frontendTemplates": ["studio"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "Get in touch", "he": "צרו קשר" },
+			"subtitle": {
+				"en": "Questions, collaborations, or just a hello",
+				"he": "שאלות, שיתופי פעולה או פשוט שלום"
+			},
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "studio_header",
+						"presetKey": "studio_header",
+						"className": "s-header",
+						"gridTemplateColumns": "auto 1fr auto auto auto"
+					}
+				},
+				{
+					"type": "pageTitle",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": { "align": "center", "className": "s-banner" }
+				},
+				{
+					"$comment": "Row 2 is split: contactInfo (sidebar) + contactForm. 12-column grid → 4/8 ≈ 260px/1fr in reference.",
+					"type": "contactInfo",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 4,
+					"props": {
+						"className": "s-contactInfo",
+						"name": "Yair Lahav",
+						"email": "hello@yairl.com",
+						"links": [
+							{ "label": "instagram.com/yairl", "href": "https://www.instagram.com/" },
+							{ "label": "flickr.com/yairl", "href": "https://www.flickr.com/" }
+						]
+					}
+				},
+				{
+					"type": "contactForm",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 4,
+					"colSpan": 8,
+					"props": { "className": "s-contactForm" }
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "studio_footer",
+						"presetKey": "studio_footer",
+						"className": "s-footer",
+						"gridTemplateColumns": "2fr 1fr 1fr"
+					}
+				}
+			]
+		}
+	]
+}

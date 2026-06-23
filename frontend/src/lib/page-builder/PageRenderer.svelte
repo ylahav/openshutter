@@ -12,6 +12,9 @@
 	import RootAlbumsListModule from './modules/RootAlbumsListModule.svelte';
 	import AlbumGalleryModule from './modules/AlbumGalleryModule.svelte';
 	import CtaModule from './modules/CtaModule.svelte';
+	import HeroStatsModule from './modules/HeroStatsModule.svelte';
+	import PersonBioModule from './modules/PersonBioModule.svelte';
+	import ContactInfoModule from './modules/ContactInfoModule.svelte';
 	import LogoModule from './modules/LogoModule.svelte';
 	import SiteTitleModule from './modules/SiteTitleModule.svelte';
 	import MenuModule from './modules/MenuModule.svelte';
@@ -58,6 +61,9 @@
 		rootAlbumsList: RootAlbumsListModule,
 		albumView: AlbumGalleryModule,
 		cta: CtaModule,
+		heroStats: HeroStatsModule,
+		personBio: PersonBioModule,
+		contactInfo: ContactInfoModule,
 		logo: LogoModule,
 		siteTitle: SiteTitleModule,
 		menu: MenuModule,

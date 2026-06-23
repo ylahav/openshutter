@@ -1,0 +1,437 @@
+{
+	"$comment": "OpenShutter template kit — Noir. Minimalist black-on-fg pack with DM Sans/DM Mono typography, full-bleed hero, fixed header with mix-blend-mode: difference, two-column footer. Mirrors templates-reference/noir.html. Pack prefix `n-` lets these pages coexist with default unprefixed fallbacks per TEMPLATING.md §4.",
+
+	"$comment_packaging": "DATA ONLY — see studio.kit.json for the full packaging convention (pack SCSS under frontend/src/templates/noir/, new modules under frontend/src/lib/page-builder/modules/, JSON fed to backend/src/scripts/install-template-kit.ts). Noir's SCSS already exists; this kit just hooks the DB layer to it.",
+
+	"meta": {
+		"kitId": "noir",
+		"version": "0.1.0",
+		"name": "Noir",
+		"description": "Minimalist black-and-white editorial pack with full-bleed hero.",
+		"pageAliasPrefix": "n"
+	},
+
+	"theme": {
+		"displayName": "Noir",
+		"pageAliasPrefix": "n",
+
+		"$comment_layoutShellInstances": "Registered under site_config.template.layoutShellInstances. n-* classNames match the conventions in frontend/src/templates/noir/styles/_header.scss and _footer.scss. Footer mirrors backend/src/template/noir-footer-shell.ts so the kit and pre-seed agree.",
+		"layoutShellInstances": {
+			"noir_header": {
+				"gridRows": 1,
+				"gridColumns": 6,
+				"modules": [
+					{
+						"_id": "mod_noir_header_logo",
+						"type": "logo",
+						"props": { "showSiteTitle": false, "className": "n-logo" },
+						"rowOrder": 0, "columnIndex": 0, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_noir_header_title",
+						"type": "siteTitle",
+						"props": { "className": "n-site-title" },
+						"rowOrder": 0, "columnIndex": 1, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_noir_header_menu",
+						"type": "menu",
+						"props": {
+							"orientation": "horizontal",
+							"className": "n-menu",
+							"items": [
+								{ "label": "Home", "href": "/", "type": "link" },
+								{ "label": "Gallery", "href": "/albums", "type": "link" },
+								{ "label": "About", "href": "/about", "type": "link" },
+								{ "label": "Contact", "href": "/contact", "type": "link" }
+							]
+						},
+						"rowOrder": 0, "columnIndex": 2, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_noir_header_theme",
+						"type": "themeToggle",
+						"props": { "variant": "text", "className": "n-toggle-mode" },
+						"rowOrder": 0, "columnIndex": 3, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_noir_header_lang",
+						"type": "languageSelector",
+						"props": { "variant": "dropdown", "className": "n-langs" },
+						"rowOrder": 0, "columnIndex": 4, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"_id": "mod_noir_header_auth",
+						"type": "authButtons",
+						"props": { "className": "n-signin" },
+						"rowOrder": 0, "columnIndex": 5, "rowSpan": 1, "colSpan": 1
+					}
+				]
+			},
+			"noir_footer": {
+				"gridRows": 1,
+				"gridColumns": 2,
+				"modules": [
+					{
+						"_id": "mod_noir_footer_copy",
+						"type": "richText",
+						"props": {
+							"title": {},
+							"body": {
+								"en": "<p>© Yair Lahav · OpenShutter</p>",
+								"he": "<p>© יאיר להב · OpenShutter</p>"
+							},
+							"background": "transparent",
+							"className": "n-copyright"
+						},
+						"rowOrder": 0, "columnIndex": 0, "rowSpan": 1, "colSpan": 1
+					},
+					{
+						"$comment": "No `links` prop here on purpose — the SocialMedia module falls back to siteConfig.contact.socialMedia when no explicit links are provided (see SocialMedia/Layout.svelte resolvedLinks). Lets each site override per its own profile URLs in the admin UI without touching the kit.",
+						"_id": "mod_noir_footer_social",
+						"type": "socialMedia",
+						"props": {
+							"align": "end",
+							"orientation": "horizontal",
+							"linkDisplay": "text"
+						},
+						"rowOrder": 0, "columnIndex": 1, "rowSpan": 1, "colSpan": 1
+					}
+				]
+			}
+		},
+
+		"colors": {
+			"primary": "#f5f5f3",
+			"secondary": "#5e5e5b",
+			"accent": "#f5f5f3",
+			"background": "#080808",
+			"text": "#f5f5f3",
+			"muted": "#5e5e5b",
+			"surfaceCard": "#141414",
+			"surfaceCardSecondary": "#1c1c1c",
+			"surfaceCardTertiary": "#232323",
+			"textSubtle": "#2a2a28",
+			"borderSubtle": "#141414",
+			"lightBackground": "#f5f5f3",
+			"lightText": "#080808",
+			"lightMuted": "rgba(8,8,8,0.45)",
+			"lightSurfaceCard": "#e8e8e5",
+			"lightSurfaceCardSecondary": "#ddddd9",
+			"lightSurfaceCardTertiary": "#d2d2ce",
+			"lightTextSubtle": "rgba(8,8,8,0.22)",
+			"lightBorderSubtle": "rgba(0,0,0,0.08)"
+		},
+		"fonts": {
+			"heading": "DM Sans",
+			"body": "DM Sans",
+			"links": "DM Mono",
+			"lists": "DM Mono",
+			"formInputs": "DM Mono",
+			"formLabels": "DM Mono"
+		}
+	},
+
+	"newModules": [],
+
+	"pages": [
+		{
+			"alias": "n-home",
+			"slug": "n-home",
+			"role": "home",
+			"frontendTemplates": ["noir"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "Home", "he": "בית" },
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "noir_header",
+						"presetKey": "noir_header",
+						"className": "n-header",
+						"gridTemplateColumns": "auto 1fr auto auto auto auto"
+					}
+				},
+				{
+					"type": "hero",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "n-hero",
+						"title": { "en": "photography", "he": "צילום" },
+						"subtitle": { "en": "trips · heritage · street", "he": "מסעות · מורשת · רחוב" },
+						"backgroundImage": "https://picsum.photos/seed/noir-hero/1600/900",
+						"backgroundStyle": "image",
+						"layoutVariant": "fullbleed"
+					}
+				},
+				{
+					"type": "albumsGrid",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "n-albums",
+						"title": { "en": "albums", "he": "אלבומים" },
+						"description": { "en": "", "he": "" },
+						"albumSource": "root",
+						"limit": 3,
+						"sortBy": "manual",
+						"showCover": true,
+						"coverAspect": "square",
+						"showDescription": true,
+						"showPhotoCount": true,
+						"showFeaturedBadge": false
+					}
+				},
+				{
+					"type": "cta",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "n-about-strip",
+						"title": { "en": "", "he": "" },
+						"description": {
+							"en": "A photographer based in Israel — documenting heritage sites, travel moments, and the quiet rhythm of everyday life through an unobtrusive lens.",
+							"he": "צלם המתגורר בישראל — מתעד אתרי מורשת, רגעי מסעות והקצב השקט של חיי היומיום מבעד לעדשה לא מתערבת."
+						},
+						"primaryLabel": { "en": "about the photographer", "he": "על הצלם" },
+						"primaryHref": "/about"
+					}
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 4,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "noir_footer",
+						"presetKey": "noir_footer",
+						"className": "n-footer",
+						"gridTemplateColumns": "1fr auto"
+					}
+				}
+			]
+		},
+
+		{
+			"alias": "n-gallery",
+			"slug": "n-gallery",
+			"role": "gallery",
+			"frontendTemplates": ["noir"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "Albums", "he": "אלבומים" },
+			"subtitle": { "en": "Collections", "he": "אוספים" },
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "noir_header",
+						"presetKey": "noir_header",
+						"className": "n-header",
+						"gridTemplateColumns": "auto 1fr auto auto auto auto"
+					}
+				},
+				{
+					"type": "pageTitle",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": { "align": "left", "className": "n-page-title" }
+				},
+				{
+					"type": "albumsGrid",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "n-albums",
+						"title": { "en": "", "he": "" },
+						"description": { "en": "", "he": "" },
+						"albumSource": "root",
+						"sortBy": "manual",
+						"showCover": true,
+						"coverAspect": "square",
+						"showDescription": true,
+						"showPhotoCount": true,
+						"showFeaturedBadge": false
+					}
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "noir_footer",
+						"presetKey": "noir_footer",
+						"className": "n-footer",
+						"gridTemplateColumns": "1fr auto"
+					}
+				}
+			]
+		},
+
+		{
+			"alias": "n-about",
+			"slug": "n-about",
+			"role": "about",
+			"frontendTemplates": ["noir"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "About", "he": "אודות" },
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "noir_header",
+						"presetKey": "noir_header",
+						"className": "n-header",
+						"gridTemplateColumns": "auto 1fr auto auto auto auto"
+					}
+				},
+				{
+					"type": "pageTitle",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": { "align": "left", "className": "n-page-title" }
+				},
+				{
+					"type": "personBio",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"className": "n-personBio",
+						"name": "Yair Lahav",
+						"portraitImage": "https://picsum.photos/seed/portrait-yair/600/800",
+						"paragraphs": [
+							{
+								"en": "A photographer based in Israel, focusing on heritage preservation, travel storytelling, and documentary work. Currently participating in the \"Photography Crazy\" group led by Tal Israel — meeting monthly in the field from north to south.",
+								"he": "צלם המתגורר בישראל, ומתמקד בשימור מורשת, סיפורי מסעות ועבודה תיעודית. משתתף כיום בקבוצת \"מטורפים בצילום\" בהובלת טל ישראל — נפגשים חודשית בשטח מצפון לדרום."
+							},
+							{
+								"en": "Workshops with the Israel Heritage Preservation Council, documenting historical buildings and sites with photographer Baruch Gian.",
+								"he": "סדנאות עם המועצה לשימור אתרי מורשת בישראל, תיעוד מבנים ואתרים היסטוריים יחד עם הצלם ברוך גיאן."
+							}
+						]
+					}
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "noir_footer",
+						"presetKey": "noir_footer",
+						"className": "n-footer",
+						"gridTemplateColumns": "1fr auto"
+					}
+				}
+			]
+		},
+
+		{
+			"alias": "n-contact",
+			"slug": "n-contact",
+			"role": "contact",
+			"frontendTemplates": ["noir"],
+			"category": "system",
+			"isPublished": true,
+			"title": { "en": "Contact", "he": "צרו קשר" },
+			"layout": { "zones": ["main"] },
+			"modules": [
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 0,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "noir_header",
+						"presetKey": "noir_header",
+						"className": "n-header",
+						"gridTemplateColumns": "auto 1fr auto auto auto auto"
+					}
+				},
+				{
+					"type": "pageTitle",
+					"zone": "main",
+					"rowOrder": 1,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": { "align": "left", "className": "n-page-title" }
+				},
+				{
+					"$comment": "Row 2 splits 4/8: contactInfo (sidebar) + contactForm.",
+					"type": "contactInfo",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 0,
+					"colSpan": 4,
+					"props": {
+						"className": "n-contactInfo",
+						"name": "Yair Lahav",
+						"email": "hello@yairl.com",
+						"links": [
+							{ "label": "instagram.com/yairl", "href": "https://www.instagram.com/" },
+							{ "label": "flickr.com/yairl", "href": "https://www.flickr.com/" }
+						]
+					}
+				},
+				{
+					"type": "contactForm",
+					"zone": "main",
+					"rowOrder": 2,
+					"columnIndex": 4,
+					"colSpan": 8,
+					"props": { "className": "n-contactForm" }
+				},
+				{
+					"type": "layoutShell",
+					"zone": "main",
+					"rowOrder": 3,
+					"columnIndex": 0,
+					"colSpan": 12,
+					"props": {
+						"instanceRef": "noir_footer",
+						"presetKey": "noir_footer",
+						"className": "n-footer",
+						"gridTemplateColumns": "1fr auto"
+					}
+				}
+			]
+		}
+	]
+}
