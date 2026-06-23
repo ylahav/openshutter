@@ -214,7 +214,6 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 				adminToast.error({ title: result.error });
 				return;
 			}
-			previewTemplate = null;
 			previewThemeId = null;
 			applyThemeId = null;
 			adminToast.success({ title: $t('admin.themeApplied').replace('{name}', result.themeName) });
