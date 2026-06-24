@@ -186,7 +186,7 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 		}
 	}
 
-	async function duplicateTheme(themeId: string, name?: string) {
+	async function duplicateTheme(themeId: string, name: string | undefined = undefined) {
 		try {
 			const response = await fetch(`/api/admin/themes/${themeId}/duplicate`, {
 				method: 'POST',

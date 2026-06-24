@@ -131,7 +131,7 @@
 	function extractStorageTreeError(
 		j: Record<string, unknown> | null | undefined,
 		fallback: string,
-		status?: number,
+		status: number | undefined = undefined,
 	): string {
 		const parts: string[] = [];
 		const msg = nestJsonMessage(j);
@@ -742,7 +742,7 @@
 		};
 	}
 
-	async function handleSubmit(e: Event, _providerId?: string) {
+	async function handleSubmit(e: Event, _providerId: string | undefined = undefined) {
 		e.preventDefault();
 		const providerId = _providerId || activeTab;
 		if (!profile) return;

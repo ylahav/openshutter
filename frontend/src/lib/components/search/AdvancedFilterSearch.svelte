@@ -238,7 +238,7 @@
 		query = newQuery;
 	}
 
-	function buildSearchUrl(nextFilters: AdvancedFilters, nextQuery?: string) {
+	function buildSearchUrl(nextFilters: AdvancedFilters, nextQuery: string | undefined = undefined) {
 		const params = new URLSearchParams();
 		const q = nextQuery !== undefined ? nextQuery : query;
 		if (q.trim()) params.set('q', q.trim());

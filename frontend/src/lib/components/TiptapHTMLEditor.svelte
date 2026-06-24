@@ -135,7 +135,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 		editorElement.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
 	}
 
-	function execCommand(command: string, value?: string) {
+	function execCommand(command: string, value: string | undefined = undefined) {
 		if (editor && !useFallback) {
 			switch (command) {
 				case 'bold':

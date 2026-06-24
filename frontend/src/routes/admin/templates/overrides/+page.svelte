@@ -727,7 +727,7 @@
 		);
 	}
 
-	function updateGridForPageType(pt: string, gridRows?: number, gridColumns?: number) {
+	function updateGridForPageType(pt: string, gridRows: number | undefined = undefined, gridColumns: number | undefined = undefined) {
 		const bp = editingBreakpoint;
 		const current = getGridForPageType(pt, bp);
 		const next = {
@@ -1292,7 +1292,7 @@ let draggedAlbumHeaderField: string | null = null;
 		}
 	}
 
-	function handleAssignToSelected(moduleType?: string) {
+	function handleAssignToSelected(moduleType: string | undefined = undefined) {
 		const type = moduleType || assignedModuleType;
 		logger.debug('[Overrides] handleAssignToSelected called:', { type, moduleType, assignedModuleType, selectionBounds, selectedCount });
 		if (!type) {
@@ -1355,7 +1355,7 @@ let draggedAlbumHeaderField: string | null = null;
 		return defaultProps;
 	}
 
-	function addModuleToPage(pageType: string, moduleType: string, rowOrder?: number, columnIndex?: number, rowSpan?: number, colSpan?: number) {
+	function addModuleToPage(pageType: string, moduleType: string, rowOrder: number | undefined = undefined, columnIndex: number | undefined = undefined, rowSpan: number | undefined = undefined, colSpan: number | undefined = undefined) {
 		const bp = editingBreakpoint;
 		const grid = getGridForPageType(pageType, bp);
 		const arr = [...(getModulesForPageType(pageType, bp) ?? [])];
@@ -1714,8 +1714,8 @@ let draggedAlbumHeaderField: string | null = null;
 		moduleType: string,
 		row: number,
 		col: number,
-		rowSpan?: number,
-		colSpan?: number
+		rowSpan: number | undefined = undefined,
+		colSpan: number | undefined = undefined
 	) {
 		const k = presetKey.trim();
 		if (!k || moduleType === 'layoutShell') return;

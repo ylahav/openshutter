@@ -622,7 +622,7 @@ let layoutShellInstances: Record<
 		crudOps.error.set('');
 	}
 
-	function openDuplicateDialog(page: Page, options?: { initialTargetPacks?: string[] }) {
+	function openDuplicateDialog(page: Page, options: { initialTargetPacks?: string[] } | undefined = undefined) {
 		dialogs.closeAll();
 		showDuplicateDialog = true;
 		pageToDuplicate = page;

@@ -68,7 +68,7 @@
 		return `${Math.round(confidence * 100)}%`;
 	}
 
-	function getCategoryColor(category?: string): string {
+	function getCategoryColor(category: string | undefined = undefined): string {
 		const colors: Record<string, string> = {
 			object: 'bg-blue-100 text-blue-800',
 			location: 'bg-green-100 text-green-800',

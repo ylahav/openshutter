@@ -146,7 +146,7 @@
 		loadSession();
 	});
 
-	async function handleSubmit(e?: Event) {
+	async function handleSubmit(e: Event | undefined = undefined) {
 		if (e) {
 			e.preventDefault();
 			e.stopPropagation();

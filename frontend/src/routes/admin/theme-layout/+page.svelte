@@ -166,7 +166,7 @@ $effect(() => { if (data.siteConfig && data.siteConfig !== hydratedSiteConfig) {
 
 	function buildTemplatePayload(
 		visibility: TemplateComponentVisibility,
-		opts?: { pageAliasPrefixesForSave?: Record<string, string> }
+		opts: { pageAliasPrefixesForSave?: Record<string, string> } | undefined = undefined
 	) {
 		const prev = templateSectionSnapshot || {};
 		const fe = prev.frontendTemplate || prev.activeTemplate || activeTemplate;

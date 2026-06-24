@@ -87,7 +87,7 @@
 		}
 	}
 
-	function openAddPerson(faceIndex?: number) {
+	function openAddPerson(faceIndex: number | undefined = undefined) {
 		addPersonFaceIndex = faceIndex ?? null;
 		newPersonFirstName = '';
 		newPersonLastName = '';
@@ -196,7 +196,7 @@
 		}
 	}
 
-	async function handleAssignFace(faceIndex: number, personId: string | null, selectedName?: string) {
+	async function handleAssignFace(faceIndex: number, personId: string | null, selectedName: string | undefined = undefined) {
 		// Store selected name for immediate display (so we show it even before photo reload)
 		if (personId && selectedName !== undefined) {
 			selectedNameByFaceIndex = { ...selectedNameByFaceIndex, [faceIndex]: { personId: String(personId).trim(), name: selectedName } };

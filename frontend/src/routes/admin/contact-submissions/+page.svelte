@@ -57,14 +57,14 @@
 		}
 	}
 
-	function formatDate(v?: string) {
+	function formatDate(v: string | undefined = undefined) {
 		if (!v) return '';
 		const d = new Date(v);
 		if (Number.isNaN(d.getTime())) return v;
 		return d.toLocaleString();
 	}
 
-	function truncateMessage(v?: string, max = 180) {
+	function truncateMessage(v: string | undefined = undefined, max = 180) {
 		const text = String(v || '');
 		if (text.length <= max) return text;
 		return `${text.slice(0, max)}...`;

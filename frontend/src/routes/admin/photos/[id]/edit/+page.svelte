@@ -1041,7 +1041,7 @@ $effect(() => {
 	}
 
 	/** Label for face rectangle on image: assigned person name or "Face X". */
-	function getFaceLabel(faceIndex: number, matchedPersonId?: string): string {
+	function getFaceLabel(faceIndex: number, matchedPersonId: string | undefined = undefined): string {
 		if (!matchedPersonId) return `Face ${faceIndex + 1}`;
 		const name = getPersonNameById(matchedPersonId);
 		return name && name !== 'Unknown' ? name : `Face ${faceIndex + 1}`;

@@ -337,7 +337,7 @@ $effect(() => {
 		return album.name || album.alias;
 	}
 
-	function toggleStorageAlbum(albumId: string, event?: Event) {
+	function toggleStorageAlbum(albumId: string, event: Event | undefined = undefined) {
 		if (event) {
 			event.stopPropagation();
 		}
@@ -351,7 +351,7 @@ $effect(() => {
 		updateStorageSelectAllState();
 	}
 
-	function toggleStorageSelectAll(event?: Event) {
+	function toggleStorageSelectAll(event: Event | undefined = undefined) {
 		if (event) {
 			event.stopPropagation();
 		}
@@ -846,7 +846,7 @@ $effect(() => { if (activeTab === 'storage' && storageAlbums.length === 0) {
 
 	function applyAlbumScanReport(
 		report: ReturnType<typeof normalizeAlbumScanReport>,
-		opts?: { fromCache?: boolean },
+		opts: { fromCache?: boolean } | undefined = undefined,
 	) {
 		restoreAlbumReport = report;
 		restoreScanFromCache = opts?.fromCache === true;
@@ -855,7 +855,7 @@ $effect(() => { if (activeTab === 'storage' && storageAlbums.length === 0) {
 
 	function applyPhotoScanReport(
 		report: NonNullable<typeof restorePhotoReport>,
-		opts?: { fromCache?: boolean },
+		opts: { fromCache?: boolean } | undefined = undefined,
 	) {
 		restorePhotoReport = report;
 		restorePhotoScanFromCache = opts?.fromCache === true;
@@ -926,7 +926,7 @@ $effect(() => { if (activeTab === 'storage' && storageAlbums.length === 0) {
 		throw new Error('Scan timed out. Try again or use a narrower root prefix.');
 	}
 
-	async function restoreScan(options?: { openAlbumsPreview?: boolean; forceRefresh?: boolean }) {
+	async function restoreScan(options: { openAlbumsPreview?: boolean; forceRefresh?: boolean } | undefined = undefined) {
 		const openAlbumPreview = options?.openAlbumsPreview !== false;
 		restoreLoading = true;
 		restoreExecuteResult = null;
