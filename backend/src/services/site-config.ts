@@ -206,6 +206,8 @@ export class SiteConfigService {
         'pageAliasPrefixes',
         'headerModules',
         'footerModules',
+        'headerModulesByPack',
+        'footerModulesByPack',
       ] as const
       for (const k of replaceWhole) {
         if (Object.prototype.hasOwnProperty.call(t, k)) {

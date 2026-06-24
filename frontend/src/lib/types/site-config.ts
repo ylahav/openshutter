@@ -104,6 +104,15 @@ export interface SiteConfig {
     /** Site-wide chrome rendered by `PageRenderer` below pages that set `showFooter: true`. */
     footerModules?: PageModuleData[]
     /**
+     * Per-pack header override. When the active pack key is present (even with `[]`), it wins over
+     * `headerModules`. `[]` is a deliberate "no chrome for this pack" — distinct from "inherit default".
+     */
+    headerModulesByPack?: Partial<Record<'noir' | 'studio' | 'atelier', PageModuleData[]>>
+    /**
+     * Per-pack footer override. Same cascade rules as `headerModulesByPack`.
+     */
+    footerModulesByPack?: Partial<Record<'noir' | 'studio' | 'atelier', PageModuleData[]>>
+    /**
      * Per built-in pack: CMS page alias / page-builder scoped class prefix (lowercase a–z / 0–9, 1–12 chars).
      * Omitted pack ids use each template pack’s built-in default.
      */

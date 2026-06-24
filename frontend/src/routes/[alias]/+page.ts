@@ -7,6 +7,7 @@ import {
 	loginRoleFallbackRequests,
 	resolveCmsPublishedPage
 } from '$lib/utils/resolve-cms-page-load';
+import { resolveTemplateChrome } from '$lib/page-builder/resolve-template-chrome';
 
 /**
  * Single-segment public URLs: `/[alias]` (e.g. `/login`, `/about`).
@@ -73,14 +74,8 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 
 		const packId = packHint || 'atelier';
 
-		const templateConfig = (siteConfig as { template?: { headerModules?: unknown; footerModules?: unknown } } | null)
-			?.template;
-		const siteHeaderModules = Array.isArray(templateConfig?.headerModules)
-			? (templateConfig.headerModules as unknown[])
-			: [];
-		const siteFooterModules = Array.isArray(templateConfig?.footerModules)
-			? (templateConfig.footerModules as unknown[])
-			: [];
+		const { headerModules: siteHeaderModules, footerModules: siteFooterModules } =
+			resolveTemplateChrome(siteConfig, packId);
 
 		const resolvedPage = (resolved?.page ?? null) as { showHeader?: unknown; showFooter?: unknown } | null;
 		const wantsHeader = resolvedPage?.showHeader === true;
