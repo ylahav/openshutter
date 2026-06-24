@@ -294,6 +294,9 @@ const defaultPublicThemeLabel = $derived(liveThemeId && themes.length > 0
 					>
 						{exportingKit ? 'Exporting…' : `Export ${frontendTemplate} as kit JSON`}
 					</button>
+					<a href="/admin/templates/header-footer" class="{adminBtnSecondary} text-sm shrink-0 text-center no-underline">
+						{$t('admin.headerFooterPageTitle')}
+					</a>
 					<a href="/admin/templates/overrides" class="{adminBtnPrimarySm} {adminRingPrimary} shrink-0 text-center no-underline">
 						{$t('admin.themeBuilder')}
 					</a>

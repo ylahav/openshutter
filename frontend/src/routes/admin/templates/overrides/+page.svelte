@@ -14,6 +14,10 @@
 	} from '$lib/admin/admin-cerberus';
 	import ThemeBuilderPreview from '$lib/components/ThemeBuilderPreview.svelte';
 	import { PAGE_MODULE_TYPES } from '$lib/page-builder/module-types';
+	import {
+		HEADER_MODULE_OPTIONS,
+		FOOTER_MODULE_OPTIONS
+	} from '$lib/page-builder/header-footer-module-options';
 	import ModuleCellPlacementControls from '$lib/page-builder/ModuleCellPlacementControls.svelte';
 	import { GOOGLE_FONTS, GOOGLE_FONT_NAMES } from '$lib/constants/google-fonts';
 	import {
@@ -535,24 +539,8 @@
 			'layoutShell'
 		].includes(m.type)
 	));
-	const HEADER_MODULES = sortModuleOptions(PAGE_MODULE_TYPES.filter((m) =>
-		[
-			'logo',
-			'siteTitle',
-			'menu',
-			'languageSelector',
-			'themeToggle',
-			'themeSelect',
-			'userGreeting',
-			'authButtons',
-			'socialMedia',
-			'divider',
-			'layoutShell'
-		].includes(m.type)
-	));
-	const FOOTER_MODULES = sortModuleOptions(PAGE_MODULE_TYPES.filter((m) =>
-		['richText', 'divider', 'cta', 'socialMedia', 'themeSelect', 'layoutShell'].includes(m.type)
-	));
+	const HEADER_MODULES = HEADER_MODULE_OPTIONS;
+	const FOOTER_MODULES = FOOTER_MODULE_OPTIONS;
 
 	const LAYOUT_SHELL_INNER_MODULE_TYPES = sortModuleOptions(
 		PAGE_MODULE_TYPES.filter((m) => m.type !== 'layoutShell')
