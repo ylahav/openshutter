@@ -331,6 +331,8 @@
 		category: 'site' as 'system' | 'site',
 		isPublished: false,
 		hideLoginTitle: false,
+		showHeader: false,
+		showFooter: false,
 		layoutZones: 'main',
 		gridRows: 1,
 		gridColumns: 1,
@@ -501,6 +503,8 @@ let layoutShellInstances: Record<
 			category: 'site',
 			isPublished: false,
 			hideLoginTitle: false,
+			showHeader: false,
+			showFooter: false,
 			layoutZones: 'main',
 			gridRows: 1,
 			gridColumns: 1,
@@ -590,6 +594,8 @@ let layoutShellInstances: Record<
 			category: page.category || 'site',
 			isPublished: page.isPublished || false,
 			hideLoginTitle: (page as Page).hideLoginTitle === true,
+			showHeader: (page as Page).showHeader === true,
+			showFooter: (page as Page).showFooter === true,
 			layoutZones: (layout.zones && layout.zones.length > 0)
 				? layout.zones.join(', ')
 				: 'main',
@@ -2522,6 +2528,25 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</div>
 				{/if}
 
+				<div class="grid grid-cols-2 gap-4">
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input
+							type="checkbox"
+							class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+							bind:checked={formData.showHeader}
+						/>
+						<span class="text-sm font-medium text-(--color-surface-800-200)">Show template header</span>
+					</label>
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input
+							type="checkbox"
+							class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+							bind:checked={formData.showFooter}
+						/>
+						<span class="text-sm font-medium text-(--color-surface-800-200)">Show template footer</span>
+					</label>
+				</div>
+
 				<div>
 					<label for="create-leading-image" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Leading Image URL
@@ -3553,6 +3578,25 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						</p>
 					</div>
 				{/if}
+
+				<div class="grid grid-cols-2 gap-4">
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input
+							type="checkbox"
+							class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+							bind:checked={formData.showHeader}
+						/>
+						<span class="text-sm font-medium text-(--color-surface-800-200)">Show template header</span>
+					</label>
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input
+							type="checkbox"
+							class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+							bind:checked={formData.showFooter}
+						/>
+						<span class="text-sm font-medium text-(--color-surface-800-200)">Show template footer</span>
+					</label>
+				</div>
 
 				<div>
 					<label for="edit-leading-image" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">

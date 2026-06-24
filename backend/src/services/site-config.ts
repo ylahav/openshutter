@@ -204,6 +204,8 @@ export class SiteConfigService {
         'componentVisibility',
         'headerConfig',
         'pageAliasPrefixes',
+        'headerModules',
+        'footerModules',
       ] as const
       for (const k of replaceWhole) {
         if (Object.prototype.hasOwnProperty.call(t, k)) {

@@ -19,6 +19,10 @@ export interface PageData {
 	isPublished?: boolean;
 	/** Login role page: hide the login form main heading. */
 	hideLoginTitle?: boolean;
+	/** Opt-in: render `site_config.template.headerModules` above this page. */
+	showHeader?: boolean;
+	/** Opt-in: render `site_config.template.footerModules` below this page. */
+	showFooter?: boolean;
 }
 
 export interface PageModuleData {

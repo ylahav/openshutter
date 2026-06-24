@@ -67,6 +67,10 @@ export interface SiteConfig {
     layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: any[] }>
     /** Shared menu instances (for MenuModule `props.instanceRef`). */
     menuInstances?: Record<string, { items?: any[]; [key: string]: any }>
+    /** Site-wide chrome rendered by `PageRenderer` above pages that opt in via `page.showHeader`. */
+    headerModules?: any[]
+    /** Site-wide chrome rendered by `PageRenderer` below pages that opt in via `page.showFooter`. */
+    footerModules?: any[]
     /**
      * Per built-in pack: CMS page alias / page-builder scoped class prefix (lowercase alphanumeric, 1–12 chars).
      * Keys: `noir` | `studio` | `atelier`. Omitted packs use each template's built-in default.

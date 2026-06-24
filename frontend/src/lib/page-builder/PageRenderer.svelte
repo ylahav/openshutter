@@ -41,11 +41,15 @@
 	let {
 		page = null,
 		modules = [],
+		headerModules = [],
+		footerModules = [],
 		compact = false,
 		layoutPresetsPreview = undefined
 	}: {
 		page?: PageData | null;
 		modules?: PageModuleData[];
+		headerModules?: PageModuleData[];
+		footerModules?: PageModuleData[];
 		compact?: boolean;
 		layoutPresetsPreview?: Record<string, unknown> | null;
 	} = $props();
@@ -131,29 +135,53 @@
 		}))
 	);
 
+	const normalizedHeaderModules = $derived(
+		headerModules.map((m) => ({
+			...m,
+			type: normalizeModuleType((m as { type?: unknown }).type)
+		}))
+	);
+
+	const normalizedFooterModules = $derived(
+		footerModules.map((m) => ({
+			...m,
+			type: normalizeModuleType((m as { type?: unknown }).type)
+		}))
+	);
+
+	function inferGridLayout(list: PageModuleData[]): { gridRows: number; gridColumns: number } {
+		const gridColumns = Math.max(
+			1,
+			...list
+				.filter((m) => m.columnIndex !== undefined)
+				.map((m) => (m.columnIndex ?? 0) + (m.colSpan ?? 1))
+		);
+		const gridRows = Math.max(
+			1,
+			...list
+				.filter((m) => m.rowOrder !== undefined)
+				.map((m) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1))
+		);
+		return { gridRows, gridColumns };
+	}
+
 	const gridCols = $derived(
 		page?.layout && typeof (page.layout as { gridColumns?: unknown }).gridColumns === 'number'
 			? (page.layout as { gridColumns: number }).gridColumns
-			: Math.max(
-					1,
-					...modules
-						.filter((m) => m.columnIndex !== undefined)
-						.map((m) => (m.columnIndex ?? 0) + (m.colSpan ?? 1))
-				)
+			: inferGridLayout(modules).gridColumns
 	);
 
 	const gridRows = $derived(
 		page?.layout && typeof (page.layout as { gridRows?: unknown }).gridRows === 'number'
 			? (page.layout as { gridRows: number }).gridRows
-			: Math.max(
-					1,
-					...modules
-						.filter((m) => m.rowOrder !== undefined)
-						.map((m) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1))
-				)
+			: inferGridLayout(modules).gridRows
 	);
 
 	const gridLayout = $derived({ gridRows, gridColumns: gridCols });
+	const headerLayout = $derived(inferGridLayout(headerModules));
+	const footerLayout = $derived(inferGridLayout(footerModules));
+	const hasHeader = $derived(headerModules.length > 0);
+	const hasFooter = $derived(footerModules.length > 0);
 	const pageKey = $derived(String(page?._id ?? '').trim().toLowerCase());
 	const pageScopeClass = $derived(pageKey ? `pb-page pb-page-${pageKey}` : 'pb-page');
 </script>
@@ -161,6 +189,40 @@
 {#if !page}
 	<div class="min-h-screen flex items-center justify-center text-(--tp-fg-muted)">
 		Page not found.
+	</div>
+{:else if hasHeader || hasFooter}
+	<div
+		class="{pageScopeClass} {compact ? 'w-full' : ''} {compact ? '' : 'bg-(--tp-canvas) text-(--tp-fg)'}"
+		data-page-key={pageKey || undefined}
+	>
+		{#if hasHeader}
+			<div class="pb-page-header">
+				<PageBuilderGrid
+					modules={normalizedHeaderModules}
+					layout={headerLayout}
+					{compact}
+					{pageContext}
+				/>
+			</div>
+		{/if}
+		<div class={compact ? 'w-full' : 'min-h-screen'}>
+			<PageBuilderGrid
+				modules={normalizedModules}
+				layout={gridLayout}
+				{compact}
+				{pageContext}
+			/>
+		</div>
+		{#if hasFooter}
+			<div class="pb-page-footer">
+				<PageBuilderGrid
+					modules={normalizedFooterModules}
+					layout={footerLayout}
+					{compact}
+					{pageContext}
+				/>
+			</div>
+		{/if}
 	</div>
 {:else}
 	<div

@@ -23,6 +23,10 @@ export interface Page {
 	isPublished?: boolean;
 	/** Reserved **login** role page: when true, the login form heading is not shown (title still stored). */
 	hideLoginTitle?: boolean;
+	/** Opt-in: render `site_config.template.headerModules` above this page. */
+	showHeader?: boolean;
+	/** Opt-in: render `site_config.template.footerModules` below this page. */
+	showFooter?: boolean;
 	createdAt?: string;
 	updatedAt?: string;
 }

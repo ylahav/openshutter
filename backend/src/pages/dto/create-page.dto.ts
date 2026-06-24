@@ -87,7 +87,17 @@ export class CreatePageDto {
 	@IsBoolean()
 	@IsOptional()
 	hideLoginTitle?: boolean;
-	
+
+	/** Opt-in: render `site_config.template.headerModules` above this page. Defaults false. */
+	@IsBoolean()
+	@IsOptional()
+	showHeader?: boolean;
+
+	/** Opt-in: render `site_config.template.footerModules` below this page. Defaults false. */
+	@IsBoolean()
+	@IsOptional()
+	showFooter?: boolean;
+
 	@IsOptional()
 	layout?: PageLayoutDto;
 }

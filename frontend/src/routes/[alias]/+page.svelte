@@ -12,6 +12,8 @@
 	let { data }: { data: {
 		page: PageData | null;
 		modules: PageModuleData[];
+		headerModules?: PageModuleData[];
+		footerModules?: PageModuleData[];
 		urlAlias: string;
 		useLoginShell: boolean;
 		cmsSlugPrefix: string;
@@ -20,6 +22,8 @@
 
 const pageData = $derived(data.page);
 	const modules = $derived(data.modules || []);
+	const headerModules = $derived(data.headerModules || []);
+	const footerModules = $derived(data.footerModules || []);
 const hasModules = $derived(modules.length > 0);
 	const urlAliasLower = $derived((data.urlAlias || '').toLowerCase());
 	const pageForCms = $derived((pageData ?? undefined) as PageData | undefined);
@@ -49,7 +53,12 @@ const hasModules = $derived(modules.length > 0);
 	/>
 {:else}
 	{#if hasModules && pageForCms}
-		<PageRenderer page={pageForCms} modules={modules} />
+		<PageRenderer
+			page={pageForCms}
+			modules={modules}
+			headerModules={headerModules}
+			footerModules={footerModules}
+		/>
 	{:else if urlAliasLower === 'about'}
 		<AboutTemplateSwitcher page={pageForCms ?? null} />
 	{:else if urlAliasLower === 'contact'}

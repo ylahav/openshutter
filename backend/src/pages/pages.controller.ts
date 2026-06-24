@@ -255,6 +255,8 @@ export class PagesController {
         isPublished,
         layout,
         hideLoginTitle,
+        showHeader,
+        showFooter,
       } = body;
 
       // Validate required fields
@@ -402,6 +404,8 @@ export class PagesController {
       if (normalizedContent) pageData.content = normalizedContent;
       if (Object.keys(pageLayout).length > 0) pageData.layout = pageLayout;
       if (hideLoginTitle !== undefined) pageData.hideLoginTitle = Boolean(hideLoginTitle);
+      if (showHeader !== undefined) pageData.showHeader = Boolean(showHeader);
+      if (showFooter !== undefined) pageData.showFooter = Boolean(showFooter);
 
       const result = await collection.insertOne(pageData);
       const page = await collection.findOne({ _id: result.insertedId });
@@ -525,6 +529,8 @@ export class PagesController {
       if (source.content) pageData.content = source.content;
       if (source.layout && typeof source.layout === 'object') pageData.layout = source.layout;
       if (typeof source.hideLoginTitle === 'boolean') pageData.hideLoginTitle = source.hideLoginTitle;
+      if (typeof source.showHeader === 'boolean') pageData.showHeader = source.showHeader;
+      if (typeof source.showFooter === 'boolean') pageData.showFooter = source.showFooter;
 
       const insertResult = await collection.insertOne(pageData);
       const newPageId = insertResult.insertedId;
@@ -610,6 +616,8 @@ export class PagesController {
         isPublished,
         layout,
         hideLoginTitle,
+        showHeader,
+        showFooter,
       } = body;
 
       // Normalize title object if provided
@@ -760,6 +768,8 @@ export class PagesController {
       if (category !== undefined) updateData.category = pageCategory;
       if (isPublished !== undefined) updateData.isPublished = Boolean(isPublished);
       if (hideLoginTitle !== undefined) updateData.hideLoginTitle = Boolean(hideLoginTitle);
+      if (showHeader !== undefined) updateData.showHeader = Boolean(showHeader);
+      if (showFooter !== undefined) updateData.showFooter = Boolean(showFooter);
 
       // Merge layout: preserve gridRows, gridColumns, urlParams from request, or keep existing
       if (layout !== undefined) {

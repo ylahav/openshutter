@@ -36,6 +36,10 @@ export interface IPage extends Document {
   };
   category: 'system' | 'site';
   isPublished: boolean;
+  /** Opt-in: render the site-config template `headerModules` grid above this page. */
+  showHeader?: boolean;
+  /** Opt-in: render the site-config template `footerModules` grid below this page. */
+  showFooter?: boolean;
   createdAt: Date;
   updatedAt: Date;
   createdBy: Types.ObjectId;
@@ -111,6 +115,14 @@ export const PageSchema = new Schema<IPage>({
     default: 'site',
   },
   isPublished: {
+    type: Boolean,
+    default: false,
+  },
+  showHeader: {
+    type: Boolean,
+    default: false,
+  },
+  showFooter: {
     type: Boolean,
     default: false,
   },

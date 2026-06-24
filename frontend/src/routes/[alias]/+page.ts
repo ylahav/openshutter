@@ -73,10 +73,25 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 
 		const packId = packHint || 'atelier';
 
+		const templateConfig = (siteConfig as { template?: { headerModules?: unknown; footerModules?: unknown } } | null)
+			?.template;
+		const siteHeaderModules = Array.isArray(templateConfig?.headerModules)
+			? (templateConfig.headerModules as unknown[])
+			: [];
+		const siteFooterModules = Array.isArray(templateConfig?.footerModules)
+			? (templateConfig.footerModules as unknown[])
+			: [];
+
+		const resolvedPage = (resolved?.page ?? null) as { showHeader?: unknown; showFooter?: unknown } | null;
+		const wantsHeader = resolvedPage?.showHeader === true;
+		const wantsFooter = resolvedPage?.showFooter === true;
+
 		if (lower === 'login') {
 			return {
 				page: (resolved?.page ?? null) as unknown,
 				modules: (resolved?.modules ?? []) as unknown[],
+				headerModules: wantsHeader ? siteHeaderModules : [],
+				footerModules: wantsFooter ? siteFooterModules : [],
 				urlAlias: alias,
 				useLoginShell: true,
 				cmsSlugPrefix: prefix,
@@ -91,6 +106,8 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 		return {
 			page: resolved.page,
 			modules: resolved.modules,
+			headerModules: wantsHeader ? siteHeaderModules : [],
+			footerModules: wantsFooter ? siteFooterModules : [],
 			urlAlias: alias,
 			useLoginShell: false,
 			cmsSlugPrefix: prefix,

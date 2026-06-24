@@ -1,6 +1,7 @@
 import type { MultiLangText, MultiLangHTML } from './multi-lang';
 import type { FontSetting, FontRole } from './fonts';
 import type { TemplateCustomColors } from '$lib/template/theme/template-palette';
+import type { PageModuleData } from './page-builder';
 
 export interface SiteConfig {
   _id?: string
@@ -98,6 +99,10 @@ export interface SiteConfig {
     layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
     /** Shared layout-shell instances (preferred key; alias => grid + modules). */
     layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
+    /** Site-wide chrome rendered by `PageRenderer` above pages that set `showHeader: true`. */
+    headerModules?: PageModuleData[]
+    /** Site-wide chrome rendered by `PageRenderer` below pages that set `showFooter: true`. */
+    footerModules?: PageModuleData[]
     /**
      * Per built-in pack: CMS page alias / page-builder scoped class prefix (lowercase a–z / 0–9, 1–12 chars).
      * Omitted pack ids use each template pack’s built-in default.
