@@ -95,7 +95,14 @@
 
 	function cloneModules(list: PageModuleData[] | undefined | null): PageModuleData[] {
 		if (!Array.isArray(list)) return [];
-		return list.map((m) => ({ ...m, props: m.props ? $state.snapshot(m.props) : {} }));
+		return list.map((m, idx) => ({
+			...m,
+			// Modules loaded from the backend have no `_id` (it's stripped on serialize); without one,
+			// edit/remove handlers match by `_id` and collide across all undefined-id modules — editing
+			// one re-types every entry, and deleting one wipes the list. Mint a stable local id on clone.
+			_id: typeof m._id === 'string' && m._id ? m._id : `hf-${Date.now().toString(36)}-${idx}-${Math.random().toString(36).slice(2, 8)}`,
+			props: m.props ? $state.snapshot(m.props) : {},
+		}));
 	}
 
 	function cloneByPack(map: ByPackMap | undefined | null): ByPackMap {

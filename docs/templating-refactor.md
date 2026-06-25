@@ -29,7 +29,7 @@ Use this as the working document for the multi-pack/page-builder integration.
    - Legacy `frontendTemplate` stays as compatibility fallback while data is being migrated.
 3. **Shared instance configs**:
    - `template.layoutShellInstances` stores reusable layout-shell grids.
-   - `template.menuInstances` stores reusable menu definitions.
+   - `template.menuInstances` stores reusable named menus (items + style flags). CRUD'd on **Admin → Site config → Navigation** ("Named menus" section). Menu modules pick one via `props.instanceRef` (dropdown rendered by the `menuInstance` field type in `ModulePropsForm.svelte`); legacy `template.headerConfig.menu` is the fallback when no instance is selected.
    - Modules reference these via `props.instanceRef`.
 
 ## Known issues (current codebase)

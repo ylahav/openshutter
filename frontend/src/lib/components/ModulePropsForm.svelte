@@ -26,6 +26,7 @@
 	import { parseLinksJson } from '$lib/page-builder/modules/SocialMedia/resolveLinks';
 	import type { ModulePlacement, ModulePlacementAxis } from '$lib/page-builder/module-cell-placement';
 	import { normalizePlacement } from '$lib/page-builder/module-cell-placement';
+	import { siteConfigData } from '$stores/siteConfig';
 
 	export let moduleType: string = '';
 	export let props: Record<string, any> = {};
@@ -231,6 +232,10 @@
 
 	$: placeH = (props.placement as ModulePlacement | undefined)?.horizontal ?? 'default';
 	$: placeV = (props.placement as ModulePlacement | undefined)?.vertical ?? 'default';
+
+	$: menuInstanceNames = Object.keys(
+		(($siteConfigData?.template?.menuInstances ?? {}) as Record<string, unknown>)
+	).sort((a, b) => a.localeCompare(b));
 </script>
 
 {#if config}
@@ -333,6 +338,39 @@
 					</select>
 					{#if field.description}
 						<p class="text-xs text-gray-500 mt-1">{field.description}</p>
+					{/if}
+				{:else if field.type === 'menuInstance'}
+					<!-- svelte-ignore a11y_label_has_associated_control -->
+					<label class="block text-sm font-medium text-gray-700 mb-1">
+						{field.label}
+						{#if field.required}
+							<span class="text-red-500">*</span>
+						{/if}
+					</label>
+					<select
+						value={(props[field.key] as string | undefined) ?? ''}
+						onchange={(e) => {
+							const v = e.currentTarget.value;
+							const next = { ...props };
+							if (v) next[field.key] = v;
+							else delete next[field.key];
+							props = next;
+							if (onChange) onChange(next);
+						}}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+					>
+						<option value="">— Use default menu (fallback) —</option>
+						{#each menuInstanceNames as name}
+							<option value={name}>{name}</option>
+						{/each}
+					</select>
+					{#if field.description}
+						<p class="text-xs text-gray-500 mt-1">{field.description}</p>
+					{/if}
+					{#if menuInstanceNames.length === 0}
+						<p class="text-xs text-amber-700 mt-1">
+							No named menus yet — add one in Site config → Navigation.
+						</p>
 					{/if}
 				{:else if field.type === 'boolean'}
 					<label class="flex items-center space-x-2">

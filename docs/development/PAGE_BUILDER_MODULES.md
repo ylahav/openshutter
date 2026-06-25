@@ -378,11 +378,13 @@ Header modules use **`compact`** and the same `data` prop. Example pair stored u
 ```json
 {
   "type": "menu",
-  "props": {},
+  "props": { "instanceRef": "main" },
   "rowOrder": 0,
   "columnIndex": 1
 }
 ```
+
+`menu` resolves its items from **`template.menuInstances[instanceRef]`** (CRUD'd at **Admin → Site config → Navigation**). Omit `instanceRef` to fall through to the legacy `template.headerConfig.menu`. Per-placement props like `orientation` override the named menu's own settings.
 
 (`menu` / `logo` props are extended in their `Layout` components — keep defaults safe.)
 

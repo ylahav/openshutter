@@ -2,17 +2,21 @@
 
 ## Purpose
 
-Primary navigation: pulls items from site header config (or defaults), supports horizontal/vertical layout, auth/login/logout items, and separators.
+Primary navigation: pulls items from a **named menu** under `template.menuInstances[instanceRef]` (managed in **Admin → Site config → Navigation**), with fall-through to the legacy `template.headerConfig.menu` when no instance is picked. Supports horizontal/vertical layout, auth/login/logout items, and separators.
 
 ## Configuration (`props`)
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `orientation` | `'horizontal'` \| `'vertical'` | `'horizontal'` | Flex direction for items |
+| `instanceRef` | string | — | Name of a menu under `template.menuInstances`. Omit to use the legacy `headerConfig.menu` fallback. |
+| `orientation` | `'horizontal'` \| `'vertical'` | `'horizontal'` | Flex direction. Overrides the named menu's own `orientation` when set. |
+| `showAuthButtons` | boolean | — | Per-placement override for the named menu's `showAuthButtons`. |
 
-Menu item content comes from **site config** (`headerConfig.menu`), not from module props. The module passes `orientation` into `$pageBuilder/primitives/menu/Menu.svelte`.
+Resolution: `MenuModule.svelte` looks up `template.menuInstances[instanceRef]` and merges per-module `props` on top (so the page-builder placement can override the named menu's defaults). The resolved config is forwarded into `$pageBuilder/primitives/menu/Menu.svelte`.
 
-See `config.ts`.
+If `instanceRef` is missing or doesn't resolve to a saved instance, `Menu.svelte` reads items from `config.menu` (i.e. `template.headerConfig.menu`) and finally falls back to the built-in defaults.
+
+See `config.ts`. Named menus are CRUD'd at `/admin/site-config?tab=navigation`.
 
 ## Classes & tokens for template styles
 

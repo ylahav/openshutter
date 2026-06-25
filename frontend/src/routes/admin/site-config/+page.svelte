@@ -8,7 +8,6 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
-	import { ROLE_OPTIONS } from '$lib/constants/roles';
 	import { siteConfig } from '$stores/siteConfig';
 	import { Switch, Tabs } from '@skeletonlabs/skeleton-svelte';
 	import { t } from '$stores/i18n';
@@ -27,6 +26,8 @@
 		adminSelectSmClass,
 	} from '$lib/admin/admin-cerberus';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
+	import MenuItemsListEditor from '$lib/components/admin/MenuItemsListEditor.svelte';
+	import type { MenuEditorItem, MenuInstanceConfig } from '$lib/types/menu-instance';
 
 	let config = $state<SiteConfig | null>(null);
 	let descriptionValue = $state<any>({});
@@ -36,17 +37,93 @@
 	let activeTab = $state('basic');
 	let availableLanguages = $state<Array<{ code: string; name: string; flag: string }>>([]);
 
-	interface MenuItem {
-		labelKey?: string;
-		label?: string;
-		href: string;
-		external?: boolean;
-		roles?: string[]; // Array of allowed roles: 'admin', 'owner', 'guest'
-		showWhen?: 'always' | 'loggedIn' | 'loggedOut';
-		type?: 'link' | 'login' | 'logout';
-	}
-	let menuItems = $state<MenuItem[]>([]);
+	let menuItems = $state<MenuEditorItem[]>([]);
 	let navigationClearDialogOpen = $state(false);
+
+	/** Reusable named menus from `template.menuInstances`. Empty record = no named menus yet. */
+	let menuInstancesEdit = $state<Record<string, MenuInstanceConfig>>({});
+	let selectedMenuKey = $state<string>('');
+	let newMenuName = $state<string>('');
+	let menuFormError = $state<string>('');
+	let confirmDeleteMenuKey = $state<string | null>(null);
+
+	const menuInstanceKeys = $derived(Object.keys(menuInstancesEdit).sort((a, b) => a.localeCompare(b)));
+
+	const VALID_MENU_NAME = /^[A-Za-z0-9_-]{1,40}$/;
+
+	function selectMenu(key: string) {
+		selectedMenuKey = key;
+		menuFormError = '';
+	}
+
+	function addNamedMenu() {
+		const name = newMenuName.trim();
+		if (!VALID_MENU_NAME.test(name)) {
+			menuFormError = get(t)('admin.menusNameInvalid');
+			return;
+		}
+		if (menuInstancesEdit[name]) {
+			menuFormError = get(t)('admin.menusNameInUse');
+			return;
+		}
+		menuInstancesEdit = {
+			...menuInstancesEdit,
+			[name]: { orientation: 'horizontal', items: [], showActiveIndicator: true },
+		};
+		selectedMenuKey = name;
+		newMenuName = '';
+		menuFormError = '';
+	}
+
+	function patchMenuInstance(key: string, patch: Partial<MenuInstanceConfig>) {
+		const existing = menuInstancesEdit[key];
+		if (!existing) return;
+		menuInstancesEdit = { ...menuInstancesEdit, [key]: { ...existing, ...patch } };
+	}
+
+	function setMenuItems(key: string, items: MenuEditorItem[]) {
+		patchMenuInstance(key, { items });
+	}
+
+	function setMenuSeparator(key: string, enabled: boolean, text: string) {
+		patchMenuInstance(key, { separator: enabled ? text || '|' : undefined });
+	}
+
+	function deleteSelectedMenu() {
+		const key = confirmDeleteMenuKey;
+		if (!key) return;
+		const next = { ...menuInstancesEdit };
+		delete next[key];
+		menuInstancesEdit = next;
+		if (selectedMenuKey === key) selectedMenuKey = '';
+		confirmDeleteMenuKey = null;
+	}
+
+	/**
+	 * One-click migration: clones the legacy `headerConfig.menu` items into a new named menu.
+	 * Leaves the legacy field intact so existing Menu renders don't break until the user clears it.
+	 */
+	function importLegacyMenuToNamed() {
+		if (menuItems.length === 0) return;
+		let candidate = 'main';
+		let counter = 1;
+		while (menuInstancesEdit[candidate]) {
+			counter += 1;
+			candidate = `main${counter}`;
+		}
+		menuInstancesEdit = {
+			...menuInstancesEdit,
+			[candidate]: {
+				orientation: 'horizontal',
+				items: menuItems.map((it) => ({ ...it })),
+				showActiveIndicator: true,
+			},
+		};
+		selectedMenuKey = candidate;
+		adminToast.success({
+			title: get(t)('admin.menusImportLegacyDone').replace('{name}', candidate),
+		});
+	}
 
 	function openNavigationClearDialog() {
 		navigationClearDialogOpen = true;
@@ -105,7 +182,8 @@
 	type BaselineClone = {
 		config: SiteConfig;
 		descriptionValue: Record<string, unknown>;
-		menuItems: MenuItem[];
+		menuItems: MenuEditorItem[];
+		menuInstances: Record<string, MenuInstanceConfig>;
 	};
 	let baselineState = $state<BaselineClone | null>(null);
 
@@ -150,6 +228,7 @@
 					...(config.template?.headerConfig || {}),
 					menu: menuItems.length > 0 ? menuItems : [],
 				},
+				menuInstances: menuInstancesEdit,
 			},
 		};
 	}
@@ -160,13 +239,18 @@
 			baselineState = {
 				config: structuredClone(config) as SiteConfig,
 				descriptionValue: structuredClone(descriptionValue) as Record<string, unknown>,
-				menuItems: structuredClone(menuItems),
+				menuItems: structuredClone($state.snapshot(menuItems)) as MenuEditorItem[],
+				menuInstances: structuredClone($state.snapshot(menuInstancesEdit)) as Record<
+					string,
+					MenuInstanceConfig
+				>,
 			};
 		} catch {
 			baselineState = {
 				config: JSON.parse(JSON.stringify(config)) as SiteConfig,
 				descriptionValue: JSON.parse(JSON.stringify(descriptionValue)),
 				menuItems: JSON.parse(JSON.stringify(menuItems)),
+				menuInstances: JSON.parse(JSON.stringify(menuInstancesEdit)),
 			};
 		}
 		const payload = getSavePayload();
@@ -179,11 +263,16 @@
 			config = structuredClone(baselineState.config) as SiteConfig;
 			descriptionValue = structuredClone(baselineState.descriptionValue);
 			menuItems = structuredClone(baselineState.menuItems);
+			menuInstancesEdit = structuredClone(baselineState.menuInstances);
 		} catch {
 			config = JSON.parse(JSON.stringify(baselineState.config)) as SiteConfig;
 			descriptionValue = JSON.parse(JSON.stringify(baselineState.descriptionValue));
 			menuItems = JSON.parse(JSON.stringify(baselineState.menuItems));
+			menuInstancesEdit = JSON.parse(JSON.stringify(baselineState.menuInstances));
 		}
+		selectedMenuKey = '';
+		newMenuName = '';
+		menuFormError = '';
 	}
 
 	const isDirty = $derived(
@@ -386,6 +475,7 @@
 
 			// Initialize menu items from config
 			menuItems = data.template?.headerConfig?.menu || [];
+			menuInstancesEdit = { ...(data.template?.menuInstances || {}) };
 			captureBaseline();
 		} catch (error) {
 			logger.error('Error loading site config:', error);
@@ -459,6 +549,7 @@
 			descriptionValue = data.description || {};
 			// Reload menu items from saved config
 			menuItems = data.template?.headerConfig?.menu || [];
+			menuInstancesEdit = { ...(data.template?.menuInstances || {}) };
 			adminToast.success({
 				title: get(t)('admin.configurationSaved'),
 				description: get(t)('admin.configurationSavedMessage'),
@@ -1599,293 +1690,309 @@ onclick={() => {
 						</div>
 						</Tabs.Content>
 						<Tabs.Content value="navigation">
-						<div class="space-y-6">
-							<div>
-								<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.navigationMenuTitle')}</h3>
-								<p class="text-sm text-(--color-surface-600-400) mb-4">
-									{$t('admin.navigationMenuHelp')}
-								</p>
-							</div>
-
-							{#if menuItems.length > 0}
-								<div class="space-y-3">
-									{#each menuItems as item, index}
-										<div class="border border-surface-200-800 rounded-lg p-4 bg-(--color-surface-50-950)">
-											<div class="flex items-start justify-between mb-3">
-												<span class="text-sm font-medium text-(--color-surface-800-200)">{$t('admin.navigationMenuItemLabel', 'Menu Item')} #{index + 1}</span>
-												<div class="flex gap-2">
-													{#if index > 0}
-														<button
-															type="button"
-															onclick={() => {
-																const newItems = [...menuItems];
-																[newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
-																menuItems = newItems;
-															}}
-															class="text-(--color-surface-600-400) hover:text-(--color-surface-950-50) text-sm"
-															title={$t('admin.navigationMoveUp')}
-														>
-															↑
-														</button>
-													{/if}
-													{#if index < menuItems.length - 1}
-														<button
-															type="button"
-															onclick={() => {
-																const newItems = [...menuItems];
-																[newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
-																menuItems = newItems;
-															}}
-															class="text-(--color-surface-600-400) hover:text-(--color-surface-950-50) text-sm"
-															title={$t('admin.navigationMoveDown')}
-														>
-															↓
-														</button>
-													{/if}
-													<button
-														type="button"
-														onclick={() => {
-															menuItems = menuItems.filter((_, i) => i !== index);
-														}}
-														class="text-red-600 hover:text-red-800 text-sm font-medium"
-													>
-														{$t('admin.remove')}
-													</button>
-												</div>
-											</div>
-											
-											<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-												<div>
-													<label for="menu-labelKey-{index}" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-														{$t('admin.navigationTranslationKeyOptional')}
-													</label>
-													<input
-														id="menu-labelKey-{index}"
-														type="text"
-														value={item.labelKey || ''}
-														oninput={(e) => {
-															menuItems[index] = { ...menuItems[index], labelKey: e.currentTarget.value || undefined };
-															menuItems = [...menuItems];
-														}}
-														placeholder="navigation.home"
-														class={adminInputSmClass}
-													/>
-													<p class="mt-1 text-xs text-(--color-surface-600-400)">
-														{$t('admin.navigationTranslationKeyHelp')}
-													</p>
-												</div>
-												
-												<div>
-													<label for="menu-label-{index}" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-														{$t('admin.navigationDirectLabelOptional')}
-													</label>
-													<input
-														id="menu-label-{index}"
-														type="text"
-														value={item.label || ''}
-														oninput={(e) => {
-															menuItems[index] = { ...menuItems[index], label: e.currentTarget.value || undefined };
-															menuItems = [...menuItems];
-														}}
-														placeholder="About"
-														class={adminInputSmClass}
-													/>
-													<p class="mt-1 text-xs text-(--color-surface-600-400)">
-														{$t('admin.navigationDirectLabelHelp')}
-													</p>
-												</div>
-												
-												<div>
-													<label for="menu-type-{index}" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-														{$t('admin.navigationType')}
-													</label>
-													<select
-														id="menu-type-{index}"
-														value={item.type ?? 'link'}
-														onchange={(e) => {
-															const v = e.currentTarget.value as 'link' | 'login' | 'logout';
-															menuItems[index] = {
-																...menuItems[index],
-																type: v,
-																href: v === 'login' ? '/login' : v === 'logout' ? '#' : (menuItems[index].href || ''),
-																showWhen: v === 'login' ? 'loggedOut' : v === 'logout' ? 'loggedIn' : (menuItems[index].showWhen ?? 'always')
-															};
-															menuItems = [...menuItems];
-														}}
-														class={adminSelectSmClass}
-													>
-														<option value="link">{$t('admin.navigationTypeLink')}</option>
-														<option value="login">{$t('admin.navigationTypeLogin')}</option>
-														<option value="logout">{$t('admin.navigationTypeLogout')}</option>
-													</select>
-													<p class="mt-1 text-xs text-(--color-surface-600-400)">{$t('admin.navigationTypeHelp')}</p>
-												</div>
-
-												<div>
-													<label for="menu-showWhen-{index}" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-														{$t('admin.navigationShowWhen')}
-													</label>
-													<select
-														id="menu-showWhen-{index}"
-														value={item.showWhen ?? 'always'}
-														onchange={(e) => {
-															menuItems[index] = { ...menuItems[index], showWhen: e.currentTarget.value as 'always' | 'loggedIn' | 'loggedOut' };
-															menuItems = [...menuItems];
-														}}
-														class={adminSelectSmClass}
-													>
-														<option value="always">{$t('admin.navigationShowWhenAlways')}</option>
-														<option value="loggedIn">{$t('admin.navigationShowWhenLoggedIn')}</option>
-														<option value="loggedOut">{$t('admin.navigationShowWhenLoggedOut')}</option>
-													</select>
-													<p class="mt-1 text-xs text-(--color-surface-600-400)">{$t('admin.navigationShowWhenHelp')}</p>
-												</div>
-
-												<div>
-													<label for="menu-href-{index}" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-														{$t('admin.navigationLinkUrl')} <span class="text-red-500">*</span>
-													</label>
-													<input
-														id="menu-href-{index}"
-														type="text"
-														value={item.href}
-														disabled={item.type === 'logout'}
-														oninput={(e) => {
-															menuItems[index] = { ...menuItems[index], href: e.currentTarget.value };
-															menuItems = [...menuItems];
-														}}
-														placeholder={item.type === 'login' ? '/login' : item.type === 'logout' ? '—' : '/about'}
-														required={item.type !== 'logout'}
-														class={`${adminInputSmClass} disabled:bg-(--color-surface-100-900) disabled:text-(--color-surface-600-400)`}
-													/>
-													<p class="mt-1 text-xs text-(--color-surface-600-400)">
-														{item.type === 'logout' ? $t('admin.navigationIgnoredForLogout') : $t('admin.navigationLinkUrlHelp')}
-													</p>
-												</div>
-												
-												<fieldset class="space-y-2">
-													<legend class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-														{$t('admin.navigationVisibleToRolesOptional')}
-													</legend>
-													<div class="flex flex-wrap gap-2">
-														{#each ROLE_OPTIONS as roleOpt}
-															{@const isSelected = item.roles?.includes(roleOpt.value) || false}
-															<label class="flex items-center space-x-1 cursor-pointer" title={roleOpt.description}>
-																<input
-																	type="checkbox"
-																	checked={isSelected}
-																	onchange={(e) => {
-																		const currentRoles = item.roles || [];
-																		const newRoles = e.currentTarget.checked
-																			? [...currentRoles, roleOpt.value]
-																			: currentRoles.filter((r: string) => r !== roleOpt.value);
-																		menuItems[index] = { 
-																			...menuItems[index], 
-																			roles: newRoles.length > 0 ? newRoles : undefined 
-																		};
-																		menuItems = [...menuItems];
-																	}}
-																	class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
-																/>
-																<span class="text-sm text-(--color-surface-800-200)">{roleOpt.label}</span>
-															</label>
-														{/each}
-													</div>
-													<p class="mt-1 text-xs text-(--color-surface-600-400)">
-														{$t('admin.navigationRolesHelp')}
-													</p>
-												</fieldset>
-												
-												<div class="flex items-end">
-													<label class="flex items-center space-x-2 cursor-pointer">
-														<input
-															type="checkbox"
-															checked={item.external || false}
-															onchange={(e) => {
-																menuItems[index] = { ...menuItems[index], external: e.currentTarget.checked || undefined };
-																menuItems = [...menuItems];
-															}}
-															class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
-														/>
-														<span class="text-sm text-(--color-surface-800-200)">{$t('admin.navigationOpenInNewTab')}</span>
-													</label>
-												</div>
-											</div>
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<div class="text-center py-8 border border-surface-200-800 rounded-lg bg-(--color-surface-50-950)">
-									<p class="text-(--color-surface-600-400) mb-4">{$t('admin.navigationNoItems')}</p>
-									<p class="text-sm text-(--color-surface-400-600) mb-4">
-										{$t('admin.navigationNoItemsHelp')}
+						<div class="space-y-8">
+							<!-- Named menus (template.menuInstances) -->
+							<section class="space-y-6">
+								<div>
+									<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">
+										{$t('admin.menusSectionTitle')}
+									</h3>
+									<p class="text-sm text-(--color-surface-600-400)">
+										{$t('admin.menusSectionHelp')}
 									</p>
 								</div>
-							{/if}
 
-							<div class="flex flex-wrap justify-between items-center gap-2 pt-4 border-t border-surface-200-800">
-								<div class="flex flex-wrap gap-2">
-									<button
-										type="button"
-										onclick={() => {
-											menuItems = [
-												...menuItems,
-												{ href: '', label: '' }
-											];
-										}}
-										class={adminBtnPrimarySm}
+								{#if menuInstanceKeys.length > 0}
+									<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+										{#each menuInstanceKeys as key}
+											{@const instance = menuInstancesEdit[key]}
+											{@const count = Array.isArray(instance?.items) ? instance.items.length : 0}
+											{@const orientation = instance?.orientation ?? 'horizontal'}
+											{@const isSelected = selectedMenuKey === key}
+											<button
+												type="button"
+												onclick={() => selectMenu(key)}
+												class={`text-left rounded-lg border p-3 transition-colors ${isSelected ? 'border-(--color-primary-500) bg-[color-mix(in_oklab,var(--color-primary-500)_8%,transparent)]' : 'border-surface-200-800 bg-(--color-surface-50-950) hover:border-(--color-surface-400-600)'}`}
+											>
+												<div class="font-medium text-(--color-surface-950-50) truncate">{key}</div>
+												<div class="text-xs text-(--color-surface-600-400) mt-1">
+													{$t('admin.menusItemsCount').replace('{n}', String(count))} · {orientation}
+												</div>
+											</button>
+										{/each}
+									</div>
+								{:else}
+									<div
+										class="text-center py-8 border border-surface-200-800 rounded-lg bg-(--color-surface-50-950)"
 									>
-										+ {$t('admin.navigationAddMenuItem')}
-									</button>
-									<button
-										type="button"
-										onclick={() => {
-											menuItems = [
-												...menuItems,
-												{ type: 'login', labelKey: 'auth.signIn', href: '/login', showWhen: 'loggedOut' }
-											];
-										}}
-										class={adminBtnPrimarySm}
-									>
-										+ {$t('admin.navigationAddLogin')}
-									</button>
-									<button
-										type="button"
-										onclick={() => {
-											menuItems = [
-												...menuItems,
-												{ type: 'logout', labelKey: 'header.logout', href: '#', showWhen: 'loggedIn' }
-											];
-										}}
-										class={adminBtnPrimarySm}
-									>
-										+ {$t('admin.navigationAddLogout')}
+										<p class="text-(--color-surface-600-400) mb-2">{$t('admin.menusEmptyState')}</p>
+										<p class="text-sm text-(--color-surface-400-600)">
+											{$t('admin.menusEmptyStateHelp')}
+										</p>
+									</div>
+								{/if}
+
+								<div class="flex flex-wrap items-end gap-2">
+									<div class="flex-1 min-w-[200px]">
+										<label
+											for="new-menu-name"
+											class="block text-sm font-medium text-(--color-surface-800-200) mb-1"
+										>
+											{$t('admin.menusNewMenuName')}
+										</label>
+										<input
+											id="new-menu-name"
+											type="text"
+											bind:value={newMenuName}
+											placeholder={$t('admin.menusNewMenuNamePlaceholder')}
+											oninput={() => (menuFormError = '')}
+											onkeydown={(e) => {
+												if (e.key === 'Enter') {
+													e.preventDefault();
+													addNamedMenu();
+												}
+											}}
+											class={adminInputSmClass}
+										/>
+									</div>
+									<button type="button" onclick={addNamedMenu} class={adminBtnPrimarySm}>
+										{$t('admin.menusAddMenu')}
 									</button>
 								</div>
-								
-								{#if menuItems.length > 0}
-									<button
-										type="button"
-										onclick={openNavigationClearDialog}
-										class="btn preset-tonal text-sm"
-									>
-										{$t('admin.navigationClearAll')}
-									</button>
+								{#if menuFormError}
+									<p class="text-xs text-red-600 -mt-3">{menuFormError}</p>
 								{/if}
-							</div>
 
-							<div class="mt-6 p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-lg">
-								<h4 class="text-sm font-semibold text-(--color-primary-900) mb-2">{$t('admin.navigationTipsTitle')}</h4>
-								<ul class="text-xs text-(--color-primary-800) space-y-1 list-disc list-inside">
-									<li>{$t('admin.navigationTipType')}</li>
-									<li>{$t('admin.navigationTipTranslationKey')}</li>
-									<li>{$t('admin.navigationTipDirectLabel')}</li>
-									<li>{$t('admin.navigationTipPriority')}</li>
-									<li>{$t('admin.navigationTipRolesRestrict')}</li>
-									<li>{$t('admin.navigationTipRolesOpen')}</li>
-									<li>{$t('admin.navigationTipExternal')}</li>
-								</ul>
-							</div>
+								{#if selectedMenuKey && menuInstancesEdit[selectedMenuKey]}
+									{@const instance = menuInstancesEdit[selectedMenuKey]}
+									{@const sepEnabled = Boolean(instance.separator)}
+									{@const sepText =
+										typeof instance.separator === 'string' && instance.separator.trim()
+											? instance.separator
+											: '|'}
+									<div class="border border-surface-200-800 rounded-lg p-4 bg-(--color-surface-50-950) space-y-5">
+										<div class="flex items-start justify-between gap-3">
+											<h4 class="text-base font-semibold text-(--color-surface-950-50)">
+												{selectedMenuKey}
+											</h4>
+											<button
+												type="button"
+												onclick={() => (confirmDeleteMenuKey = selectedMenuKey)}
+												class="text-sm text-red-600 hover:text-red-800 font-medium"
+											>
+												{$t('admin.menusDeleteMenu')}
+											</button>
+										</div>
+
+										<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+											<div>
+												<label
+													for="menu-orientation-{selectedMenuKey}"
+													class="block text-sm font-medium text-(--color-surface-800-200) mb-1"
+												>
+													{$t('admin.menusOrientation')}
+												</label>
+												<select
+													id="menu-orientation-{selectedMenuKey}"
+													value={instance.orientation ?? 'horizontal'}
+													onchange={(e) =>
+														patchMenuInstance(selectedMenuKey, {
+															orientation: e.currentTarget.value as
+																| 'horizontal'
+																| 'vertical',
+														})}
+													class={adminSelectSmClass}
+												>
+													<option value="horizontal">
+														{$t('admin.menusOrientationHorizontal')}
+													</option>
+													<option value="vertical">{$t('admin.menusOrientationVertical')}</option>
+												</select>
+											</div>
+
+											<div class="flex flex-col gap-2 pt-6">
+												<label class="flex items-center gap-2 cursor-pointer">
+													<input
+														type="checkbox"
+														checked={instance.showAuthButtons === true}
+														onchange={(e) =>
+															patchMenuInstance(selectedMenuKey, {
+																showAuthButtons: e.currentTarget.checked,
+															})}
+														class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
+													/>
+													<span class="text-sm text-(--color-surface-800-200)">
+														{$t('admin.menusShowAuthButtons')}
+													</span>
+												</label>
+												<label class="flex items-center gap-2 cursor-pointer">
+													<input
+														type="checkbox"
+														checked={instance.showActiveIndicator !== false}
+														onchange={(e) =>
+															patchMenuInstance(selectedMenuKey, {
+																showActiveIndicator: e.currentTarget.checked,
+															})}
+														class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
+													/>
+													<span class="text-sm text-(--color-surface-800-200)">
+														{$t('admin.menusShowActiveIndicator')}
+													</span>
+												</label>
+											</div>
+										</div>
+
+										<details class="border-t border-surface-200-800 pt-4">
+											<summary
+												class="text-sm font-medium text-(--color-surface-800-200) cursor-pointer"
+											>
+												{$t('admin.menusContainerClass')}
+											</summary>
+											<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+												<div>
+													<label
+														for="menu-container-class-{selectedMenuKey}"
+														class="block text-xs font-medium text-(--color-surface-700-300) mb-1"
+													>
+														{$t('admin.menusContainerClass')}
+													</label>
+													<input
+														id="menu-container-class-{selectedMenuKey}"
+														type="text"
+														value={instance.containerClass ?? ''}
+														oninput={(e) =>
+															patchMenuInstance(selectedMenuKey, {
+																containerClass: e.currentTarget.value || undefined,
+															})}
+														class={adminInputSmClass}
+													/>
+												</div>
+												<div>
+													<label
+														for="menu-item-class-{selectedMenuKey}"
+														class="block text-xs font-medium text-(--color-surface-700-300) mb-1"
+													>
+														{$t('admin.menusItemClass')}
+													</label>
+													<input
+														id="menu-item-class-{selectedMenuKey}"
+														type="text"
+														value={instance.itemClass ?? ''}
+														oninput={(e) =>
+															patchMenuInstance(selectedMenuKey, {
+																itemClass: e.currentTarget.value || undefined,
+															})}
+														class={adminInputSmClass}
+													/>
+												</div>
+												<div>
+													<label
+														for="menu-active-class-{selectedMenuKey}"
+														class="block text-xs font-medium text-(--color-surface-700-300) mb-1"
+													>
+														{$t('admin.menusActiveItemClass')}
+													</label>
+													<input
+														id="menu-active-class-{selectedMenuKey}"
+														type="text"
+														value={instance.activeItemClass ?? ''}
+														oninput={(e) =>
+															patchMenuInstance(selectedMenuKey, {
+																activeItemClass: e.currentTarget.value || undefined,
+															})}
+														class={adminInputSmClass}
+													/>
+												</div>
+												<div class="md:col-span-3">
+													<label class="flex items-center gap-2 cursor-pointer">
+														<input
+															type="checkbox"
+															checked={sepEnabled}
+															onchange={(e) =>
+																setMenuSeparator(
+																	selectedMenuKey,
+																	e.currentTarget.checked,
+																	sepText
+																)}
+															class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
+														/>
+														<span class="text-sm text-(--color-surface-800-200)">
+															{$t('admin.menusSeparatorEnabled')}
+														</span>
+													</label>
+													{#if sepEnabled}
+														<input
+															type="text"
+															value={sepText}
+															oninput={(e) =>
+																setMenuSeparator(
+																	selectedMenuKey,
+																	true,
+																	e.currentTarget.value
+																)}
+															placeholder={$t('admin.menusSeparatorText')}
+															class={`mt-2 max-w-[180px] ${adminInputSmClass}`}
+														/>
+													{/if}
+												</div>
+											</div>
+										</details>
+
+										<MenuItemsListEditor
+											items={instance.items ?? []}
+											onChange={(items) => setMenuItems(selectedMenuKey, items)}
+											idPrefix={`menu-${selectedMenuKey}`}
+											onClearAll={() => setMenuItems(selectedMenuKey, [])}
+										/>
+									</div>
+								{/if}
+							</section>
+
+							<!-- Legacy default menu (fallback for Menu modules with no instance picked) -->
+							<section class="space-y-4 border-t border-surface-200-800 pt-6">
+								<div>
+									<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">
+										{$t('admin.menusLegacyTitle')}
+									</h3>
+									<p class="text-sm text-(--color-surface-600-400)">{$t('admin.menusLegacyHelp')}</p>
+								</div>
+
+								{#if menuItems.length > 0}
+									<div class="flex justify-end">
+										<button
+											type="button"
+											onclick={importLegacyMenuToNamed}
+											class="btn preset-tonal text-sm"
+										>
+											{$t('admin.menusImportLegacy')}
+										</button>
+									</div>
+								{/if}
+
+								<MenuItemsListEditor
+									items={menuItems}
+									onChange={(items) => (menuItems = items)}
+									idPrefix="legacy"
+									onClearAll={openNavigationClearDialog}
+								/>
+
+								<div
+									class="mt-6 p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-lg"
+								>
+									<h4 class="text-sm font-semibold text-(--color-primary-900) mb-2">
+										{$t('admin.navigationTipsTitle')}
+									</h4>
+									<ul class="text-xs text-(--color-primary-800) space-y-1 list-disc list-inside">
+										<li>{$t('admin.navigationTipType')}</li>
+										<li>{$t('admin.navigationTipTranslationKey')}</li>
+										<li>{$t('admin.navigationTipDirectLabel')}</li>
+										<li>{$t('admin.navigationTipPriority')}</li>
+										<li>{$t('admin.navigationTipRolesRestrict')}</li>
+										<li>{$t('admin.navigationTipRolesOpen')}</li>
+										<li>{$t('admin.navigationTipExternal')}</li>
+									</ul>
+								</div>
+							</section>
 						</div>
 						</Tabs.Content>
 						<Tabs.Content value="exifMetadata">
@@ -2664,6 +2771,19 @@ onclick={() => {
 		if (!o) closeNavigationClearDialog();
 	}}
 	onConfirm={confirmClearNavigationMenu}
+/>
+
+<AdminConfirmDialog
+	open={confirmDeleteMenuKey !== null}
+	title={$t('admin.menusDeleteConfirmTitle').replace('{name}', confirmDeleteMenuKey ?? '')}
+	message={$t('admin.menusDeleteConfirmBody')}
+	confirmText={$t('admin.menusDeleteMenu')}
+	cancelText={$t('admin.cancel')}
+	variant="danger"
+	onOpenChange={(o) => {
+		if (!o) confirmDeleteMenuKey = null;
+	}}
+	onConfirm={deleteSelectedMenu}
 />
 
 <AdminConfirmDialog

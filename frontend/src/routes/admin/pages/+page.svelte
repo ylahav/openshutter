@@ -781,7 +781,6 @@ let layoutShellInstances: Record<
 		layoutShellReusePick = '';
 		layoutShellPresetError = '';
 		menuPresetKey = '';
-		menuReusePick = '';
 		menuPresetError = '';
 		menuOrientation = 'horizontal';
 		menuShowAuthButtons = false;
@@ -857,22 +856,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	let layoutShellEditorSaving = $state(false);
 	let layoutShellEditorError = $state('');
 	let menuPresetKey = $state('');
-	let menuReusePick = $state('');
 	let menuPresetError = $state('');
 	let availableMenuInstanceNames: string[] = $state([]);
-	let showMenuEditorDialog = $state(false);
-	let menuEditorKey = $state('');
-	let menuEditorOrientation: 'horizontal' | 'vertical' = $state('horizontal');
-	let menuEditorShowAuthButtons = $state(false);
-	let menuEditorItems: MenuEditorItem[] = $state([]);
-	let menuEditorItemClass = $state('');
-	let menuEditorActiveItemClass = $state('');
-	let menuEditorContainerClass = $state('');
-	let menuEditorSeparatorEnabled = $state(false);
-	let menuEditorSeparatorText = $state('|');
-	let menuEditorShowActiveIndicator = $state(true);
-	let menuEditorSaving = $state(false);
-	let menuEditorError = $state('');
 	let menuOrientation: 'horizontal' | 'vertical' = $state('horizontal');
 	let menuShowAuthButtons = $state(false);
 	/** themeToggle module: icons vs text labels */
@@ -1071,156 +1056,6 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		// Ensure the instance editor is visible (not hidden behind module dialog).
 		showModuleEditDialog = false;
 		showLayoutShellEditorDialog = true;
-	}
-
-	function openMenuEditorDialog() {
-		let key = menuPresetKey.trim();
-		if (!key && menuReusePick.trim()) {
-			key = menuReusePick.trim();
-			menuPresetKey = key;
-		}
-		if (!key) {
-			menuPresetError = 'Enter an instance name first, or pick one from the saved list.';
-			return;
-		}
-		menuPresetError = '';
-		menuEditorError = '';
-		menuEditorKey = key;
-		const existing = menuInstances[key] || {};
-		menuEditorOrientation = existing.orientation === 'vertical' ? 'vertical' : 'horizontal';
-		menuEditorShowAuthButtons = existing.showAuthButtons === true;
-		menuEditorItemClass = String(existing.itemClass || '');
-		menuEditorActiveItemClass = String(existing.activeItemClass || '');
-		menuEditorContainerClass = String(existing.containerClass || '');
-		menuEditorShowActiveIndicator = existing.showActiveIndicator !== false;
-		menuEditorSeparatorEnabled = Boolean(existing.separator);
-		menuEditorSeparatorText = typeof existing.separator === 'string' && existing.separator.trim() ? existing.separator : '|';
-		menuEditorItems = (Array.isArray(existing.items) ? existing.items : [])
-			.map((item) => ({
-				label: typeof item?.label === 'string' ? item.label : '',
-				labelKey: typeof item?.labelKey === 'string' ? item.labelKey : '',
-				href: String((item as any)?.href || ''),
-				type: (item?.type === 'login' || item?.type === 'logout') ? item.type : 'link',
-				showWhen: item?.showWhen === 'loggedIn' || item?.showWhen === 'loggedOut' ? item.showWhen : 'always',
-				external: item?.external === true
-			}));
-		showModuleEditDialog = false;
-		showMenuEditorDialog = true;
-	}
-
-	function addMenuEditorItem() {
-		menuEditorItems = [
-			...menuEditorItems,
-			{ label: '', labelKey: '', href: '', type: 'link', showWhen: 'always', external: false }
-		];
-	}
-
-	function removeMenuEditorItem(index: number) {
-		menuEditorItems = menuEditorItems.filter((_, i) => i !== index);
-	}
-
-	async function saveMenuInstance() {
-		menuEditorSaving = true;
-		menuEditorError = '';
-		try {
-			const key = menuEditorKey.trim();
-			if (!key) throw new Error('Instance name is required.');
-			const cleanedItems: MenuEditorItem[] = menuEditorItems
-				.map((item) => ({
-					label: String(item.label || '').trim(),
-					labelKey: String(item.labelKey || '').trim(),
-					href: String(item.href || '').trim(),
-					type: (item.type === 'login' || item.type === 'logout') ? item.type : 'link',
-					showWhen: item.showWhen === 'loggedIn' || item.showWhen === 'loggedOut' ? item.showWhen : 'always',
-					external: item.external === true
-				}))
-				.filter((item) => item.type === 'logout' || item.href.length > 0)
-				.map((item): MenuEditorItem => {
-					const normalizedType: 'link' | 'login' | 'logout' =
-						item.type === 'login' || item.type === 'logout' ? item.type : 'link';
-					const normalized: MenuEditorItem = {
-						href: normalizedType === 'logout' ? '#' : item.href
-					};
-					if (item.label) normalized.label = item.label;
-					if (item.labelKey) normalized.labelKey = item.labelKey;
-					if (normalizedType !== 'link') normalized.type = normalizedType;
-					if (item.showWhen === 'loggedIn' || item.showWhen === 'loggedOut') normalized.showWhen = item.showWhen;
-					if (item.external) normalized.external = true;
-					return normalized;
-				});
-
-			const instanceConfig: MenuInstanceConfig = {
-				orientation: menuEditorOrientation,
-				showAuthButtons: menuEditorShowAuthButtons,
-				items: cleanedItems,
-				showActiveIndicator: menuEditorShowActiveIndicator
-			};
-			if (menuEditorItemClass.trim()) instanceConfig.itemClass = menuEditorItemClass.trim();
-			if (menuEditorActiveItemClass.trim()) instanceConfig.activeItemClass = menuEditorActiveItemClass.trim();
-			if (menuEditorContainerClass.trim()) instanceConfig.containerClass = menuEditorContainerClass.trim();
-			if (menuEditorSeparatorEnabled) instanceConfig.separator = menuEditorSeparatorText || '|';
-
-			const nextInstances = {
-				...menuInstances,
-				[key]: instanceConfig
-			};
-
-			const response = await fetch('/api/admin/site-config', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({
-					template: {
-						layoutShellInstances,
-						layoutPresets: layoutShellInstances,
-						menuInstances: nextInstances
-					}
-				})
-			});
-			if (!response.ok) await handleApiErrorResponse(response);
-			menuInstances = nextInstances;
-			menuPresetKey = key;
-			availableMenuInstanceNames = Object.keys(nextInstances).sort((a, b) => a.localeCompare(b));
-			showMenuEditorDialog = false;
-			adminToast.success({ title: `Menu instance "${key}" saved.` });
-		} catch (err) {
-			menuEditorError = handleError(err, 'Failed to save menu instance');
-		} finally {
-			menuEditorSaving = false;
-		}
-	}
-
-	async function deleteMenuInstance() {
-		const key = menuEditorKey.trim();
-		if (!key) return;
-		menuEditorSaving = true;
-		menuEditorError = '';
-		try {
-			const nextInstances = { ...menuInstances };
-			delete nextInstances[key];
-			const response = await fetch('/api/admin/site-config', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({
-					template: {
-						layoutShellInstances,
-						layoutPresets: layoutShellInstances,
-						menuInstances: nextInstances
-					}
-				})
-			});
-			if (!response.ok) await handleApiErrorResponse(response);
-			menuInstances = nextInstances;
-			availableMenuInstanceNames = Object.keys(nextInstances).sort((a, b) => a.localeCompare(b));
-			if (menuPresetKey === key) menuPresetKey = '';
-			showMenuEditorDialog = false;
-			adminToast.success({ title: `Menu instance "${key}" deleted.` });
-		} catch (err) {
-			menuEditorError = handleError(err, 'Failed to delete menu instance');
-		} finally {
-			menuEditorSaving = false;
-		}
 	}
 
 	async function saveLayoutShellInstance() {
@@ -1567,13 +1402,11 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		if (module.type === 'menu') {
 			const props = module.props || {};
 			menuPresetKey = getMenuRef(props as Record<string, unknown>);
-			menuReusePick = '';
 			menuPresetError = '';
 			menuOrientation = (props as any).orientation === 'vertical' ? 'vertical' : 'horizontal';
 			menuShowAuthButtons = (props as any).showAuthButtons === true;
 		} else {
 			menuPresetKey = '';
-			menuReusePick = '';
 			menuPresetError = '';
 			menuOrientation = 'horizontal';
 			menuShowAuthButtons = false;
@@ -1732,16 +1565,12 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				};
 			} else if (moduleForm.type === 'menu') {
 				const key = menuPresetKey.trim();
-				if (!key) {
-					menuPresetError = 'Choose an existing menu instance or enter a new unique name.';
-					return;
-				}
 				menuPresetError = '';
 				props = {
-					instanceRef: key,
 					orientation: menuOrientation,
 					showAuthButtons: menuShowAuthButtons
 				};
+				if (key) (props as Record<string, unknown>).instanceRef = key;
 			} else if (moduleForm.type === 'themeToggle') {
 				props =
 					themeToggleVariant === 'text'
@@ -1899,16 +1728,12 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				};
 			} else if (moduleForm.type === 'menu') {
 				const key = menuPresetKey.trim();
-				if (!key) {
-					menuPresetError = 'Choose an existing menu instance or enter a new unique name.';
-					return;
-				}
 				menuPresetError = '';
 				props = {
-					instanceRef: key,
 					orientation: menuOrientation,
 					showAuthButtons: menuShowAuthButtons
 				};
+				if (key) (props as Record<string, unknown>).instanceRef = key;
 			} else if (moduleForm.type === 'themeToggle') {
 				props =
 					themeToggleVariant === 'text'
@@ -3060,12 +2885,37 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				{:else if moduleForm.type === 'menu'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<p class="text-sm text-(--color-surface-600-400)">
-							A <strong>menu instance</strong> stores menu items and style behavior. Multiple menu modules can reuse one instance.
+							Pick a named menu defined in <a href="/admin/site-config?tab=navigation" target="_blank" rel="noopener" class="underline text-(--color-primary-600)">Site config → Navigation</a>. Leave blank to fall back to the legacy default menu.
 						</p>
+						<div>
+							<label for="module-menu-instance" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Menu to render
+							</label>
+							<select
+								id="module-menu-instance"
+								bind:value={menuPresetKey}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								onchange={() => (menuPresetError = '')}
+							>
+								<option value="">— Use default menu (fallback) —</option>
+								{#each availableMenuInstanceNames as name}
+									<option value={name}>{name}</option>
+								{/each}
+							</select>
+							{#if menuPresetError}
+								<p class="mt-1 text-xs text-red-600">{menuPresetError}</p>
+							{/if}
+							{#if availableMenuInstanceNames.length === 0}
+								<p class="mt-1 text-xs text-amber-700">
+									No named menus yet — add one in
+									<a href="/admin/site-config?tab=navigation" target="_blank" rel="noopener" class="underline">Site config → Navigation</a>.
+								</p>
+							{/if}
+						</div>
 						<div class="grid grid-cols-2 gap-4">
 							<div>
 								<label for="module-menu-orientation" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Orientation
+									Orientation override
 								</label>
 								<select
 									id="module-menu-orientation"
@@ -3082,55 +2932,6 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 									<span>Auto add login/logout links</span>
 								</label>
 							</div>
-						</div>
-						<div>
-							<label for="module-menu-instance" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Instance name
-							</label>
-							<input
-								id="module-menu-instance"
-								type="text"
-								bind:value={menuPresetKey}
-								placeholder="e.g. header_main"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								oninput={() => {
-									menuPresetError = '';
-								}}
-							/>
-							{#if menuPresetError}
-								<p class="mt-1 text-xs text-red-600">{menuPresetError}</p>
-							{/if}
-						</div>
-						<div>
-							<label for="module-menu-reuse" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Reuse existing instance
-							</label>
-							<select
-								id="module-menu-reuse"
-								bind:value={menuReusePick}
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								onchange={() => {
-									if (!menuReusePick) return;
-									menuPresetKey = menuReusePick;
-									menuPresetError = '';
-									menuReusePick = '';
-								}}
-							>
-								<option value="">— Pick a saved menu instance —</option>
-								{#each availableMenuInstanceNames as name}
-									<option value={name}>{name}</option>
-								{/each}
-							</select>
-						</div>
-						<div class="flex justify-end">
-							<button
-								type="button"
-								onclick={openMenuEditorDialog}
-								disabled={!menuPresetKey.trim() && !menuReusePick.trim()}
-								class="{adminBtnPrimarySm} {adminRingPrimary} text-xs"
-							>
-								Edit this instance
-							</button>
 						</div>
 					</div>
 				{:else if moduleForm.type === 'themeToggle'}
@@ -4419,149 +4220,6 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<button type="button" onclick={saveLayoutShellInstance} disabled={layoutShellEditorSaving}
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50">
 					{layoutShellEditorSaving ? 'Saving...' : 'Save instance'}
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- Menu Instance Editor -->
-{#if showMenuEditorDialog}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
-			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-2">Edit menu instance</h2>
-			<p class="text-sm text-(--color-surface-600-400) mb-4">
-				Instance: <code>{menuEditorKey}</code>
-			</p>
-			{#if menuEditorError}
-				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{menuEditorError}</div>
-			{/if}
-			<div class="grid grid-cols-2 gap-4 mb-4">
-				<div>
-					<label for="menu-editor-orientation" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Orientation</label>
-					<select id="menu-editor-orientation" bind:value={menuEditorOrientation}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)">
-						<option value="horizontal">Horizontal</option>
-						<option value="vertical">Vertical</option>
-					</select>
-				</div>
-				<div class="flex items-end">
-					<label class="inline-flex items-center gap-2 text-sm text-(--color-surface-800-200)">
-						<input type="checkbox" bind:checked={menuEditorShowAuthButtons} />
-						<span>Auto add auth links</span>
-					</label>
-				</div>
-			</div>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-				<div>
-					<label for="menu-editor-item-class" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Item class (optional)</label>
-					<input id="menu-editor-item-class" type="text" bind:value={menuEditorItemClass}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" />
-				</div>
-				<div>
-					<label for="menu-editor-active-item-class" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Active item class (optional)</label>
-					<input id="menu-editor-active-item-class" type="text" bind:value={menuEditorActiveItemClass}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" />
-				</div>
-				<div>
-					<label for="menu-editor-container-class" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Container class (optional)</label>
-					<input id="menu-editor-container-class" type="text" bind:value={menuEditorContainerClass}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" />
-				</div>
-				<div class="space-y-2">
-					<label class="inline-flex items-center gap-2 text-sm text-(--color-surface-800-200)">
-						<input type="checkbox" bind:checked={menuEditorShowActiveIndicator} />
-						<span>Show active item highlight</span>
-					</label>
-					<label class="inline-flex items-center gap-2 text-sm text-(--color-surface-800-200)">
-						<input type="checkbox" bind:checked={menuEditorSeparatorEnabled} />
-						<span>Show separator between links</span>
-					</label>
-					{#if menuEditorSeparatorEnabled}
-						<input type="text" bind:value={menuEditorSeparatorText} placeholder="|"
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" />
-					{/if}
-				</div>
-			</div>
-			<div class="border-t border-surface-200-800 pt-4 space-y-3">
-				<div class="flex items-center justify-between">
-					<h3 class="text-sm font-semibold text-(--color-surface-900-100)">Menu items</h3>
-					<button
-						type="button"
-						onclick={addMenuEditorItem}
-						class="{adminBtnPrimarySm} {adminRingPrimary}"
-					>
-						+ Add item
-					</button>
-				</div>
-				{#if menuEditorItems.length === 0}
-					<p class="text-sm text-(--color-surface-600-400)">No custom items. Defaults/menu config fallback will be used.</p>
-				{:else if moduleForm.type !== 'contactForm'}
-					<div class="space-y-3">
-						{#each menuEditorItems as item, idx (`menu-item-${idx}`)}
-							<div class="border border-surface-300-700 rounded-md p-3 space-y-3">
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-									<div>
-										<label for={"menu-item-label-" + idx} class="block text-xs font-medium text-(--color-surface-600-400) mb-1">Label</label>
-										<input id={"menu-item-label-" + idx} type="text" bind:value={item.label}
-											class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" />
-									</div>
-									<div>
-										<label for={"menu-item-label-key-" + idx} class="block text-xs font-medium text-(--color-surface-600-400) mb-1">Label key (i18n)</label>
-										<input id={"menu-item-label-key-" + idx} type="text" bind:value={item.labelKey} placeholder="navigation.home"
-											class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" />
-									</div>
-									<div>
-										<label for={"menu-item-type-" + idx} class="block text-xs font-medium text-(--color-surface-600-400) mb-1">Type</label>
-										<select id={"menu-item-type-" + idx} bind:value={item.type}
-											class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)">
-											<option value="link">Link</option>
-											<option value="login">Login</option>
-											<option value="logout">Logout</option>
-										</select>
-									</div>
-									<div>
-										<label for={"menu-item-show-when-" + idx} class="block text-xs font-medium text-(--color-surface-600-400) mb-1">Show when</label>
-										<select id={"menu-item-show-when-" + idx} bind:value={item.showWhen}
-											class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)">
-											<option value="always">Always</option>
-											<option value="loggedIn">Logged in</option>
-											<option value="loggedOut">Logged out</option>
-										</select>
-									</div>
-									<div class="md:col-span-2">
-										<label for={"menu-item-href-" + idx} class="block text-xs font-medium text-(--color-surface-600-400) mb-1">Href</label>
-										<input id={"menu-item-href-" + idx} type="text" bind:value={item.href} placeholder="/about"
-											class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" />
-									</div>
-								</div>
-								<div class="flex items-center justify-between">
-									<label class="inline-flex items-center gap-2 text-xs text-(--color-surface-700-300)">
-										<input type="checkbox" bind:checked={item.external} />
-										<span>Open in new tab</span>
-									</label>
-									<button type="button" onclick={() => removeMenuEditorItem(idx)}
-										class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">
-										Remove
-									</button>
-								</div>
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
-			<div class="flex justify-end gap-2 mt-4">
-				<button type="button" onclick={deleteMenuInstance} disabled={menuEditorSaving}
-					class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium mr-auto">
-					Delete instance
-				</button>
-				<button type="button" onclick={() => (showMenuEditorDialog = false)}
-					class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium">
-					Cancel
-				</button>
-				<button type="button" onclick={saveMenuInstance} disabled={menuEditorSaving}
-					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50">
-					{menuEditorSaving ? 'Saving...' : 'Save instance'}
 				</button>
 			</div>
 		</div>

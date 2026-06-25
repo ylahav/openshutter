@@ -12,7 +12,7 @@ How to **use** OpenShutter’s visitor-site templating from **Admin**: what each
 | **Fonts** | Heading/body/etc. | Same as colors |
 | **Layout (global)** | Max width, padding, grid gap | Same |
 | **Pages** | Per-page grid + which **module** sits in each cell (including merged cells) | **Admin → Templates → Overrides** (`pageModules`, `pageLayout` per page key), then save / apply |
-| **Navigation / chrome flags** | Menu items, logo visibility, toggles when using **pack header** (not page-builder header) | **Site configuration** (Navigation / template fields), `headerConfig` on theme |
+| **Navigation / chrome flags** | Reusable named menus (Menu modules pick by name) and the legacy default-menu fallback, logo visibility, toggles when using **pack header** (not page-builder header) | **Site configuration → Navigation** (`template.menuInstances` + legacy `headerConfig.menu` fallback), `headerConfig` on theme |
 
 ---
 
@@ -51,7 +51,7 @@ Footer uses the same pattern: a named **`layoutShell`** preset (e.g. `atelier_fo
 | See current defaults (public theme name, pack) | Top of **Templates** after load |
 | Toggle **component visibility** (hero, auth buttons, …) | **Admin → Layout** (`/admin/theme-layout`) |
 | Edit **themes** (colors, fonts, `pageModules`, `pageLayout`, `headerConfig`, …) | **Admin → Templates** — **Edit** → **Overrides** (`/admin/templates/overrides?themeId=…`), or **Theme builder** for site-only overrides (`/admin/templates/overrides` without `themeId`) |
-| **Navigation / menu** when not relying only on modules | **Site configuration** — fields that map to `headerConfig` / menu |
+| **Navigation / menus** (define named menus, pick which one a Menu module renders) | **Site configuration → Navigation** (`/admin/site-config?tab=navigation`) — Named menus section (creates/edits `template.menuInstances`), and a legacy default menu used as fallback. Menu modules in the header/footer admin and CMS pages get a "Menu to render" dropdown populated from these names. |
 | **Site-wide pack** field | **Site configuration → Theme & layout** — `frontendTemplate` / active pack (`noir`, `studio`, `atelier`) |
 | **CMS pages** (content pages, optional per-pack copies) | **Admin → Pages** — create / edit page; set **Alias** (and title, modules, publish, …) |
 

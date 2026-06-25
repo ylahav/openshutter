@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- **Named menus (multi-menu site navigation):** **Admin → Site config → Navigation** now lists reusable menus stored on **`template.menuInstances`** — create by name, edit items (label/labelKey, href, type link/login/logout, showWhen, roles, external), orientation, auth-buttons toggle, active-page highlight, separator, and optional container/item/active CSS classes. Legacy single-menu editor remains as a fallback (`template.headerConfig.menu`) with a one-click "Copy legacy menu into a new named menu" action. The **Menu module** in the header/footer chrome admin and CMS page builder gets a **"Menu to render"** dropdown (`instanceRef`) populated from these names; per-placement props (e.g. `orientation`) override the named menu's own settings. Shared `MenuItemsListEditor` component drives both editors. The buried per-Menu-module instance editor under **Admin → Pages** is replaced with the same picker.
 - **Google Drive folder tree (async):** **`POST /api/admin/storage/:providerId/tree/start`** and **`GET .../tree/status/:jobId`** run a **`storage-tree-scan`** background job so large Drive scans do not block behind gateway timeouts. Scan skips image **variant** subfolders and uses **preview mode** (capped file names, counts for busy folders). SvelteKit proxies **`tree/start`** and **`tree/status`**. Admin **View Tree** polls every ~2s with live progress; loading clears when the job completes. Documented in **`docs/guides/STORAGE.md`**, **`GOOGLE_DRIVE.md`**, **`SERVER_DEPLOYMENT.md`**, **`MANUAL_TEST_DEDICATED_STORAGE.md`** (Scenario E).
 
 ### Changed
@@ -9,6 +10,7 @@
 - **Admin storage restore / import-sync:** Expanded restore preview and async photo-scan status polling.
 
 ### Fixed
+- **Header/footer chrome admin — edit and remove targeted the wrong rows:** Modules loaded from the backend have no local `_id` (it's stripped on serialize). `cloneModules` preserved the `undefined`, and the edit dialog's `m._id === module._id` match plus the row remover's `m._id !== moduleId` filter both treated every undefined-id module as the same one — editing any single Menu placement re-typed every other entry to `menu`, and removing a single cell wiped the list. `cloneModules` now mints a stable local id when one is missing (preserving any existing `_id`, so dirty-check baselines still align). `frontend/src/routes/admin/templates/header-footer/+page.svelte`.
 - **Admin Google Drive View Tree HTTP 502:** Replaced synchronous tree fetch with async job + polling (see **Added** above).
 - **Admin album tree accordion:** Chevron expand/collapse and row interaction when not in manual-sort mode.
 - **Admin photo thumbnails (local storage):** **`photoUrl`** and storage serve proxy path encoding for grid thumbnails on **`/admin/albums`**.
