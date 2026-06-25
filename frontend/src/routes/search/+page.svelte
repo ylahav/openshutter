@@ -16,6 +16,8 @@ const searchUiVariant = $derived(($activeTemplate === 'noir' ? 'noir' : 'default
 	const initialQuery = $derived($page.url.searchParams.get('q') || '');
 
 const aliasModules = $derived((data.aliasModules || []) as PageModuleData[]);
+const headerModules = $derived(((data as { headerModules?: unknown }).headerModules ?? []) as PageModuleData[]);
+const footerModules = $derived(((data as { footerModules?: unknown }).footerModules ?? []) as PageModuleData[]);
 const aliasLayout = $derived(data.aliasPage?.layout && typeof data.aliasPage.layout === 'object'
 			? {
 					gridRows: Number((data.aliasPage.layout as any).gridRows) || 1,
@@ -57,7 +59,7 @@ const pageForRenderer = $derived(hasPageModules
 </svelte:head>
 
 {#if hasPageModules}
-	<PageRenderer page={pageForRenderer as any} modules={hasAliasModules ? aliasModules : searchModules} />
+	<PageRenderer page={pageForRenderer as any} modules={hasAliasModules ? aliasModules : searchModules} {headerModules} {footerModules} />
 {:else}
 	<SearchTemplateSwitcher {initialQuery} variant={searchUiVariant} />
 {/if}

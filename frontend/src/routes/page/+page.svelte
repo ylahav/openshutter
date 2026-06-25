@@ -10,11 +10,15 @@
 	let { data }: { data: {
 		page: PageData | null;
 		modules: PageModuleData[];
+		headerModules?: PageModuleData[];
+		footerModules?: PageModuleData[];
 		error: string | null;
 	} } = $props();
 
 const pageData = $derived(data.page);
 	const modules = $derived(data.modules || []);
+	const headerModules = $derived(((data as { headerModules?: unknown }).headerModules ?? []) as PageModuleData[]);
+	const footerModules = $derived(((data as { footerModules?: unknown }).footerModules ?? []) as PageModuleData[]);
 const loadError = $derived(data.error);
 	const hasError = $derived(!!loadError || !pageData);
 const hasModules = $derived(modules.length > 0);
@@ -36,7 +40,7 @@ const hasModules = $derived(modules.length > 0);
 			<CmsPageTemplateSwitcher page={pageData} error={loadError || 'Page not found'} />
 		</div>
 	{:else if hasModules}
-		<PageRenderer page={pageData} modules={modules} />
+		<PageRenderer page={pageData} modules={modules} {headerModules} {footerModules} />
 	{:else}
 		<CmsPageTemplateSwitcher page={pageData} />
 	{/if}

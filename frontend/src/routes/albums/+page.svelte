@@ -9,6 +9,8 @@
 
 const page = $derived((data.page ?? null) as BuilderPageData | null);
 	const modules = $derived((data.modules ?? []) as PageModuleData[]);
+	const headerModules = $derived(((data as { headerModules?: unknown }).headerModules ?? []) as PageModuleData[]);
+	const footerModules = $derived(((data as { footerModules?: unknown }).footerModules ?? []) as PageModuleData[]);
 </script>
 
 <svelte:head>
@@ -16,7 +18,7 @@ const page = $derived((data.page ?? null) as BuilderPageData | null);
 </svelte:head>
 
 {#if page}
-	<PageRenderer {page} {modules} />
+	<PageRenderer {page} {modules} {headerModules} {footerModules} />
 {:else}
 	<div class="min-h-screen flex items-center justify-center text-sm opacity-60">Gallery page not found.</div>
 {/if}

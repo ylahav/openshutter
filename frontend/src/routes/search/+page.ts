@@ -6,24 +6,31 @@ import {
 	resolvePageAliasPrefixes,
 	resolveSiteTemplatePack
 } from '$lib/utils/template-page-alias';
+import { resolveTemplateChrome } from '$lib/page-builder/resolve-template-chrome';
 
 const SITE_CONFIG_PAGE_VIEWPORT_PX = 1024;
 
 export const load: PageLoad = async ({ fetch, parent }) => {
-	// Ensure root/page server data is loaded first.
-	await parent();
+	const parentData = await parent();
 
 	let pageModules: any[] = [];
 	let pageLayout: { gridRows?: number; gridColumns?: number } | null = null;
 	let aliasPage: any = null;
 	let aliasModules: any[] = [];
+	let resolvedSiteConfig: unknown = parentData?.visitorSiteConfig ?? null;
+	let resolvedPack: string =
+		typeof parentData?.visitorTemplatePack === 'string' && parentData.visitorTemplatePack.trim()
+			? parentData.visitorTemplatePack
+			: 'atelier';
 
 	try {
 		const configRes = await fetch('/api/site-config');
 		if (configRes.ok) {
 			const configData = await configRes.json();
 			const siteConfig = configData.success ? configData.data : configData;
+			resolvedSiteConfig = siteConfig ?? resolvedSiteConfig;
 			const pack = resolveSiteTemplatePack(siteConfig);
+			if (pack) resolvedPack = pack;
 
 			const tmpl = siteConfig?.template;
 			if (tmpl) {
@@ -57,11 +64,20 @@ export const load: PageLoad = async ({ fetch, parent }) => {
 		logger.error('[Search] Error fetching site config for pageModules:', err);
 	}
 
+	const wantsHeader = (aliasPage as { showHeader?: unknown } | null)?.showHeader === true;
+	const wantsFooter = (aliasPage as { showFooter?: unknown } | null)?.showFooter === true;
+	const chrome =
+		wantsHeader || wantsFooter
+			? resolveTemplateChrome(resolvedSiteConfig, resolvedPack)
+			: { headerModules: [], footerModules: [] };
+
 	return {
 		aliasPage,
 		aliasModules,
 		pageModules,
-		pageLayout
+		pageLayout,
+		headerModules: wantsHeader ? chrome.headerModules : [],
+		footerModules: wantsFooter ? chrome.footerModules : []
 	};
 };
 

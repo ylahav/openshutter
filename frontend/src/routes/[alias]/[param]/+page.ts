@@ -7,6 +7,7 @@ import {
 	resolveCmsPublishedPage
 } from '$lib/utils/resolve-cms-page-load';
 import { isPackAlbumShellRoute } from '$lib/utils/album-route-params';
+import { resolveTemplateChrome } from '$lib/page-builder/resolve-template-chrome';
 
 /**
  * Two-segment public URLs: `/[alias]/[param]` (e.g. `/album/2026-05-01`).
@@ -67,15 +68,27 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 		extraRequests: []
 	});
 
+	const packId = packHint || 'atelier';
+
 	if (resolved) {
+		const resolvedPage = (resolved.page ?? null) as { showHeader?: unknown; showFooter?: unknown } | null;
+		const wantsHeader = resolvedPage?.showHeader === true;
+		const wantsFooter = resolvedPage?.showFooter === true;
+		const chrome =
+			wantsHeader || wantsFooter
+				? resolveTemplateChrome(siteConfig, packId)
+				: { headerModules: [], footerModules: [] };
+
 		// `cmsSlugPrefix`: same letter used for step-1 slug `${prefix}-${alias}` inside `resolveCmsPublishedPage`.
 		return {
 			mode: 'cms' as const,
 			page: resolved.page,
 			modules: resolved.modules,
+			headerModules: wantsHeader ? chrome.headerModules : [],
+			footerModules: wantsFooter ? chrome.footerModules : [],
 			urlAlias: a,
 			urlParam: p,
-			packId: packHint || 'atelier',
+			packId,
 			cmsSlugPrefix: prefix
 		};
 	}
@@ -85,9 +98,11 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 			mode: 'pack-album' as const,
 			page: null,
 			modules: [] as unknown[],
+			headerModules: [],
+			footerModules: [],
 			urlAlias: a,
 			urlParam: p,
-			packId: packHint || 'atelier',
+			packId,
 			cmsSlugPrefix: prefix
 		};
 	}

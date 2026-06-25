@@ -50,6 +50,8 @@ const hasModules = $derived(modules.length > 0);
 	<LoginCmsPageBody
 		rolePage={pageData as unknown as Record<string, unknown> | null}
 		cmsModules={modules as unknown[]}
+		{headerModules}
+		{footerModules}
 	/>
 {:else}
 	{#if hasModules && pageForCms}

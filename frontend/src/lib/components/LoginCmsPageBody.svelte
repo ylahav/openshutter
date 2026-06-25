@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { PageData } from '$lib/types/page-builder';
+	import type { PageData, PageModuleData } from '$lib/types/page-builder';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
 	import { siteConfig, siteConfigData, productName } from '$stores/siteConfig';
 	import { getPageGridForBreakpoint, getPageModulesForBreakpoint } from '$lib/template/breakpoints';
@@ -8,12 +8,16 @@
 
 	let {
 		rolePage,
-		cmsModules
+		cmsModules,
+		headerModules = [],
+		footerModules = []
 	}: {
 		/** Resolved CMS login page document (or minimal stub from `role=login`). */
 		rolePage: Record<string, unknown> | null;
 		/** Modules returned with the resolved login page (may be empty). */
 		cmsModules: unknown[] | null;
+		headerModules?: PageModuleData[];
+		footerModules?: PageModuleData[];
 	} = $props();
 
 	function cloneModules(mods: any[]): any[] {
@@ -130,4 +134,4 @@
 	<title>Sign In - {$productName}</title>
 </svelte:head>
 
-<PageRenderer page={loginPage as any} modules={loginModules as any} />
+<PageRenderer page={loginPage as any} modules={loginModules as any} {headerModules} {footerModules} />

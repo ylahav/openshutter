@@ -4,12 +4,13 @@ import {
 	fetchVisitorSiteConfig,
 	resolveCmsPublishedPage
 } from '$lib/utils/resolve-cms-page-load';
+import { resolveTemplateChrome } from '$lib/page-builder/resolve-template-chrome';
 
 export const load: PageLoad = async ({ url, fetch, parent }) => {
 	const alias = url.searchParams.get('alias');
 
 	if (!alias) {
-		return { page: null, modules: [], error: 'No page alias specified' };
+		return { page: null, modules: [], headerModules: [], footerModules: [], error: 'No page alias specified' };
 	}
 
 	try {
@@ -31,11 +32,25 @@ export const load: PageLoad = async ({ url, fetch, parent }) => {
 		});
 
 		if (!resolved) {
-			return { page: null, modules: [], error: 'Page not found' };
+			return { page: null, modules: [], headerModules: [], footerModules: [], error: 'Page not found' };
 		}
 
-		return { page: resolved.page, modules: resolved.modules, error: null };
+		const resolvedPage = (resolved.page ?? null) as { showHeader?: unknown; showFooter?: unknown } | null;
+		const wantsHeader = resolvedPage?.showHeader === true;
+		const wantsFooter = resolvedPage?.showFooter === true;
+		const chrome =
+			wantsHeader || wantsFooter
+				? resolveTemplateChrome(siteConfig, packHint || 'atelier')
+				: { headerModules: [], footerModules: [] };
+
+		return {
+			page: resolved.page,
+			modules: resolved.modules,
+			headerModules: wantsHeader ? chrome.headerModules : [],
+			footerModules: wantsFooter ? chrome.footerModules : [],
+			error: null
+		};
 	} catch {
-		return { page: null, modules: [], error: 'Failed to load page' };
+		return { page: null, modules: [], headerModules: [], footerModules: [], error: 'Failed to load page' };
 	}
 };

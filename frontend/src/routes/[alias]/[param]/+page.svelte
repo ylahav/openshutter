@@ -13,6 +13,8 @@
 		mode: 'cms' | 'pack-album';
 		page: PageData | null;
 		modules: PageModuleData[];
+		headerModules?: PageModuleData[];
+		footerModules?: PageModuleData[];
 		urlAlias: string;
 		urlParam: string;
 		packId: string;
@@ -21,6 +23,8 @@
 
 const pageData = $derived(data.page);
 	const modules = $derived(data.modules || []);
+	const headerModules = $derived(((data as { headerModules?: unknown }).headerModules ?? []) as PageModuleData[]);
+	const footerModules = $derived(((data as { footerModules?: unknown }).footerModules ?? []) as PageModuleData[]);
 const hasModules = $derived(modules.length > 0);
 	const pageForCms = $derived((pageData ?? undefined) as PageData | undefined);
 	const albumShell = $derived(isPackAlbumShellRoute(data.urlAlias));
@@ -47,9 +51,9 @@ const hasModules = $derived(modules.length > 0);
 		<Album />
 	{/await}
 {:else if hasModules && pageForCms}
-	<PageRenderer page={pageForCms} modules={modules} />
+	<PageRenderer page={pageForCms} modules={modules} {headerModules} {footerModules} />
 {:else if albumShell}
-	<AlbumTemplateSwitcher />
+	<AlbumTemplateSwitcher {headerModules} {footerModules} />
 {:else if pageForCms}
 	<CmsPageTemplateSwitcher page={pageForCms} />
 {/if}

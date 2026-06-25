@@ -9,10 +9,21 @@
 	import { viewportWidth } from '$lib/stores/viewport';
 	import { logger } from '$lib/utils/logger';
 	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
+	import { resolveTemplateChrome } from '$lib/page-builder/resolve-template-chrome';
+
+	let {
+		headerModules: headerModulesProp = undefined,
+		footerModules: footerModulesProp = undefined
+	}: {
+		headerModules?: PageModuleData[] | undefined;
+		footerModules?: PageModuleData[] | undefined;
+	} = $props();
 
 	let rolePageModules: PageModuleData[]  = $state([]);
 	let rolePageLayout: { gridRows?: number; gridColumns?: number } | null  = $state(null);
 	let rolePageLoadedForPack = $state('');
+	let roleWantsHeader = $state(false);
+	let roleWantsFooter = $state(false);
 
 	// Backward-compatible fallback: template overrides in site_config.
 const pageModulesRaw = $derived(getEffectivePageModules($siteConfigData?.template, 'album', $viewportWidth));
@@ -95,11 +106,15 @@ const pageForRenderer = $derived({
 							gridColumns: Number((data.page.layout as any).gridColumns) || undefined
 						}
 					: null;
+			roleWantsHeader = (data?.page as { showHeader?: unknown } | null)?.showHeader === true;
+			roleWantsFooter = (data?.page as { showFooter?: unknown } | null)?.showFooter === true;
 			rolePageLoadedForPack = pack;
 		} catch (err) {
 			logger.warn('Album role page fetch failed, using template overrides fallback:', err);
 			rolePageModules = [];
 			rolePageLayout = null;
+			roleWantsHeader = false;
+			roleWantsFooter = false;
 			rolePageLoadedForPack = pack;
 		}
 	}
@@ -111,6 +126,22 @@ $effect(() => { if ($activeTemplate) {
 	onMount(() => {
 		loadAlbumRolePage();
 	});
+
+	const resolvedChrome = $derived(
+		roleWantsHeader || roleWantsFooter
+			? resolveTemplateChrome($siteConfigData, String($activeTemplate || ''))
+			: { headerModules: [], footerModules: [] }
+	);
+	const effectiveHeaderModules = $derived(
+		headerModulesProp !== undefined
+			? headerModulesProp
+			: (roleWantsHeader ? resolvedChrome.headerModules : [])
+	);
+	const effectiveFooterModules = $derived(
+		footerModulesProp !== undefined
+			? footerModulesProp
+			: (roleWantsFooter ? resolvedChrome.footerModules : [])
+	);
 </script>
 
-<PageRenderer page={pageForRenderer} modules={normalizedPageModules} />
+<PageRenderer page={pageForRenderer} modules={normalizedPageModules} headerModules={effectiveHeaderModules} footerModules={effectiveFooterModules} />
