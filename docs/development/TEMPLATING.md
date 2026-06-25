@@ -157,7 +157,7 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 | Public config API | `backend/src/site-config/site-config.controller.ts` |
 | Template normalization | `backend/src/services/site-config.ts` |
 | Theme seeding | `backend/src/database/database-init.service.ts` |
-| Site chrome | **`layoutShell`** blocks + named `layoutPresets` (e.g. header/footer strips); no pack `Header.svelte` / `Footer.svelte` |
+| Site chrome | Two layers: (1) **site-wide arrays** on `site_config.template` — `headerModules` / `footerModules` (+ `*ByPack` per-pack overrides) rendered above/below any page that opts in via `page.showHeader` / `page.showFooter`. Edited at **`/admin/templates/header-footer`**. Cascade + resolution: `frontend/src/lib/page-builder/resolve-template-chrome.ts`. Per-pack `headerSticky(+ByPack)` makes the header `position: sticky`. Per-row `grid-template-columns` via `{header,footer}RowTemplates(+ByPack)` (same shorthand as `layoutShell` row templates — `1-3-1`, `auto 1fr auto`). (2) **`layoutShell`** blocks + named `layoutPresets` for nested grid regions. No pack `Header.svelte` / `Footer.svelte`. |
 | Shared header UI (menu, language, theme, template pickers) | `frontend/src/lib/page-builder/primitives/` — one folder per control, each with a `README.md`; admins can read the same sources at **`/admin/docs/ui`** |
 | Palette → CSS | `frontend/src/lib/template/theme/template-palette.ts`, `ThemeColorApplier.svelte` |
 

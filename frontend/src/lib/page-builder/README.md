@@ -84,6 +84,25 @@ To make a module editable from the admin UI, update:
 - any module-specific editor UI in that file
 - prop serialization/deserialization logic as needed
 
+## Site-wide chrome (header & footer)
+
+`PageRenderer` accepts `headerModules` / `footerModules` props that stack above / below the page grid when either array is non-empty. Pages opt in per-instance via `page.showHeader` / `page.showFooter` (in the CMS page editor).
+
+Storage and editor:
+
+- Stored on `site_config.template` as `headerModules` + `headerModulesByPack`, `footerModules` + `footerModulesByPack`. `*ByPack` (keys `noir` | `studio` | `atelier`) overrides the site default for that pack.
+- Edited at **`/admin/templates/header-footer`**. Tabs: Default + one per pack. **Override default** seeds the pack with a cloned copy of the default modules/sticky/row-templates (not an empty grid).
+
+Layout knobs (per-tab; cascade matches the modules cascade):
+
+| Field | Notes |
+|---|---|
+| `headerSticky` / `headerStickyByPack` | Toggle on the header tab — applies `position: sticky; top: 0` via `.pb-page-header--sticky`. |
+| `headerRowTemplates` / `*ByPack` | Per-row `grid-template-columns` map (keys are row indexes as strings). Same shorthand `layoutShell` row templates use — `1-3-1`, `auto 1fr auto`. |
+| `footerRowTemplates` / `*ByPack` | Same for the footer. |
+
+Resolution / cascade is in `frontend/src/lib/page-builder/resolve-template-chrome.ts` (`resolveTemplateChrome` returns `{ headerModules, footerModules, headerSticky, headerRowTemplates, footerRowTemplates }`). Every route that renders `<PageRenderer>` calls this resolver and forwards the resolved values; chrome props are gated by `showHeader` / `showFooter`. **Sticky pitfall:** any ancestor with `overflow: hidden` (including `overflow-x: hidden`) establishes a scroll container and breaks `position: sticky`. Use `overflow-x: clip` instead — already applied in `BodyTemplateWrapper.svelte`.
+
 ## Styling
 
 **Contract:** visitor-facing modules use **semantic `pb-*` class hooks** in markup; **default CSS** lives in **`modules/styles/`** partials (loaded via `templates/styles/_components.scss`). Templates override with pack SCSS (see [modules/README.md](./modules/README.md) → *UI styling contract*).
