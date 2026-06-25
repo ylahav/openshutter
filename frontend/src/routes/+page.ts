@@ -9,6 +9,7 @@ import {
 	normalizeHeroModuleConfig
 } from '$lib/page-builder/modules/Hero/hero-layout';
 import { resolveGalleryLeadingUrlsFromApiJson } from '$lib/page-builder/modules/Hero/gallery-leading-urls';
+import { resolveTemplateChrome } from '$lib/page-builder/resolve-template-chrome';
 
 export const load: PageLoad = async ({ fetch, parent }) => {
   const { visitorTemplatePack, visitorSiteConfig, siteContext } = await parent();
@@ -112,11 +113,20 @@ export const load: PageLoad = async ({ fetch, parent }) => {
     homePageStatus
   });
 
+  const wantsHeader = (page as { showHeader?: unknown } | null)?.showHeader === true;
+  const wantsFooter = (page as { showFooter?: unknown } | null)?.showFooter === true;
+  const chrome =
+    wantsHeader || wantsFooter
+      ? resolveTemplateChrome(visitorSiteConfig, pack)
+      : { headerModules: [], footerModules: [] };
+
   return {
     rootAlbums,
     albumsError,
     page,
     modules,
+    headerModules: wantsHeader ? chrome.headerModules : [],
+    footerModules: wantsFooter ? chrome.footerModules : [],
     homePageStatus
   };
 };

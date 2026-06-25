@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsIn, IsArray, Allow } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { MultiLangText, MultiLangHTML } from '../../types/multi-lang';
 
 /** Layout zones and grid dimensions for a page. */
@@ -34,6 +35,7 @@ export class CreatePageDto {
 	@IsOptional()
 	slug?: string;
 
+	@Transform(({ value }) => (value === '' || value === null ? undefined : value))
 	@IsString()
 	@IsIn(['home', 'gallery', 'login', 'search', 'blog', 'album', 'blog-category', 'blog-article'])
 	@IsOptional()

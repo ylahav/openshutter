@@ -2287,7 +2287,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		// Create the page (modules will be saved in onCreateSuccess callback)
 		await crudOps.create({
 			...formData,
-			pageRole: formData.pageRole || undefined,
+			pageRole: formData.pageRole || null,
 			parentPageId: formData.parentPageId || undefined
 		} as Partial<Page> & Record<string, unknown>);
 	}
@@ -2307,7 +2307,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		
 		const pageData = {
 			...formData,
-			pageRole: formData.pageRole || undefined,
+			pageRole: formData.pageRole || null,
 			parentPageId: formData.parentPageId || undefined,
 			layout: layoutData
 		};

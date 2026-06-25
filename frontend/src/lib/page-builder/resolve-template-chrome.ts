@@ -3,8 +3,7 @@ import { normalizeTemplatePackId, type TemplatePackId } from '$lib/template-pack
 
 /**
  * Cascade source for site-wide chrome arrays read from `site_config.template`.
- * `byPack` is intentionally a `Partial<Record<…>>` because a missing key means
- * "inherit default" while an empty-array value means "no chrome for this pack".
+ * Header and footer are resolved **independently**: a pack can override one and inherit the other.
  */
 export interface ChromeCascadeSource {
 	siteDefault?: PageModuleData[] | null;
@@ -13,11 +12,12 @@ export interface ChromeCascadeSource {
 
 /**
  * Resolve a chrome array for a given active pack using the cascade:
- * 1. Pack key present in `byPack` (even if `[]`) wins — `[]` means deliberate "no chrome for this pack".
+ * 1. Pack override with at least one module wins.
  * 2. Otherwise fall back to `siteDefault` when it's an array.
  * 3. Otherwise empty array.
  *
- * A `null` value in `byPack[pack]` is treated the same as "key absent" (inherit default).
+ * An empty array `[]` or `null` value in `byPack[pack]` is treated as "inherit default" — authors
+ * commonly override only one of header/footer and leave the other empty, expecting the default to fill in.
  */
 export function resolveChromeForPack(
 	source: ChromeCascadeSource | null | undefined,
@@ -27,8 +27,7 @@ export function resolveChromeForPack(
 	const byPack = source?.byPack;
 	if (byPack && Object.prototype.hasOwnProperty.call(byPack, pack)) {
 		const override = byPack[pack];
-		if (Array.isArray(override)) return override;
-		// `null` / `undefined` value with key present → treat as "inherit" (defensive; UI sends omit/`null` to revert).
+		if (Array.isArray(override) && override.length > 0) return override;
 	}
 	const siteDefault = source?.siteDefault;
 	return Array.isArray(siteDefault) ? siteDefault : [];

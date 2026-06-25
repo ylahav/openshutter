@@ -9,6 +9,8 @@
 	let { data }: { data: PageData } = $props();
 const page = $derived((data.page ?? null) as BuilderPageData | null);
 	const modules = $derived((data.modules ?? []) as PageModuleData[]);
+	const headerModules = $derived(((data as { headerModules?: unknown }).headerModules ?? []) as PageModuleData[]);
+	const footerModules = $derived(((data as { footerModules?: unknown }).footerModules ?? []) as PageModuleData[]);
 const homePageStatus = $derived(data.homePageStatus ?? (page ? 'ok' : 'missing'));</script>
 
 <svelte:head>
@@ -23,7 +25,7 @@ const homePageStatus = $derived(data.homePageStatus ?? (page ? 'ok' : 'missing')
 		<p class="max-w-md opacity-80">{$t('siteHome.apiUnavailableHint')}</p>
 	</div>
 {:else if page}
-	<PageRenderer {page} {modules} />
+	<PageRenderer {page} {modules} {headerModules} {footerModules} />
 {:else}
 	<div class="min-h-screen flex items-center justify-center text-sm opacity-60">
 		{$t('siteHome.pageNotFound')}

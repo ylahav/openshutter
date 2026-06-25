@@ -28,12 +28,12 @@ describe('resolveChromeForPack', () => {
 		expect(out).toEqual(studioArr);
 	});
 
-	it('returns empty array (no chrome) when pack override is explicitly `[]` — does NOT fall back to default', () => {
+	it('falls back to site default when pack override is `[]` (empty arrays inherit so header/footer are independent)', () => {
 		const out = resolveChromeForPack(
 			{ siteDefault: defaultArr, byPack: { studio: [] } },
 			'studio'
 		);
-		expect(out).toEqual([]);
+		expect(out).toEqual(defaultArr);
 	});
 
 	it('falls back to site default when pack key absent from byPack', () => {
@@ -85,7 +85,7 @@ describe('resolveTemplateChrome', () => {
 	const footerDefault = [mod('f-default')];
 	const headerStudio = [mod('h-studio')];
 
-	it('reads header + footer cascades from site config object', () => {
+	it('resolves header and footer independently: pack-overridden header + empty-array footer inherits default footer', () => {
 		const out = resolveTemplateChrome(
 			{
 				template: {
@@ -98,8 +98,7 @@ describe('resolveTemplateChrome', () => {
 			'studio'
 		);
 		expect(out.headerModules).toEqual(headerStudio);
-		// Studio footer is deliberate "no chrome" — must not fall back to footerDefault.
-		expect(out.footerModules).toEqual([]);
+		expect(out.footerModules).toEqual(footerDefault);
 	});
 
 	it('falls back to defaults when pack absent from both maps', () => {

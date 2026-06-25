@@ -489,6 +489,12 @@
 					</p>
 				</div>
 				<div class="flex flex-wrap items-center gap-2">
+					<a
+						href="/admin/templates"
+						class="{adminBtnSecondary} text-sm shrink-0 inline-flex items-center justify-center no-underline"
+					>
+						{$t('admin.backToTemplates')}
+					</a>
 					<button
 						type="button"
 						onclick={discardChanges}

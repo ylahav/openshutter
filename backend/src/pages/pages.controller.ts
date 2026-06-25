@@ -722,7 +722,9 @@ export class PagesController {
         throw new BadRequestException('Invalid pageRole');
       }
 
-      const nextPageRole: string | null | undefined = pageRole !== undefined ? normalizedPageRole ?? null : page.pageRole;
+      const nextPageRole: string | null | undefined = pageRole !== undefined
+        ? (normalizedPageRole ?? null)
+        : (this.normalizePageRole(page.pageRole) ?? null);
       const hasNewTemplateInputs = frontendTemplate !== undefined || frontendTemplates !== undefined;
       const nextVariantPacks = hasNewTemplateInputs
         ? this.normalizeFrontendTemplates(frontendTemplates, frontendTemplate)
