@@ -41,13 +41,22 @@ export const load: PageLoad = async ({ url, fetch, parent }) => {
 		const chrome =
 			wantsHeader || wantsFooter
 				? resolveTemplateChrome(siteConfig, packHint || 'atelier')
-				: { headerModules: [], footerModules: [] };
+				: {
+						headerModules: [],
+						footerModules: [],
+						headerSticky: false,
+						headerRowTemplates: {} as Record<string, string>,
+						footerRowTemplates: {} as Record<string, string>
+					};
 
 		return {
 			page: resolved.page,
 			modules: resolved.modules,
 			headerModules: wantsHeader ? chrome.headerModules : [],
 			footerModules: wantsFooter ? chrome.footerModules : [],
+			headerSticky: wantsHeader ? chrome.headerSticky : false,
+			headerRowTemplates: wantsHeader ? chrome.headerRowTemplates : undefined,
+			footerRowTemplates: wantsFooter ? chrome.footerRowTemplates : undefined,
 			error: null
 		};
 	} catch {

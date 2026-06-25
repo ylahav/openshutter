@@ -2498,7 +2498,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<button
 						type="button"
 						onclick={() => {
-							showCreateDialog = false;
+							dialogs.closeAll();
 							resetForm();
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
@@ -3505,7 +3505,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<button
 						type="button"
 						onclick={() => {
-							showEditDialog = false;
+							dialogs.closeAll();
 							editingPage = null;
 							resetForm();
 						}}
@@ -4245,7 +4245,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<button
 						type="button"
 						onclick={() => {
-							showDeleteDialog = false;
+							dialogs.closeAll();
 							pageToDelete = null;
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"

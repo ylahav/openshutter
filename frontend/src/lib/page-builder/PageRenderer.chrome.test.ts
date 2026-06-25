@@ -74,7 +74,13 @@ describe('PageRenderer chrome render branches', () => {
 
 	it('leaves the chrome-less fallback branch identical to the legacy single-grid layout', () => {
 		const fallbackStart = rendererSrc.indexOf('{:else}', rendererSrc.indexOf('hasHeader || hasFooter'));
-		const fallbackBlock = rendererSrc.slice(fallbackStart);
+		// Bound the fallback at the next `<style` block (or EOF) so styles defined for the chrome
+		// branch — e.g. `.pb-page-header--sticky` — don't leak into this template-only assertion.
+		const styleStart = rendererSrc.indexOf('<style', fallbackStart);
+		const fallbackBlock = rendererSrc.slice(
+			fallbackStart,
+			styleStart >= 0 ? styleStart : undefined
+		);
 		expect(fallbackBlock).toMatch(/min-h-screen/);
 		expect(fallbackBlock).not.toMatch(/pb-page-header/);
 		expect(fallbackBlock).not.toMatch(/pb-page-footer/);

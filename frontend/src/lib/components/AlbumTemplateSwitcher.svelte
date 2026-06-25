@@ -13,10 +13,16 @@
 
 	let {
 		headerModules: headerModulesProp = undefined,
-		footerModules: footerModulesProp = undefined
+		footerModules: footerModulesProp = undefined,
+		headerSticky: headerStickyProp = undefined,
+		headerRowTemplates: headerRowTemplatesProp = undefined,
+		footerRowTemplates: footerRowTemplatesProp = undefined
 	}: {
 		headerModules?: PageModuleData[] | undefined;
 		footerModules?: PageModuleData[] | undefined;
+		headerSticky?: boolean | undefined;
+		headerRowTemplates?: Record<string, string> | undefined;
+		footerRowTemplates?: Record<string, string> | undefined;
 	} = $props();
 
 	let rolePageModules: PageModuleData[]  = $state([]);
@@ -130,7 +136,13 @@ $effect(() => { if ($activeTemplate) {
 	const resolvedChrome = $derived(
 		roleWantsHeader || roleWantsFooter
 			? resolveTemplateChrome($siteConfigData, String($activeTemplate || ''))
-			: { headerModules: [], footerModules: [] }
+			: {
+					headerModules: [],
+					footerModules: [],
+					headerSticky: false,
+					headerRowTemplates: {} as Record<string, string>,
+					footerRowTemplates: {} as Record<string, string>
+				}
 	);
 	const effectiveHeaderModules = $derived(
 		headerModulesProp !== undefined
@@ -142,6 +154,27 @@ $effect(() => { if ($activeTemplate) {
 			? footerModulesProp
 			: (roleWantsFooter ? resolvedChrome.footerModules : [])
 	);
+	const effectiveHeaderSticky = $derived(
+		headerStickyProp !== undefined ? headerStickyProp : roleWantsHeader && resolvedChrome.headerSticky
+	);
+	const effectiveHeaderRowTemplates = $derived(
+		headerRowTemplatesProp !== undefined
+			? headerRowTemplatesProp
+			: (roleWantsHeader ? resolvedChrome.headerRowTemplates : undefined)
+	);
+	const effectiveFooterRowTemplates = $derived(
+		footerRowTemplatesProp !== undefined
+			? footerRowTemplatesProp
+			: (roleWantsFooter ? resolvedChrome.footerRowTemplates : undefined)
+	);
 </script>
 
-<PageRenderer page={pageForRenderer} modules={normalizedPageModules} headerModules={effectiveHeaderModules} footerModules={effectiveFooterModules} />
+<PageRenderer
+	page={pageForRenderer}
+	modules={normalizedPageModules}
+	headerModules={effectiveHeaderModules}
+	footerModules={effectiveFooterModules}
+	headerSticky={effectiveHeaderSticky}
+	headerRowTemplates={effectiveHeaderRowTemplates}
+	footerRowTemplates={effectiveFooterRowTemplates}
+/>

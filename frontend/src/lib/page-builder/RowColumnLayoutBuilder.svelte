@@ -11,6 +11,8 @@ export let onMoveRow: (fromRowOrder: number, toRowOrder: number) => Promise<void
 export let onInsertRow: (atRowOrder: number) => Promise<void>;
 export let onDeleteRow: (rowOrder: number) => Promise<void>;
 export let onRemoveEmptyColumn: (columnIndex: number) => Promise<void>;
+/** Swap a cell with its adjacent occupied sibling in the same row. Optional; left/right buttons hide when absent. */
+export let onMoveCell: ((moduleId: string, direction: 'left' | 'right') => Promise<void>) | undefined = undefined;
 
 	interface RowData {
 		rowOrder: number;
@@ -137,6 +139,16 @@ export let onRemoveEmptyColumn: (columnIndex: number) => Promise<void>;
 		return String(props.instanceRef ?? props.presetKey ?? '').trim();
 	}
 
+	/** Index of `module` within its row's occupied modules, sorted by columnIndex (-1 if not found). */
+	function rowSiblingIndex(module: PageModuleData): { idx: number; total: number } {
+		const siblings = modules
+			.filter((m) => Number(m.rowOrder ?? 0) === Number(module.rowOrder ?? 0))
+			.filter((m) => m.columnIndex !== undefined && !m.props?._placeholder)
+			.sort((a, b) => Number(a.columnIndex ?? 0) - Number(b.columnIndex ?? 0));
+		const idx = siblings.findIndex((m) => m._id === module._id);
+		return { idx, total: siblings.length };
+	}
+
 	$: selectedCount = selectedCells.size;
 	$: selectedCellsArray = Array.from(selectedCells).map((key) => {
 		const [r, c] = key.split(':').map(Number);
@@ -258,7 +270,30 @@ export let onRemoveEmptyColumn: (columnIndex: number) => Promise<void>;
 								{#if (mod.rowSpan ?? 1) > 1 || (mod.colSpan ?? 1) > 1}
 									<p class="text-xs text-muted-foreground mt-1">{mod.rowSpan ?? 1}×{mod.colSpan ?? 1} span</p>
 								{/if}
-								<div class="flex gap-2 mt-2">
+								<div class="flex gap-2 mt-2 items-center">
+									{#if onMoveCell}
+										{@const sib = rowSiblingIndex(mod)}
+										<button
+											type="button"
+											class="px-1.5 py-0.5 text-[11px] rounded border bg-background text-foreground border-border hover:bg-muted disabled:opacity-40"
+											title="Move cell left"
+											aria-label="Move cell left"
+											disabled={sib.idx <= 0}
+											on:click={() => onMoveCell?.(mod._id, 'left')}
+										>
+											←
+										</button>
+										<button
+											type="button"
+											class="px-1.5 py-0.5 text-[11px] rounded border bg-background text-foreground border-border hover:bg-muted disabled:opacity-40"
+											title="Move cell right"
+											aria-label="Move cell right"
+											disabled={sib.idx < 0 || sib.idx >= sib.total - 1}
+											on:click={() => onMoveCell?.(mod._id, 'right')}
+										>
+											→
+										</button>
+									{/if}
 									<button
 										type="button"
 										class="text-xs text-primary hover:opacity-80"

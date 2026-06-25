@@ -112,6 +112,21 @@ export interface SiteConfig {
      * Per-pack footer override. Same cascade rules as `headerModulesByPack`.
      */
     footerModulesByPack?: Partial<Record<'noir' | 'studio' | 'atelier', PageModuleData[]>>
+    /** Site-wide: render the page-builder header with `position: sticky; top: 0`. */
+    headerSticky?: boolean
+    /** Per-pack override for `headerSticky` (explicit `true`/`false` wins; missing key inherits default). */
+    headerStickyByPack?: Partial<Record<'noir' | 'studio' | 'atelier', boolean>>
+    /**
+     * Per-row `grid-template-columns` for the site-wide header rows (keys are row indexes as strings).
+     * Same syntax as `layoutShell` row templates: e.g. `{ "0": "auto 1fr auto", "1": "1-3-1" }`.
+     */
+    headerRowTemplates?: Record<string, string>
+    /** Per-pack override for `headerRowTemplates`. Missing pack key inherits default. */
+    headerRowTemplatesByPack?: Partial<Record<'noir' | 'studio' | 'atelier', Record<string, string>>>
+    /** Per-row `grid-template-columns` for the site-wide footer rows. Same syntax as `headerRowTemplates`. */
+    footerRowTemplates?: Record<string, string>
+    /** Per-pack override for `footerRowTemplates`. Missing pack key inherits default. */
+    footerRowTemplatesByPack?: Partial<Record<'noir' | 'studio' | 'atelier', Record<string, string>>>
     /**
      * Per built-in pack: CMS page alias / page-builder scoped class prefix (lowercase a–z / 0–9, 1–12 chars).
      * Omitted pack ids use each template pack’s built-in default.

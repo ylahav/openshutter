@@ -11,6 +11,17 @@ const page = $derived((data.page ?? null) as BuilderPageData | null);
 	const modules = $derived((data.modules ?? []) as PageModuleData[]);
 	const headerModules = $derived(((data as { headerModules?: unknown }).headerModules ?? []) as PageModuleData[]);
 	const footerModules = $derived(((data as { footerModules?: unknown }).footerModules ?? []) as PageModuleData[]);
+	const headerSticky = $derived((data as { headerSticky?: unknown }).headerSticky === true);
+	const headerRowTemplates = $derived(
+		((data as { headerRowTemplates?: unknown }).headerRowTemplates ?? undefined) as
+			| Record<string, string>
+			| undefined
+	);
+	const footerRowTemplates = $derived(
+		((data as { footerRowTemplates?: unknown }).footerRowTemplates ?? undefined) as
+			| Record<string, string>
+			| undefined
+	);
 const homePageStatus = $derived(data.homePageStatus ?? (page ? 'ok' : 'missing'));</script>
 
 <svelte:head>
@@ -25,7 +36,15 @@ const homePageStatus = $derived(data.homePageStatus ?? (page ? 'ok' : 'missing')
 		<p class="max-w-md opacity-80">{$t('siteHome.apiUnavailableHint')}</p>
 	</div>
 {:else if page}
-	<PageRenderer {page} {modules} {headerModules} {footerModules} />
+	<PageRenderer
+		{page}
+		{modules}
+		{headerModules}
+		{footerModules}
+		{headerSticky}
+		{headerRowTemplates}
+		{footerRowTemplates}
+	/>
 {:else}
 	<div class="min-h-screen flex items-center justify-center text-sm opacity-60">
 		{$t('siteHome.pageNotFound')}

@@ -74,8 +74,14 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 
 		const packId = packHint || 'atelier';
 
-		const { headerModules: siteHeaderModules, footerModules: siteFooterModules } =
-			resolveTemplateChrome(siteConfig, packId);
+		const chrome = resolveTemplateChrome(siteConfig, packId);
+		const {
+			headerModules: siteHeaderModules,
+			footerModules: siteFooterModules,
+			headerSticky: siteHeaderSticky,
+			headerRowTemplates: siteHeaderRowTemplates,
+			footerRowTemplates: siteFooterRowTemplates
+		} = chrome;
 
 		const resolvedPage = (resolved?.page ?? null) as { showHeader?: unknown; showFooter?: unknown } | null;
 		const wantsHeader = resolvedPage?.showHeader === true;
@@ -87,6 +93,9 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 				modules: (resolved?.modules ?? []) as unknown[],
 				headerModules: wantsHeader ? siteHeaderModules : [],
 				footerModules: wantsFooter ? siteFooterModules : [],
+				headerSticky: wantsHeader ? siteHeaderSticky : false,
+				headerRowTemplates: wantsHeader ? siteHeaderRowTemplates : undefined,
+				footerRowTemplates: wantsFooter ? siteFooterRowTemplates : undefined,
 				urlAlias: alias,
 				useLoginShell: true,
 				cmsSlugPrefix: prefix,
@@ -103,6 +112,9 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 			modules: resolved.modules,
 			headerModules: wantsHeader ? siteHeaderModules : [],
 			footerModules: wantsFooter ? siteFooterModules : [],
+			headerSticky: wantsHeader ? siteHeaderSticky : false,
+			headerRowTemplates: wantsHeader ? siteHeaderRowTemplates : undefined,
+			footerRowTemplates: wantsFooter ? siteFooterRowTemplates : undefined,
 			urlAlias: alias,
 			useLoginShell: false,
 			cmsSlugPrefix: prefix,

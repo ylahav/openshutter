@@ -52,10 +52,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 	{
 		titleKey: 'admin.sidebarGroupSite',
 		items: [
+			{ href: '/admin/site-config', labelKey: 'admin.sidebarNavSite', icon: 'config' },
 			{ href: '/admin/templates', labelKey: 'admin.sidebarNavTemplates', icon: 'template' },
 			{ href: '/admin/theme-layout', labelKey: 'admin.sidebarNavTemplateLayout', icon: 'layout' },
 			{ href: '/admin/pages', labelKey: 'admin.sidebarNavPages', icon: 'page' },
-			{ href: '/admin/site-config', labelKey: 'admin.sidebarNavSite', icon: 'config' },
 			{ href: '/admin/translations', labelKey: 'admin.sidebarNavTranslations', icon: 'translate' },
 		],
 	},

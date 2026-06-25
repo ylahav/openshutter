@@ -14,6 +14,9 @@
 		modules: PageModuleData[];
 		headerModules?: PageModuleData[];
 		footerModules?: PageModuleData[];
+		headerSticky?: boolean;
+		headerRowTemplates?: Record<string, string>;
+		footerRowTemplates?: Record<string, string>;
 		urlAlias: string;
 		useLoginShell: boolean;
 		cmsSlugPrefix: string;
@@ -24,6 +27,9 @@ const pageData = $derived(data.page);
 	const modules = $derived(data.modules || []);
 	const headerModules = $derived(data.headerModules || []);
 	const footerModules = $derived(data.footerModules || []);
+	const headerSticky = $derived(data.headerSticky === true);
+	const headerRowTemplates = $derived(data.headerRowTemplates);
+	const footerRowTemplates = $derived(data.footerRowTemplates);
 const hasModules = $derived(modules.length > 0);
 	const urlAliasLower = $derived((data.urlAlias || '').toLowerCase());
 	const pageForCms = $derived((pageData ?? undefined) as PageData | undefined);
@@ -52,6 +58,9 @@ const hasModules = $derived(modules.length > 0);
 		cmsModules={modules as unknown[]}
 		{headerModules}
 		{footerModules}
+		{headerSticky}
+		{headerRowTemplates}
+		{footerRowTemplates}
 	/>
 {:else}
 	{#if hasModules && pageForCms}
@@ -60,6 +69,9 @@ const hasModules = $derived(modules.length > 0);
 			modules={modules}
 			headerModules={headerModules}
 			footerModules={footerModules}
+			{headerSticky}
+			{headerRowTemplates}
+			{footerRowTemplates}
 		/>
 	{:else if urlAliasLower === 'about'}
 		<AboutTemplateSwitcher page={pageForCms ?? null} />

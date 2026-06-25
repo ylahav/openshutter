@@ -18,6 +18,13 @@ const searchUiVariant = $derived(($activeTemplate === 'noir' ? 'noir' : 'default
 const aliasModules = $derived((data.aliasModules || []) as PageModuleData[]);
 const headerModules = $derived(((data as { headerModules?: unknown }).headerModules ?? []) as PageModuleData[]);
 const footerModules = $derived(((data as { footerModules?: unknown }).footerModules ?? []) as PageModuleData[]);
+const headerSticky = $derived((data as { headerSticky?: unknown }).headerSticky === true);
+const headerRowTemplates = $derived(
+	(data as { headerRowTemplates?: Record<string, string> }).headerRowTemplates
+);
+const footerRowTemplates = $derived(
+	(data as { footerRowTemplates?: Record<string, string> }).footerRowTemplates
+);
 const aliasLayout = $derived(data.aliasPage?.layout && typeof data.aliasPage.layout === 'object'
 			? {
 					gridRows: Number((data.aliasPage.layout as any).gridRows) || 1,
@@ -59,7 +66,15 @@ const pageForRenderer = $derived(hasPageModules
 </svelte:head>
 
 {#if hasPageModules}
-	<PageRenderer page={pageForRenderer as any} modules={hasAliasModules ? aliasModules : searchModules} {headerModules} {footerModules} />
+	<PageRenderer
+		page={pageForRenderer as any}
+		modules={hasAliasModules ? aliasModules : searchModules}
+		{headerModules}
+		{footerModules}
+		{headerSticky}
+		{headerRowTemplates}
+		{footerRowTemplates}
+	/>
 {:else}
 	<SearchTemplateSwitcher {initialQuery} variant={searchUiVariant} />
 {/if}

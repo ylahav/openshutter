@@ -43,6 +43,9 @@
 		modules = [],
 		headerModules = [],
 		footerModules = [],
+		headerSticky = false,
+		headerRowTemplates = undefined,
+		footerRowTemplates = undefined,
 		compact = false,
 		layoutPresetsPreview = undefined
 	}: {
@@ -50,6 +53,9 @@
 		modules?: PageModuleData[];
 		headerModules?: PageModuleData[];
 		footerModules?: PageModuleData[];
+		headerSticky?: boolean;
+		headerRowTemplates?: Record<string, string> | undefined;
+		footerRowTemplates?: Record<string, string> | undefined;
 		compact?: boolean;
 		layoutPresetsPreview?: Record<string, unknown> | null;
 	} = $props();
@@ -196,10 +202,14 @@
 		data-page-key={pageKey || undefined}
 	>
 		{#if hasHeader}
-			<div class="pb-page-header">
+			<div
+				class="pb-page-header{headerSticky ? ' pb-page-header--sticky' : ''}"
+				data-pb-sticky={headerSticky ? 'true' : undefined}
+			>
 				<PageBuilderGrid
 					modules={normalizedHeaderModules}
 					layout={headerLayout}
+					rowTemplateColumnsByRow={headerRowTemplates}
 					{compact}
 					{pageContext}
 				/>
@@ -218,6 +228,7 @@
 				<PageBuilderGrid
 					modules={normalizedFooterModules}
 					layout={footerLayout}
+					rowTemplateColumnsByRow={footerRowTemplates}
 					{compact}
 					{pageContext}
 				/>
@@ -239,3 +250,11 @@
 		/>
 	</div>
 {/if}
+
+<style>
+	.pb-page-header--sticky {
+		position: sticky;
+		top: 0;
+		z-index: 30;
+	}
+</style>

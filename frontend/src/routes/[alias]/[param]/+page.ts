@@ -77,7 +77,13 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 		const chrome =
 			wantsHeader || wantsFooter
 				? resolveTemplateChrome(siteConfig, packId)
-				: { headerModules: [], footerModules: [] };
+				: {
+						headerModules: [],
+						footerModules: [],
+						headerSticky: false,
+						headerRowTemplates: {} as Record<string, string>,
+						footerRowTemplates: {} as Record<string, string>
+					};
 
 		// `cmsSlugPrefix`: same letter used for step-1 slug `${prefix}-${alias}` inside `resolveCmsPublishedPage`.
 		return {
@@ -86,6 +92,9 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 			modules: resolved.modules,
 			headerModules: wantsHeader ? chrome.headerModules : [],
 			footerModules: wantsFooter ? chrome.footerModules : [],
+			headerSticky: wantsHeader ? chrome.headerSticky : false,
+			headerRowTemplates: wantsHeader ? chrome.headerRowTemplates : undefined,
+			footerRowTemplates: wantsFooter ? chrome.footerRowTemplates : undefined,
 			urlAlias: a,
 			urlParam: p,
 			packId,
@@ -100,6 +109,9 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 			modules: [] as unknown[],
 			headerModules: [],
 			footerModules: [],
+			headerSticky: false,
+			headerRowTemplates: undefined as Record<string, string> | undefined,
+			footerRowTemplates: undefined as Record<string, string> | undefined,
 			urlAlias: a,
 			urlParam: p,
 			packId,

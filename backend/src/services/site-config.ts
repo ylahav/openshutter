@@ -208,6 +208,11 @@ export class SiteConfigService {
         'footerModules',
         'headerModulesByPack',
         'footerModulesByPack',
+        'headerStickyByPack',
+        'headerRowTemplates',
+        'headerRowTemplatesByPack',
+        'footerRowTemplates',
+        'footerRowTemplatesByPack',
       ] as const
       for (const k of replaceWhole) {
         if (Object.prototype.hasOwnProperty.call(t, k)) {

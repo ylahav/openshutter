@@ -118,7 +118,13 @@ export const load: PageLoad = async ({ fetch, parent }) => {
   const chrome =
     wantsHeader || wantsFooter
       ? resolveTemplateChrome(visitorSiteConfig, pack)
-      : { headerModules: [], footerModules: [] };
+      : {
+          headerModules: [],
+          footerModules: [],
+          headerSticky: false,
+          headerRowTemplates: {} as Record<string, string>,
+          footerRowTemplates: {} as Record<string, string>
+        };
 
   return {
     rootAlbums,
@@ -127,6 +133,9 @@ export const load: PageLoad = async ({ fetch, parent }) => {
     modules,
     headerModules: wantsHeader ? chrome.headerModules : [],
     footerModules: wantsFooter ? chrome.footerModules : [],
+    headerSticky: wantsHeader ? chrome.headerSticky : false,
+    headerRowTemplates: wantsHeader ? chrome.headerRowTemplates : undefined,
+    footerRowTemplates: wantsFooter ? chrome.footerRowTemplates : undefined,
     homePageStatus
   };
 };

@@ -12,6 +12,9 @@
 		modules: PageModuleData[];
 		headerModules?: PageModuleData[];
 		footerModules?: PageModuleData[];
+		headerSticky?: boolean;
+		headerRowTemplates?: Record<string, string>;
+		footerRowTemplates?: Record<string, string>;
 		error: string | null;
 	} } = $props();
 
@@ -19,6 +22,13 @@ const pageData = $derived(data.page);
 	const modules = $derived(data.modules || []);
 	const headerModules = $derived(((data as { headerModules?: unknown }).headerModules ?? []) as PageModuleData[]);
 	const footerModules = $derived(((data as { footerModules?: unknown }).footerModules ?? []) as PageModuleData[]);
+	const headerSticky = $derived((data as { headerSticky?: unknown }).headerSticky === true);
+	const headerRowTemplates = $derived(
+		(data as { headerRowTemplates?: Record<string, string> }).headerRowTemplates
+	);
+	const footerRowTemplates = $derived(
+		(data as { footerRowTemplates?: Record<string, string> }).footerRowTemplates
+	);
 const loadError = $derived(data.error);
 	const hasError = $derived(!!loadError || !pageData);
 const hasModules = $derived(modules.length > 0);
@@ -40,7 +50,15 @@ const hasModules = $derived(modules.length > 0);
 			<CmsPageTemplateSwitcher page={pageData} error={loadError || 'Page not found'} />
 		</div>
 	{:else if hasModules}
-		<PageRenderer page={pageData} modules={modules} {headerModules} {footerModules} />
+		<PageRenderer
+			page={pageData}
+			modules={modules}
+			{headerModules}
+			{footerModules}
+			{headerSticky}
+			{headerRowTemplates}
+			{footerRowTemplates}
+		/>
 	{:else}
 		<CmsPageTemplateSwitcher page={pageData} />
 	{/if}

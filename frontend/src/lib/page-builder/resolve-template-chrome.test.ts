@@ -97,8 +97,7 @@ describe('resolveTemplateChrome', () => {
 			},
 			'studio'
 		);
-		expect(out.headerModules).toEqual(headerStudio);
-		expect(out.footerModules).toEqual(footerDefault);
+		expect(out).toMatchObject({ headerModules: headerStudio, footerModules: footerDefault });
 	});
 
 	it('falls back to defaults when pack absent from both maps', () => {
@@ -112,20 +111,19 @@ describe('resolveTemplateChrome', () => {
 			},
 			'atelier'
 		);
-		expect(out.headerModules).toEqual(headerDefault);
-		expect(out.footerModules).toEqual(footerDefault);
+		expect(out).toMatchObject({ headerModules: headerDefault, footerModules: footerDefault });
 	});
 
 	it('handles missing template / null siteConfig', () => {
-		expect(resolveTemplateChrome(null, 'studio')).toEqual({
+		expect(resolveTemplateChrome(null, 'studio')).toMatchObject({
 			headerModules: [],
 			footerModules: []
 		});
-		expect(resolveTemplateChrome({}, 'studio')).toEqual({
+		expect(resolveTemplateChrome({}, 'studio')).toMatchObject({
 			headerModules: [],
 			footerModules: []
 		});
-		expect(resolveTemplateChrome({ template: {} }, 'studio')).toEqual({
+		expect(resolveTemplateChrome({ template: {} }, 'studio')).toMatchObject({
 			headerModules: [],
 			footerModules: []
 		});
@@ -142,5 +140,30 @@ describe('resolveTemplateChrome', () => {
 			'studio'
 		);
 		expect(out.headerModules).toEqual(headerDefault);
+	});
+
+	it('defaults headerSticky to false and row templates to empty when nothing is set', () => {
+		const out = resolveTemplateChrome({ template: {} }, 'studio');
+		expect(out.headerSticky).toBe(false);
+		expect(out.headerRowTemplates).toEqual({});
+		expect(out.footerRowTemplates).toEqual({});
+	});
+
+	it('per-pack override wins for headerSticky and row templates', () => {
+		const out = resolveTemplateChrome(
+			{
+				template: {
+					headerSticky: false,
+					headerStickyByPack: { studio: true },
+					headerRowTemplates: { '0': 'auto 1fr auto' },
+					headerRowTemplatesByPack: { studio: { '0': '1-3-1' } },
+					footerRowTemplates: { '0': '1fr 1fr' }
+				}
+			},
+			'studio'
+		);
+		expect(out.headerSticky).toBe(true);
+		expect(out.headerRowTemplates).toEqual({ '0': '1-3-1' });
+		expect(out.footerRowTemplates).toEqual({ '0': '1fr 1fr' });
 	});
 });

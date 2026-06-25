@@ -26,6 +26,9 @@
 	type PackId = 'noir' | 'studio' | 'atelier';
 	type TabId = 'default' | PackId;
 	type ByPackMap = Partial<Record<PackId, PageModuleData[]>>;
+	type StickyByPackMap = Partial<Record<PackId, boolean>>;
+	type RowTemplatesMap = Record<string, string>;
+	type RowTemplatesByPackMap = Partial<Record<PackId, RowTemplatesMap>>;
 
 	const PACK_IDS: PackId[] = ['atelier', 'studio', 'noir'];
 	const TAB_IDS: TabId[] = ['default', ...PACK_IDS];
@@ -47,10 +50,31 @@
 	let headerByPack = $state<ByPackMap>(cloneByPack(data.headerModulesByPack));
 	let footerByPack = $state<ByPackMap>(cloneByPack(data.footerModulesByPack));
 
+	let headerSticky = $state<boolean>(data.headerSticky === true);
+	let headerStickyByPack = $state<StickyByPackMap>(cloneStickyByPack(data.headerStickyByPack));
+	let headerRowTemplates = $state<RowTemplatesMap>(cloneRowTemplates(data.headerRowTemplates));
+	let headerRowTemplatesByPack = $state<RowTemplatesByPackMap>(
+		cloneRowTemplatesByPack(data.headerRowTemplatesByPack)
+	);
+	let footerRowTemplates = $state<RowTemplatesMap>(cloneRowTemplates(data.footerRowTemplates));
+	let footerRowTemplatesByPack = $state<RowTemplatesByPackMap>(
+		cloneRowTemplatesByPack(data.footerRowTemplatesByPack)
+	);
+
 	let savedHeaderModules = $state<PageModuleData[]>(cloneModules(data.headerModules));
 	let savedFooterModules = $state<PageModuleData[]>(cloneModules(data.footerModules));
 	let savedHeaderByPack = $state<ByPackMap>(cloneByPack(data.headerModulesByPack));
 	let savedFooterByPack = $state<ByPackMap>(cloneByPack(data.footerModulesByPack));
+	let savedHeaderSticky = $state<boolean>(data.headerSticky === true);
+	let savedHeaderStickyByPack = $state<StickyByPackMap>(cloneStickyByPack(data.headerStickyByPack));
+	let savedHeaderRowTemplates = $state<RowTemplatesMap>(cloneRowTemplates(data.headerRowTemplates));
+	let savedHeaderRowTemplatesByPack = $state<RowTemplatesByPackMap>(
+		cloneRowTemplatesByPack(data.headerRowTemplatesByPack)
+	);
+	let savedFooterRowTemplates = $state<RowTemplatesMap>(cloneRowTemplates(data.footerRowTemplates));
+	let savedFooterRowTemplatesByPack = $state<RowTemplatesByPackMap>(
+		cloneRowTemplatesByPack(data.footerRowTemplatesByPack)
+	);
 
 	let saving = $state(false);
 	let editing = $state<{ slot: ChromeSlot; module: PageModuleData } | null>(null);
@@ -85,13 +109,72 @@
 
 	const headerDirty = $derived(
 		JSON.stringify(headerModules) !== JSON.stringify(savedHeaderModules) ||
-			JSON.stringify(headerByPack) !== JSON.stringify(savedHeaderByPack)
+			JSON.stringify(headerByPack) !== JSON.stringify(savedHeaderByPack) ||
+			headerSticky !== savedHeaderSticky ||
+			JSON.stringify(headerStickyByPack) !== JSON.stringify(savedHeaderStickyByPack) ||
+			JSON.stringify(headerRowTemplates) !== JSON.stringify(savedHeaderRowTemplates) ||
+			JSON.stringify(headerRowTemplatesByPack) !== JSON.stringify(savedHeaderRowTemplatesByPack)
 	);
 	const footerDirty = $derived(
 		JSON.stringify(footerModules) !== JSON.stringify(savedFooterModules) ||
-			JSON.stringify(footerByPack) !== JSON.stringify(savedFooterByPack)
+			JSON.stringify(footerByPack) !== JSON.stringify(savedFooterByPack) ||
+			JSON.stringify(footerRowTemplates) !== JSON.stringify(savedFooterRowTemplates) ||
+			JSON.stringify(footerRowTemplatesByPack) !== JSON.stringify(savedFooterRowTemplatesByPack)
 	);
 	const isDirty = $derived(headerDirty || footerDirty);
+
+	/**
+	 * Effective sticky/row-templates for the active tab. On the default tab these edit the global
+	 * values; on a pack tab they edit the per-pack override. A pack tab inherits the default until
+	 * the author touches the control, at which point we store an explicit value.
+	 */
+	function activeHeaderSticky(): boolean {
+		if (activeTab === 'default') return headerSticky;
+		const v = headerStickyByPack[activeTab as PackId];
+		return typeof v === 'boolean' ? v : headerSticky;
+	}
+
+	function setActiveHeaderSticky(next: boolean): void {
+		if (activeTab === 'default') {
+			headerSticky = next;
+			return;
+		}
+		headerStickyByPack = { ...headerStickyByPack, [activeTab as PackId]: next };
+	}
+
+	function activeRowTemplates(slot: ChromeSlot): RowTemplatesMap {
+		if (activeTab === 'default') {
+			return slot === 'header' ? headerRowTemplates : footerRowTemplates;
+		}
+		const byPack = slot === 'header' ? headerRowTemplatesByPack : footerRowTemplatesByPack;
+		const fromPack = byPack[activeTab as PackId];
+		if (fromPack && typeof fromPack === 'object') return fromPack;
+		return slot === 'header' ? headerRowTemplates : footerRowTemplates;
+	}
+
+	function setRowTemplate(slot: ChromeSlot, rowIdx: number, value: string): void {
+		const key = String(rowIdx);
+		const trimmed = value.trim();
+		if (activeTab === 'default') {
+			const map = { ...(slot === 'header' ? headerRowTemplates : footerRowTemplates) };
+			if (trimmed) map[key] = trimmed;
+			else delete map[key];
+			if (slot === 'header') headerRowTemplates = map;
+			else footerRowTemplates = map;
+			return;
+		}
+		const pack = activeTab as PackId;
+		const byPack = slot === 'header' ? headerRowTemplatesByPack : footerRowTemplatesByPack;
+		// First touch on a pack tab seeds from the global default so existing rows aren't silently dropped.
+		const base =
+			byPack[pack] && typeof byPack[pack] === 'object'
+				? { ...(byPack[pack] as RowTemplatesMap) }
+				: { ...(slot === 'header' ? headerRowTemplates : footerRowTemplates) };
+		if (trimmed) base[key] = trimmed;
+		else delete base[key];
+		if (slot === 'header') headerRowTemplatesByPack = { ...headerRowTemplatesByPack, [pack]: base };
+		else footerRowTemplatesByPack = { ...footerRowTemplatesByPack, [pack]: base };
+	}
 
 	function cloneModules(list: PageModuleData[] | undefined | null): PageModuleData[] {
 		if (!Array.isArray(list)) return [];
@@ -111,6 +194,37 @@
 		for (const pack of PACK_IDS) {
 			const v = map[pack];
 			if (Array.isArray(v)) out[pack] = cloneModules(v);
+		}
+		return out;
+	}
+
+	function cloneStickyByPack(map: StickyByPackMap | undefined | null): StickyByPackMap {
+		if (!map || typeof map !== 'object') return {};
+		const out: StickyByPackMap = {};
+		for (const pack of PACK_IDS) {
+			const v = map[pack];
+			if (typeof v === 'boolean') out[pack] = v;
+		}
+		return out;
+	}
+
+	function cloneRowTemplates(map: RowTemplatesMap | undefined | null): RowTemplatesMap {
+		if (!map || typeof map !== 'object') return {};
+		const out: RowTemplatesMap = {};
+		for (const [k, v] of Object.entries(map)) {
+			if (typeof v === 'string' && v.trim()) out[k] = v.trim();
+		}
+		return out;
+	}
+
+	function cloneRowTemplatesByPack(
+		map: RowTemplatesByPackMap | undefined | null
+	): RowTemplatesByPackMap {
+		if (!map || typeof map !== 'object') return {};
+		const out: RowTemplatesByPackMap = {};
+		for (const pack of PACK_IDS) {
+			const v = map[pack];
+			if (v && typeof v === 'object') out[pack] = cloneRowTemplates(v);
 		}
 		return out;
 	}
@@ -187,12 +301,25 @@
 	function overrideDefault(): void {
 		if (activeTab === 'default') return;
 		const pack = activeTab as PackId;
-		// "Override default" intentionally seeds an empty array — the cascade renders `[]` as "no chrome
-		// for this pack". Authors then add modules; the builder picks up the new empty grid below.
-		headerByPack = { ...headerByPack, [pack]: [] };
-		footerByPack = { ...footerByPack, [pack]: [] };
-		headerGrid = { rows: 1, cols: 1 };
-		footerGrid = { rows: 1, cols: 1 };
+		/**
+		 * Seed the pack override with a deep copy of the current defaults — modules, sticky, and row
+		 * templates — so authors start from the working header/footer they already see, instead of an
+		 * empty grid they have to rebuild. `cloneModules` mints fresh local `_id`s so editor handlers
+		 * (which key by `_id`) don't conflate pack modules with default modules.
+		 */
+		headerByPack = { ...headerByPack, [pack]: cloneModules(headerModules) };
+		footerByPack = { ...footerByPack, [pack]: cloneModules(footerModules) };
+		headerStickyByPack = { ...headerStickyByPack, [pack]: headerSticky };
+		headerRowTemplatesByPack = {
+			...headerRowTemplatesByPack,
+			[pack]: cloneRowTemplates(headerRowTemplates)
+		};
+		footerRowTemplatesByPack = {
+			...footerRowTemplatesByPack,
+			[pack]: cloneRowTemplates(footerRowTemplates)
+		};
+		headerGrid = inferGridDims(activeHeaderList());
+		footerGrid = inferGridDims(activeFooterList());
 		headerRowStructure = buildEqualRowStructure(headerGrid);
 		footerRowStructure = buildEqualRowStructure(footerGrid);
 	}
@@ -202,10 +329,19 @@
 		const pack = activeTab as PackId;
 		const nextHeader: ByPackMap = { ...headerByPack };
 		const nextFooter: ByPackMap = { ...footerByPack };
+		const nextSticky: StickyByPackMap = { ...headerStickyByPack };
+		const nextHeaderRT: RowTemplatesByPackMap = { ...headerRowTemplatesByPack };
+		const nextFooterRT: RowTemplatesByPackMap = { ...footerRowTemplatesByPack };
 		delete nextHeader[pack];
 		delete nextFooter[pack];
+		delete nextSticky[pack];
+		delete nextHeaderRT[pack];
+		delete nextFooterRT[pack];
 		headerByPack = nextHeader;
 		footerByPack = nextFooter;
+		headerStickyByPack = nextSticky;
+		headerRowTemplatesByPack = nextHeaderRT;
+		footerRowTemplatesByPack = nextFooterRT;
 	}
 
 	function isCellInside(
@@ -330,6 +466,31 @@
 		};
 	}
 
+	function makeMoveCellHandler(slot: ChromeSlot) {
+		return async (moduleId: string, direction: 'left' | 'right') => {
+			const list = getList(slot);
+			const target = list.find((m) => m._id === moduleId);
+			if (!target || target.rowOrder === undefined || target.columnIndex === undefined) return;
+			const siblings = list
+				.filter((m) => Number(m.rowOrder ?? 0) === Number(target.rowOrder ?? 0))
+				.filter((m) => m.columnIndex !== undefined && !m.props?._placeholder)
+				.sort((a, b) => Number(a.columnIndex ?? 0) - Number(b.columnIndex ?? 0));
+			const idx = siblings.findIndex((m) => m._id === target._id);
+			const swapWith = siblings[direction === 'left' ? idx - 1 : idx + 1];
+			if (!swapWith) return;
+			const aCol = Number(target.columnIndex ?? 0);
+			const bCol = Number(swapWith.columnIndex ?? 0);
+			setList(
+				slot,
+				list.map((m) => {
+					if (m._id === target._id) return { ...m, columnIndex: bCol };
+					if (m._id === swapWith._id) return { ...m, columnIndex: aCol };
+					return m;
+				})
+			);
+		};
+	}
+
 	function makeRemoveEmptyColumnHandler(slot: ChromeSlot) {
 		return async (columnIndex: number) => {
 			const list = getList(slot);
@@ -364,7 +525,8 @@
 		moveRow: makeMoveRowHandler('header'),
 		insertRow: makeInsertRowHandler('header'),
 		deleteRow: makeDeleteRowHandler('header'),
-		removeEmptyColumn: makeRemoveEmptyColumnHandler('header')
+		removeEmptyColumn: makeRemoveEmptyColumnHandler('header'),
+		moveCell: makeMoveCellHandler('header')
 	};
 
 	const footerHandlers = {
@@ -374,7 +536,8 @@
 		moveRow: makeMoveRowHandler('footer'),
 		insertRow: makeInsertRowHandler('footer'),
 		deleteRow: makeDeleteRowHandler('footer'),
-		removeEmptyColumn: makeRemoveEmptyColumnHandler('footer')
+		removeEmptyColumn: makeRemoveEmptyColumnHandler('footer'),
+		moveCell: makeMoveCellHandler('footer')
 	};
 
 	function closeEditDialog() {
@@ -400,7 +563,20 @@
 		if (saving) return;
 		saving = true;
 		try {
-			const templatePayload: Record<string, unknown> = {};
+			/**
+			 * Always send the full settings (sticky + row templates, default + per-pack). Sticky and
+			 * row-template state edits land on whichever scope the active tab represents, but they're
+			 * cheap to send wholesale and saving them together keeps the editor's state coherent
+			 * regardless of which tab the author is on.
+			 */
+			const templatePayload: Record<string, unknown> = {
+				headerSticky,
+				headerStickyByPack: { ...headerStickyByPack },
+				headerRowTemplates: { ...headerRowTemplates },
+				headerRowTemplatesByPack: serializeRowTemplatesByPackForApi(headerRowTemplatesByPack),
+				footerRowTemplates: { ...footerRowTemplates },
+				footerRowTemplatesByPack: serializeRowTemplatesByPackForApi(footerRowTemplatesByPack)
+			};
 			if (activeTab === 'default') {
 				templatePayload.headerModules = serializeForApi(headerModules);
 				templatePayload.footerModules = serializeForApi(footerModules);
@@ -426,6 +602,12 @@
 			savedFooterModules = cloneModules(footerModules);
 			savedHeaderByPack = cloneByPack(headerByPack);
 			savedFooterByPack = cloneByPack(footerByPack);
+			savedHeaderSticky = headerSticky;
+			savedHeaderStickyByPack = cloneStickyByPack(headerStickyByPack);
+			savedHeaderRowTemplates = cloneRowTemplates(headerRowTemplates);
+			savedHeaderRowTemplatesByPack = cloneRowTemplatesByPack(headerRowTemplatesByPack);
+			savedFooterRowTemplates = cloneRowTemplates(footerRowTemplates);
+			savedFooterRowTemplatesByPack = cloneRowTemplatesByPack(footerRowTemplatesByPack);
 		} catch (err) {
 			logger.error('Error saving header/footer modules:', err);
 			adminToast.error({
@@ -434,6 +616,15 @@
 		} finally {
 			saving = false;
 		}
+	}
+
+	function serializeRowTemplatesByPackForApi(map: RowTemplatesByPackMap): RowTemplatesByPackMap {
+		const out: RowTemplatesByPackMap = {};
+		for (const pack of PACK_IDS) {
+			const v = map[pack];
+			if (v && typeof v === 'object') out[pack] = { ...v };
+		}
+		return out;
 	}
 
 	/**
@@ -461,6 +652,12 @@
 		footerModules = cloneModules(savedFooterModules);
 		headerByPack = cloneByPack(savedHeaderByPack);
 		footerByPack = cloneByPack(savedFooterByPack);
+		headerSticky = savedHeaderSticky;
+		headerStickyByPack = cloneStickyByPack(savedHeaderStickyByPack);
+		headerRowTemplates = cloneRowTemplates(savedHeaderRowTemplates);
+		headerRowTemplatesByPack = cloneRowTemplatesByPack(savedHeaderRowTemplatesByPack);
+		footerRowTemplates = cloneRowTemplates(savedFooterRowTemplates);
+		footerRowTemplatesByPack = cloneRowTemplatesByPack(savedFooterRowTemplatesByPack);
 		headerGrid = inferGridDims(activeHeaderList());
 		footerGrid = inferGridDims(activeFooterList());
 		headerRowStructure = buildEqualRowStructure(headerGrid);
@@ -625,6 +822,46 @@
 							class="w-20 rounded border border-surface-300-700 bg-surface-50-950 px-2 py-1"
 						/>
 					</label>
+					<label class="flex items-center gap-2">
+						<input
+							type="checkbox"
+							checked={activeHeaderSticky()}
+							onchange={(e) =>
+								setActiveHeaderSticky((e.currentTarget as HTMLInputElement).checked)}
+						/>
+						<span class="text-(--color-surface-700-300)">
+							{$t('admin.headerFooterStickyLabel')}
+						</span>
+					</label>
+				</div>
+				<div class="rounded-md border border-surface-200-800 p-3">
+					<div class="text-sm font-semibold text-(--color-surface-950-50) mb-1">
+						{$t('admin.headerFooterRowTemplatesTitle')}
+					</div>
+					<p class="text-xs text-(--color-surface-600-400) mb-3">
+						{$t('admin.headerFooterRowTemplatesHelp')}
+					</p>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+						{#each Array(Math.max(1, headerGrid.rows)) as _, rIdx (rIdx)}
+							<div>
+								<label
+									for={`hf-header-row-template-${rIdx}`}
+									class="block text-xs font-medium text-(--color-surface-800-200) mb-1"
+								>
+									{$t('admin.headerFooterRowTemplateRowLabel').replace('{n}', String(rIdx + 1))}
+								</label>
+								<input
+									id={`hf-header-row-template-${rIdx}`}
+									type="text"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) text-sm"
+									value={activeRowTemplates('header')[String(rIdx)] ?? ''}
+									placeholder={$t('admin.headerFooterRowTemplateDefault')}
+									oninput={(e) =>
+										setRowTemplate('header', rIdx, (e.currentTarget as HTMLInputElement).value)}
+								/>
+							</div>
+						{/each}
+					</div>
 				</div>
 				{#if activeHeaderList().length === 0}
 					<p
@@ -645,6 +882,7 @@
 					onInsertRow={headerHandlers.insertRow}
 					onDeleteRow={headerHandlers.deleteRow}
 					onRemoveEmptyColumn={headerHandlers.removeEmptyColumn}
+					onMoveCell={headerHandlers.moveCell}
 					availableModuleTypes={HEADER_MODULE_OPTIONS.map((m) => ({ value: m.type, label: m.label }))}
 				/>
 			</section>
@@ -686,6 +924,35 @@
 						/>
 					</label>
 				</div>
+				<div class="rounded-md border border-surface-200-800 p-3">
+					<div class="text-sm font-semibold text-(--color-surface-950-50) mb-1">
+						{$t('admin.headerFooterRowTemplatesTitle')}
+					</div>
+					<p class="text-xs text-(--color-surface-600-400) mb-3">
+						{$t('admin.headerFooterRowTemplatesHelp')}
+					</p>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+						{#each Array(Math.max(1, footerGrid.rows)) as _, rIdx (rIdx)}
+							<div>
+								<label
+									for={`hf-footer-row-template-${rIdx}`}
+									class="block text-xs font-medium text-(--color-surface-800-200) mb-1"
+								>
+									{$t('admin.headerFooterRowTemplateRowLabel').replace('{n}', String(rIdx + 1))}
+								</label>
+								<input
+									id={`hf-footer-row-template-${rIdx}`}
+									type="text"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) text-sm"
+									value={activeRowTemplates('footer')[String(rIdx)] ?? ''}
+									placeholder={$t('admin.headerFooterRowTemplateDefault')}
+									oninput={(e) =>
+										setRowTemplate('footer', rIdx, (e.currentTarget as HTMLInputElement).value)}
+								/>
+							</div>
+						{/each}
+					</div>
+				</div>
 				{#if activeFooterList().length === 0}
 					<p
 						class="text-sm text-(--color-surface-600-400) py-3 px-4 border border-dashed border-surface-300-700 rounded-md bg-(--color-surface-50-950)"
@@ -705,6 +972,7 @@
 					onInsertRow={footerHandlers.insertRow}
 					onDeleteRow={footerHandlers.deleteRow}
 					onRemoveEmptyColumn={footerHandlers.removeEmptyColumn}
+					onMoveCell={footerHandlers.moveCell}
 					availableModuleTypes={FOOTER_MODULE_OPTIONS.map((m) => ({ value: m.type, label: m.label }))}
 				/>
 			</section>

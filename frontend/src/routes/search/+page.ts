@@ -69,7 +69,13 @@ export const load: PageLoad = async ({ fetch, parent }) => {
 	const chrome =
 		wantsHeader || wantsFooter
 			? resolveTemplateChrome(resolvedSiteConfig, resolvedPack)
-			: { headerModules: [], footerModules: [] };
+			: {
+					headerModules: [],
+					footerModules: [],
+					headerSticky: false,
+					headerRowTemplates: {} as Record<string, string>,
+					footerRowTemplates: {} as Record<string, string>
+				};
 
 	return {
 		aliasPage,
@@ -77,7 +83,10 @@ export const load: PageLoad = async ({ fetch, parent }) => {
 		pageModules,
 		pageLayout,
 		headerModules: wantsHeader ? chrome.headerModules : [],
-		footerModules: wantsFooter ? chrome.footerModules : []
+		footerModules: wantsFooter ? chrome.footerModules : [],
+		headerSticky: wantsHeader ? chrome.headerSticky : false,
+		headerRowTemplates: wantsHeader ? chrome.headerRowTemplates : undefined,
+		footerRowTemplates: wantsFooter ? chrome.footerRowTemplates : undefined
 	};
 };
 

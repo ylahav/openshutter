@@ -10,7 +10,10 @@
 		rolePage,
 		cmsModules,
 		headerModules = [],
-		footerModules = []
+		footerModules = [],
+		headerSticky = false,
+		headerRowTemplates = undefined,
+		footerRowTemplates = undefined
 	}: {
 		/** Resolved CMS login page document (or minimal stub from `role=login`). */
 		rolePage: Record<string, unknown> | null;
@@ -18,6 +21,9 @@
 		cmsModules: unknown[] | null;
 		headerModules?: PageModuleData[];
 		footerModules?: PageModuleData[];
+		headerSticky?: boolean;
+		headerRowTemplates?: Record<string, string> | undefined;
+		footerRowTemplates?: Record<string, string> | undefined;
 	} = $props();
 
 	function cloneModules(mods: any[]): any[] {
@@ -134,4 +140,12 @@
 	<title>Sign In - {$productName}</title>
 </svelte:head>
 
-<PageRenderer page={loginPage as any} modules={loginModules as any} {headerModules} {footerModules} />
+<PageRenderer
+	page={loginPage as any}
+	modules={loginModules as any}
+	{headerModules}
+	{footerModules}
+	{headerSticky}
+	{headerRowTemplates}
+	{footerRowTemplates}
+/>
