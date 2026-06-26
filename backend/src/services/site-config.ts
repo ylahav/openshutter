@@ -197,6 +197,7 @@ export class SiteConfigService {
         'layoutPresets',
         'layoutShellInstances',
         'menuInstances',
+        'moduleInstances',
         'customLayout',
         'customLayoutByBreakpoint',
         'customColors',
@@ -259,6 +260,9 @@ export class SiteConfigService {
       }
       if (Object.prototype.hasOwnProperty.call(t, 'menuInstances')) {
         mergedConfig.template.menuInstances = { ...(t.menuInstances ?? {}) }
+      }
+      if (Object.prototype.hasOwnProperty.call(t, 'moduleInstances')) {
+        mergedConfig.template.moduleInstances = { ...(t.moduleInstances ?? {}) }
       }
       if (t.frontendTemplate !== undefined) mergedConfig.template.frontendTemplate = t.frontendTemplate
       if (t.activeTemplate !== undefined) mergedConfig.template.activeTemplate = t.activeTemplate

@@ -67,6 +67,15 @@ export interface SiteConfig {
     layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: any[] }>
     /** Shared menu instances (for MenuModule `props.instanceRef`). */
     menuInstances?: Record<string, { items?: any[]; [key: string]: any }>
+    /**
+     * Shared, named instances for any module type with non-trivial props.
+     * Shape: `{ [moduleType]: { [instanceName]: { props } } }`. A placement opts in by
+     * setting `props.instanceRef = "<name>"`; PageRenderer merges the instance's stored
+     * props beneath the placement-level props (placement wins). Sibling registries
+     * `menuInstances` / `layoutShellInstances` remain authoritative for their own
+     * module types.
+     */
+    moduleInstances?: Record<string, Record<string, { props?: Record<string, any> }>>
     /** Site-wide chrome rendered by `PageRenderer` above pages that opt in via `page.showHeader`. */
     headerModules?: any[]
     /** Site-wide chrome rendered by `PageRenderer` below pages that opt in via `page.showFooter`. */

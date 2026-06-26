@@ -99,6 +99,15 @@ export interface SiteConfig {
     layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
     /** Shared layout-shell instances (preferred key; alias => grid + modules). */
     layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
+    /**
+     * Shared, named instances for any module type with non-trivial props.
+     * Shape: `{ [moduleType]: { [instanceName]: { props } } }`. A placement opts in by
+     * setting `props.instanceRef = "<name>"`; `PageRenderer` merges the instance's
+     * stored props beneath the placement-level props (placement wins). Sibling
+     * registries `menuInstances` / `layoutShellInstances` remain authoritative for
+     * their own module types.
+     */
+    moduleInstances?: Record<string, Record<string, { props?: Record<string, unknown> }>>
     /** Site-wide chrome rendered by `PageRenderer` above pages that set `showHeader: true`. */
     headerModules?: PageModuleData[]
     /** Site-wide chrome rendered by `PageRenderer` below pages that set `showFooter: true`. */

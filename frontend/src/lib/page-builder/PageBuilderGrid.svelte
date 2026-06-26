@@ -4,6 +4,7 @@
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import type { ModulePlacement } from '$lib/page-builder/module-cell-placement';
 	import { omitPlacement, placementCellStyle, placementGridCellClassNames } from '$lib/page-builder/module-cell-placement';
+	import { resolveModuleProps } from '$lib/page-builder/module-instances';
 	import {
 		hardenGridFrTracks,
 		shellGridTemplateColumns
@@ -250,8 +251,9 @@
 			>
 				{#if moduleMap[placed.module.type]}
 					{@const Mod = moduleMap[placed.module.type]}
+					{@const resolvedSpan = resolveModuleProps($siteConfigData, placed.module.type, placed.module.props as Record<string, unknown>) ?? placed.module.props}
 					<Mod
-						{...omitPlacement(placed.module.props)}
+						{...omitPlacement(resolvedSpan)}
 						data={pageContext}
 						{compact}
 					/>
@@ -268,8 +270,9 @@
 			{#if shellCol?.module}
 				{#if moduleMap[shellCol.module.type]}
 					{@const Mod = moduleMap[shellCol.module.type]}
+					{@const resolvedShell = resolveModuleProps($siteConfigData, shellCol.module.type, shellCol.module.props as Record<string, unknown>) ?? shellCol.module.props}
 					<Mod
-						{...omitPlacement(shellCol.module.props)}
+						{...omitPlacement(resolvedShell)}
 						className={wrapperClassName(shellCol.module, $activeTemplate)}
 						data={pageContext}
 						{compact}
@@ -301,8 +304,9 @@
 						{#if col.module}
 							{#if moduleMap[col.module.type]}
 								{@const Mod = moduleMap[col.module.type]}
+								{@const resolvedFlex = resolveModuleProps($siteConfigData, col.module.type, col.module.props as Record<string, unknown>) ?? col.module.props}
 								<Mod
-									{...omitPlacement(col.module.props)}
+									{...omitPlacement(resolvedFlex)}
 									data={pageContext}
 									{compact}
 								/>
