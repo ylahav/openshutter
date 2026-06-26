@@ -21,6 +21,7 @@
 	import PageFilters from './components/PageFilters.svelte';
 	import PageList from './components/PageList.svelte';
 	import ModulePropsForm from '$lib/components/ModulePropsForm.svelte';
+	import ModuleInstancePicker from '$lib/components/admin/ModuleInstancePicker.svelte';
 	import {
 		legacySocialObjectToLinksJson,
 		parseLinksJson
@@ -317,6 +318,8 @@
 		order: 0,
 		propsJson: '{}'
 	});
+	/** `props.instanceRef` for the generic moduleInstances registry (separate from menu/layoutShell own refs). */
+	let moduleInstanceRef = $state<string | undefined>(undefined);
 
 	// Form state
 	let formData = $state({
@@ -769,6 +772,7 @@ let layoutShellInstances: Record<
 			order: 0,
 			propsJson: '{}'
 		};
+		moduleInstanceRef = undefined;
 		layoutShellPresetKey = '';
 		layoutShellReusePick = '';
 		layoutShellPresetError = '';
@@ -1279,6 +1283,24 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		return next;
 	}
 
+	/**
+	 * Inject the picker's `instanceRef` into the placement props so PageBuilderGrid's
+	 * generic resolver can merge `template.moduleInstances[type][name].props` underneath
+	 * at render time. `menu` and `layoutShell` keep their own dedicated registries, so
+	 * we don't overwrite the ref they already wrote.
+	 */
+	function applyGenericInstanceRef(props: Record<string, unknown>): Record<string, unknown> {
+		if (moduleForm.type === 'menu' || moduleForm.type === 'layoutShell') return props;
+		if (moduleInstanceRef && moduleInstanceRef.trim()) {
+			return { ...props, instanceRef: moduleInstanceRef.trim() };
+		}
+		if ('instanceRef' in props) {
+			const { instanceRef: _stale, ...rest } = props;
+			return rest;
+		}
+		return props;
+	}
+
 	function editModule(module: PageModuleData) {
 		editingModule = module;
 		moduleForm = {
@@ -1289,6 +1311,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			propsJson: JSON.stringify(module.props || {}, null, 2)
 		};
 		moduleWrapperClassName = String((module.props as Record<string, unknown> | undefined)?.className ?? '').trim();
+		const existingRef = (module.props as Record<string, unknown> | undefined)?.instanceRef;
+		moduleInstanceRef = typeof existingRef === 'string' && existingRef.trim() ? existingRef : undefined;
 		
 		// Initialize feature grid form if it's a featureGrid module
 		if (module.type === 'featureGrid') {
@@ -1593,6 +1617,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			}
 
 			props = applyModuleWrapperClassName(props as Record<string, unknown>);
+			props = applyGenericInstanceRef(props as Record<string, unknown>);
 			// Layout shell popup mode: update the shell-instance module list locally.
 			if (editingLayoutShellModule) {
 				layoutShellEditorModules = layoutShellEditorModules.map((m) =>
@@ -1754,6 +1779,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			}
 
 			props = applyModuleWrapperClassName(props as Record<string, unknown>);
+			props = applyGenericInstanceRef(props as Record<string, unknown>);
 			const propsPayload: Record<string, unknown> = { ...props };
 			const payload: ModulePayload = {
 				type: moduleForm.type,
@@ -2567,6 +2593,12 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						{/each}
 					</select>
 				</div>
+
+				<ModuleInstancePicker
+					moduleType={moduleForm.type}
+					value={moduleInstanceRef}
+					onChange={(v) => (moduleInstanceRef = v)}
+				/>
 
 				{#if moduleForm.type === 'featureGrid'}
 					<!-- Feature Grid Form -->

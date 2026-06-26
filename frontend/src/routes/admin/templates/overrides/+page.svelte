@@ -74,6 +74,7 @@
 	} from '$lib/page-builder/modules/SocialMedia/resolveLinks';
 	import ModulePropsForm from '$lib/components/ModulePropsForm.svelte';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
+	import ModuleInstancePicker from '$lib/components/admin/ModuleInstancePicker.svelte';
 
 	/** Readable defaults when template / overrides omit a key (also fixes invisible #000 on white fields). */
 	const DEFAULT_COLOR_HEX: Record<string, string> = {
@@ -4660,6 +4661,19 @@ let draggedAlbumHeaderField: string | null = null;
 				</div>
 
 				<ModuleCellPlacementControls bind:editingModule />
+
+				<ModuleInstancePicker
+					moduleType={editingModule.type}
+					value={typeof editingModule.props?.instanceRef === 'string'
+						? (editingModule.props.instanceRef as string)
+						: undefined}
+					onChange={(v) => {
+						const nextProps = { ...(editingModule.props || {}) };
+						if (v) nextProps.instanceRef = v;
+						else delete nextProps.instanceRef;
+						editingModule = { ...editingModule, props: nextProps };
+					}}
+				/>
 
 				{#if layoutShellPresetKeyError && editingModule.type !== 'layoutShell'}
 					<p class="text-sm text-red-600" role="alert">{layoutShellPresetKeyError}</p>
