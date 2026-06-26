@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
 	import { MultiLangUtils } from '$utils/multiLang';
-	import { currentLanguage } from '$stores/i18n';
+	import { currentLanguage } from '$stores/language';
 	import type { MultiLangText } from '$lib/types/multi-lang';
 
 	type PhotoConfig = {
