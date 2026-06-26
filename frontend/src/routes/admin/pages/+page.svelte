@@ -162,6 +162,7 @@
 		{ value: 'socialMedia', label: 'Social media' },
 		{ value: 'hero', label: 'Hero' },
 		{ value: 'heroStats', label: 'Hero Stats' },
+		{ value: 'photo', label: 'Photo' },
 		{ value: 'richText', label: 'Rich Text' },
 		{ value: 'divider', label: 'Horizontal line' },
 		{ value: 'featureGrid', label: 'Feature Grid' },
@@ -320,6 +321,7 @@
 	});
 	/** `props.instanceRef` for the generic moduleInstances registry (separate from menu/layoutShell own refs). */
 	let moduleInstanceRef = $state<string | undefined>(undefined);
+	let photoModuleProps = $state<Record<string, any>>({});
 
 	// Form state
 	let formData = $state({
@@ -790,6 +792,7 @@ let layoutShellInstances: Record<
 		searchFormModuleProps = {};
 		searchResultsModuleProps = {};
 		loginFormModuleProps = {};
+		photoModuleProps = {};
 		editingLayoutShellModule = false;
 		moduleWrapperClassName = '';
 		pageTitleShowTitle = true;
@@ -1373,6 +1376,13 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			heroModuleProps = {};
 		}
 
+		if (module.type === 'photo') {
+			const p = (module.props || {}) as Record<string, unknown>;
+			photoModuleProps = { ...p };
+		} else {
+			photoModuleProps = {};
+		}
+
 		// Initialize albums grid module form if it's an albumsGrid module
 		if (module.type === 'albumsGrid') {
 			const props = module.props || {};
@@ -1554,6 +1564,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				};
 			} else if (moduleForm.type === 'hero') {
 				props = { ...heroModuleProps } as HeroProps;
+			} else if (moduleForm.type === 'photo') {
+				props = { ...photoModuleProps } as Record<string, unknown>;
 			} else if (moduleForm.type === 'albumsGrid') {
 				// Handle albumsGrid module
 				props = {
@@ -1719,6 +1731,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				};
 			} else if (moduleForm.type === 'hero') {
 				props = { ...heroModuleProps } as HeroProps;
+			} else if (moduleForm.type === 'photo') {
+				props = { ...photoModuleProps } as Record<string, unknown>;
 			} else if (moduleForm.type === 'albumsGrid') {
 				props = {
 					title: albumsGridTitle,
@@ -2783,6 +2797,15 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							onChange={(p) => (heroModuleProps = p)}
 						/>
 					</div>
+				{:else if moduleForm.type === 'photo'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<ModulePropsForm
+							moduleType="photo"
+							showPlacementInGrid={false}
+							props={photoModuleProps}
+							onChange={(p) => (photoModuleProps = p)}
+						/>
+					</div>
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
@@ -3763,6 +3786,15 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							onChange={(p) => (heroModuleProps = p)}
 						/>
 					</div>
+				{:else if moduleForm.type === 'photo'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<ModulePropsForm
+							moduleType="photo"
+							showPlacementInGrid={false}
+							props={photoModuleProps}
+							onChange={(p) => (photoModuleProps = p)}
+						/>
+					</div>
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
@@ -4500,6 +4532,15 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							moduleType="hero"
 							props={heroModuleProps}
 							onChange={(p) => (heroModuleProps = p)}
+						/>
+					</div>
+				{:else if moduleForm.type === 'photo'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<ModulePropsForm
+							moduleType="photo"
+							showPlacementInGrid={false}
+							props={photoModuleProps}
+							onChange={(p) => (photoModuleProps = p)}
 						/>
 					</div>
 				{:else if moduleForm.type === 'contactForm'}

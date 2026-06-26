@@ -4,6 +4,7 @@
 	import MultiLangHTMLEditor from './MultiLangHTMLEditor.svelte';
 	import ImageUrlWithUpload from './ImageUrlWithUpload.svelte';
 	import { heroConfig } from '$lib/page-builder/modules/Hero/config';
+	import { photoConfig } from '$lib/page-builder/modules/Photo/config';
 	import { richTextConfig } from '$lib/page-builder/modules/RichText/config';
 	import { featureGridConfig } from '$lib/page-builder/modules/FeatureGrid/config';
 	import { albumGalleryConfig } from '$lib/page-builder/modules/AlbumGallery/config';
@@ -37,6 +38,7 @@
 	// Map module types to their configs
 	const moduleConfigMap: Record<string, any> = {
 		hero: heroConfig,
+		photo: photoConfig,
 		richText: richTextConfig,
 		featureGrid: featureGridConfig,
 		albumsGrid: albumGalleryConfig,

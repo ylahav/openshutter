@@ -529,6 +529,7 @@
 			'searchResults',
 			'hero',
 			'heroStats',
+			'photo',
 			'richText',
 			'divider',
 			'featureGrid',
@@ -5652,6 +5653,17 @@ let draggedAlbumHeaderField: string | null = null;
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<ModulePropsForm
 							moduleType="hero"
+							showPlacementInGrid={false}
+							props={editingModule.props || {}}
+							onChange={(next) => {
+								editingModule = { ...editingModule, props: { ...next } };
+							}}
+						/>
+					</div>
+				{:else if editingModule.type === 'photo'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<ModulePropsForm
+							moduleType="photo"
 							showPlacementInGrid={false}
 							props={editingModule.props || {}}
 							onChange={(next) => {

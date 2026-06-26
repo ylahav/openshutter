@@ -56,6 +56,7 @@ These **`type`** aliases are registered today in **`PAGE_MODULE_TYPES`** (`front
 |----------------|-------------|----------------|
 | `hero` | Hero | Content |
 | `heroStats` | Hero Stats | Content |
+| `photo` | Photo | Content |
 | `richText` | Rich Text | Content; Footer |
 | `featureGrid` | Feature Grid | Content |
 | `albumsGrid` | Albums Grid | Content |
@@ -81,6 +82,17 @@ Legacy saved type **`albumGallery`** is normalized to **`albumView`** in `PageRe
 ### `loginForm` and public `/login`
 
 Visitor **`/login`** is **`routes/[alias]`** with **`LoginCmsPageBody`**, which merges **`site_config.template.pageModules.login`** (and breakpoint variants) with the CMS login page’s modules when present. UI: **`LoginForm/Layout.svelte`**. The **document** landmark **`main`** is **`BodyTemplateWrapper`**; the block root is **`<section class="pb-login">`** so there is no nested **`main`**. Pack styling uses **`section.pb-login`** under **`.tpl-pack-*`** (see **`frontend/src/lib/page-builder/modules/styles/_login-pb.scss`** and pack **`_login.scss`** partials). Details: **`frontend/src/lib/page-builder/modules/LoginForm/README.md`**.
+
+### Shared module instances (`template.moduleInstances`)
+
+Any module placement can opt into a **named, shared configuration** by setting **`props.instanceRef = "<name>"`**. The instance lives at **`site_config.template.moduleInstances[type][name].props`** and is merged underneath the placement's own props at render time — **placement always wins** on a per-key basis.
+
+- **Storage:** `Record<moduleType, Record<instanceName, { props }>>` on `SiteConfig.template`. Backend service `replaceWhole` includes the key, so the field round-trips without deep-merge surprises.
+- **Resolver:** `frontend/src/lib/page-builder/module-instances.ts` (`resolveModuleProps`). `PageBuilderGrid` calls it in all three render branches (spanning grid, single-layoutShell row, flex row).
+- **Excluded types:** `menu` and `layoutShell` keep their own dedicated pools (`menuInstances`, `layoutShellInstances`); the generic resolver skips them. `divider` / `pageTitle` carry no reusable props worth promoting.
+- **Admin UI:** **Admin → Modules** (`/admin/modules`) is the CRUD surface — create, edit, duplicate, delete instances grouped by type. Each instance is edited through the shared `ModulePropsForm` so every module type with a `config.ts` (Hero, RichText, Photo, FeatureGrid, AlbumsGrid, CTA, …) gets a real form for free.
+- **Picker:** the module-edit dialog in `/admin/pages` and `/admin/templates/overrides` shows a **"Use shared instance"** dropdown via `lib/components/admin/ModuleInstancePicker.svelte`. Selecting an instance writes `instanceRef`; clearing it strips the ref.
+- **No migration:** existing inline-prop placements keep working unchanged. Promoting a placement to an instance is opt-in.
 
 ---
 
