@@ -56,6 +56,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 			{ href: '/admin/templates', labelKey: 'admin.sidebarNavTemplates', icon: 'template' },
 			{ href: '/admin/theme-layout', labelKey: 'admin.sidebarNavTemplateLayout', icon: 'layout' },
 			{ href: '/admin/pages', labelKey: 'admin.sidebarNavPages', icon: 'page' },
+			{ href: '/admin/modules', labelKey: 'admin.sidebarNavModules', icon: 'template' },
 			{ href: '/admin/translations', labelKey: 'admin.sidebarNavTranslations', icon: 'translate' },
 		],
 	},
