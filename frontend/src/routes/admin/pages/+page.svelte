@@ -22,6 +22,8 @@
 	import PageList from './components/PageList.svelte';
 	import ModulePropsForm from '$lib/components/ModulePropsForm.svelte';
 	import ModuleInstancePicker from '$lib/components/admin/ModuleInstancePicker.svelte';
+	import { get } from 'svelte/store';
+	import { siteConfigData } from '$stores/siteConfig';
 	import {
 		legacySocialObjectToLinksJson,
 		parseLinksJson
@@ -1302,6 +1304,119 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			return rest;
 		}
 		return props;
+	}
+
+	/** Read an instance's stored props from the live siteConfig store, or `null` if unknown. */
+	function getInstanceProps(type: string, name: string): Record<string, unknown> | null {
+		if (!type || !name) return null;
+		const sc = get(siteConfigData);
+		const entry = sc?.template?.moduleInstances?.[type]?.[name];
+		const p = entry?.props;
+		return p && typeof p === 'object' ? (p as Record<string, unknown>) : null;
+	}
+
+	/**
+	 * Decompose a flat props object into the dialog's per-type form state so the
+	 * editor reflects the instance's stored configuration. Mirrors `editModule()`'s
+	 * init switch but doesn't touch placement metadata (rowSpan, columnIndex, …).
+	 * Falls back to `moduleForm.propsJson` for types without a dedicated state.
+	 */
+	function loadFormStateFromProps(type: string, raw: Record<string, unknown>) {
+		const props = raw || {};
+		// Module-type → state-var population, mirroring `editModule()`'s switch.
+		if (type === 'featureGrid') {
+			const items = Array.isArray((props as { features?: unknown }).features)
+				? ((props as { features?: unknown[] }).features as Array<Record<string, unknown>>)
+				: [];
+			featureGridTitle =
+				typeof props.title === 'string'
+					? { en: props.title, he: '' }
+					: ((props.title as MultiLangText) || { en: '', he: '' });
+			featureGridSubtitle =
+				typeof props.subtitle === 'string'
+					? { en: props.subtitle, he: '' }
+					: ((props.subtitle as MultiLangText) || { en: '', he: '' });
+			featureGridItems = items.map((f) => ({
+				icon: String(f.icon ?? ''),
+				title:
+					typeof f.title === 'string'
+						? { en: f.title, he: '' }
+						: ((f.title as MultiLangText) || { en: '', he: '' }),
+				description:
+					typeof f.description === 'string'
+						? { en: f.description, he: '' }
+						: ((f.description as MultiLangHTML) || { en: '', he: '' })
+			}));
+		} else if (type === 'richText') {
+			richTextTitle =
+				typeof props.title === 'string'
+					? { en: props.title, he: '' }
+					: ((props.title as MultiLangText) || { en: '', he: '' });
+			richTextBody =
+				typeof props.body === 'string'
+					? { en: props.body, he: '' }
+					: ((props.body as MultiLangHTML) || { en: '', he: '' });
+			richTextBackground =
+				(props.background as 'white' | 'gray' | 'transparent' | 'custom') ?? 'white';
+			richTextBackgroundColor = String((props as { backgroundColor?: unknown }).backgroundColor ?? '');
+		} else if (type === 'hero') {
+			heroModuleProps = { ...props };
+		} else if (type === 'photo') {
+			photoModuleProps = { ...props };
+		} else if (type === 'albumsGrid') {
+			albumsGridTitle =
+				typeof props.title === 'string'
+					? { en: props.title, he: '' }
+					: ((props.title as MultiLangText) || { en: '', he: '' });
+			albumsGridDescription =
+				typeof props.description === 'string'
+					? { en: props.description, he: '' }
+					: ((props.description as MultiLangText) || { en: '', he: '' });
+			albumsGridSelectedAlbums = Array.isArray(
+				(props as { selectedAlbums?: unknown }).selectedAlbums
+			)
+				? (((props as { selectedAlbums?: unknown[] }).selectedAlbums as string[]) ?? [])
+				: [];
+			albumsGridAlbumCardLayout =
+				(props as { albumCardLayout?: 'stack' | 'row' }).albumCardLayout === 'row' ? 'row' : 'stack';
+		} else if (type === 'albumView') {
+			albumViewModuleProps = { ...props };
+		} else if (type === 'socialMedia') {
+			socialMediaModuleProps = { ...props };
+		} else if (type === 'contactForm') {
+			contactFormModuleProps = { ...props };
+		} else if (type === 'searchForm') {
+			searchFormModuleProps = { ...props };
+		} else if (type === 'searchBar') {
+			searchBarModuleProps = { ...props };
+		} else if (type === 'searchFilter') {
+			searchFilterModuleProps = { ...props };
+		} else if (type === 'searchResults') {
+			searchResultsModuleProps = { ...props };
+		} else if (type === 'loginForm') {
+			loginFormModuleProps = { ...props };
+		} else if (type === 'logo') {
+			logoModuleProps = { ...props };
+		} else if (type === 'pageTitle') {
+			pageTitleShowTitle = props.showTitle !== false;
+			pageTitleShowSubtitle = props.showSubtitle !== false;
+			pageTitleAlign = (props.align as 'left' | 'center') === 'left' ? 'left' : 'center';
+		} else if (type === 'blogCategory') {
+			blogCategoryAlias = String((props as { categoryAlias?: unknown }).categoryAlias ?? '');
+			// Stash the rest as JSON so the legacy fallback editor sees the same values.
+			moduleForm.propsJson = JSON.stringify(props, null, 2);
+		} else {
+			moduleForm.propsJson = JSON.stringify(props, null, 2);
+		}
+		moduleWrapperClassName = String((props as { className?: unknown }).className ?? '').trim();
+	}
+
+	/** Picker change handler: write the ref, and pre-fill the form with the instance's data. */
+	function handleInstancePickerChange(next: string | undefined) {
+		moduleInstanceRef = next;
+		if (!next) return;
+		const inst = getInstanceProps(moduleForm.type, next);
+		if (inst) loadFormStateFromProps(moduleForm.type, inst);
 	}
 
 	function editModule(module: PageModuleData) {
@@ -2611,7 +2726,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<ModuleInstancePicker
 					moduleType={moduleForm.type}
 					value={moduleInstanceRef}
-					onChange={(v) => (moduleInstanceRef = v)}
+					onChange={handleInstancePickerChange}
 				/>
 
 				{#if moduleForm.type === 'featureGrid'}

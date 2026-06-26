@@ -4669,9 +4669,17 @@ let draggedAlbumHeaderField: string | null = null;
 						? (editingModule.props.instanceRef as string)
 						: undefined}
 					onChange={(v) => {
-						const nextProps = { ...(editingModule.props || {}) };
-						if (v) nextProps.instanceRef = v;
-						else delete nextProps.instanceRef;
+						let nextProps = { ...(editingModule.props || {}) };
+						if (v) {
+							// Pre-fill the editor with the instance's stored props so the user can see
+							// what they're inheriting. Placement keys already set survive the merge.
+							const inst =
+								($siteConfigData?.template?.moduleInstances?.[editingModule.type]?.[v]
+									?.props as Record<string, unknown> | undefined) || {};
+							nextProps = { ...inst, ...nextProps, instanceRef: v };
+						} else {
+							delete nextProps.instanceRef;
+						}
 						editingModule = { ...editingModule, props: nextProps };
 					}}
 				/>
