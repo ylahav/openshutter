@@ -87,10 +87,34 @@
 		return Array.from(rowMap.values()).sort((a, b) => a.rowOrder - b.rowOrder);
 	}
 
-	const rows = $derived(buildRows(modules));
+	/**
+	 * When the page layout declares more columns than any row has placed modules,
+	 * pad the row with empty cells so the flex renderer (`!hasSpanning` branch)
+	 * keeps the explicit grid width — otherwise a 2-column row with a single placed
+	 * module collapses to one full-width cell.
+	 */
+	function padRowsToGridColumns(rs: RowData[], gridColumns: number): RowData[] {
+		if (!Number.isFinite(gridColumns) || gridColumns <= 1) return rs;
+		return rs.map((row) => {
+			// Preserve full-width semantics for a row that contains a single layoutShell module —
+			// it has its own dedicated render branch and should not be reflowed into a multi-cell row.
+			if (isSingleLayoutShellRow(row)) return row;
+			const present = new Set(row.columns.map((c) => c.columnIndex));
+			const columns = [...row.columns];
+			for (let i = 0; i < gridColumns; i++) {
+				if (!present.has(i)) {
+					columns.push({ columnIndex: i, proportion: 1, module: undefined });
+				}
+			}
+			columns.sort((a, b) => a.columnIndex - b.columnIndex);
+			return { ...row, columns };
+		});
+	}
+
 	const gridCols = $derived(
 		layout?.gridColumns ?? Math.max(1, ...modules.map((m) => (m.columnIndex ?? 0) + (m.colSpan ?? 1)))
 	);
+	const rows = $derived(padRowsToGridColumns(buildRows(modules), gridCols));
 	const gridRows = $derived(
 		layout?.gridRows ?? Math.max(1, ...modules.map((m) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1)))
 	);

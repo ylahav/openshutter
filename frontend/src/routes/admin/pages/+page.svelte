@@ -160,6 +160,7 @@
 		{ value: 'authButtons', label: 'Auth buttons' },
 		{ value: 'socialMedia', label: 'Social media' },
 		{ value: 'hero', label: 'Hero' },
+		{ value: 'heroStats', label: 'Hero Stats' },
 		{ value: 'richText', label: 'Rich Text' },
 		{ value: 'divider', label: 'Horizontal line' },
 		{ value: 'featureGrid', label: 'Feature Grid' },
@@ -741,24 +742,15 @@ let layoutShellInstances: Record<
 				}
 				rowStructure = newStructure;
 			} else {
-				// Populate rowStructure from loaded modules (original logic)
+				// Rebuild rowStructure from the persisted grid dims (formData.gridRows/gridColumns),
+				// not from placed modules. Inferring from modules would collapse a 2-col row to a
+				// single cell whenever only one module is placed, visually "merging" the cells.
+				const cols = Math.max(1, Number(formData.gridColumns) || 1);
+				const totalRows = Math.max(1, Number(formData.gridRows) || 1);
 				const newStructure = new Map<number, number[]>();
-				modules.forEach((module) => {
-					if (module.rowOrder !== undefined && module.columnProportion !== undefined) {
-						if (!newStructure.has(module.rowOrder)) {
-							const rowModules = modules.filter((m) => m.rowOrder === module.rowOrder);
-							const proportions = rowModules
-								.sort((a, b) => (a.columnIndex || 0) - (b.columnIndex || 0))
-								.map((m) => m.columnProportion || 1);
-							newStructure.set(module.rowOrder, proportions);
-						}
-					}
-				});
-				rowStructure.forEach((proportions, rowOrder) => {
-					if (!newStructure.has(rowOrder)) {
-						newStructure.set(rowOrder, proportions);
-					}
-				});
+				for (let r = 0; r < totalRows; r++) {
+					newStructure.set(r, Array(cols).fill(1));
+				}
 				rowStructure = newStructure;
 			}
 		} catch (err) {
@@ -2030,6 +2022,31 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		}
 	}
 
+	/** Swap a placed module with its adjacent occupied sibling in the same row. */
+	async function handleMoveCell(moduleId: string, direction: 'left' | 'right') {
+		const target = modules.find((m) => m._id === moduleId);
+		if (!target || target.columnIndex === undefined) return;
+		const targetRow = Number(target.rowOrder ?? 0);
+		const siblings = modules
+			.filter((m) => Number(m.rowOrder ?? 0) === targetRow && m.columnIndex !== undefined)
+			.sort((a, b) => Number(a.columnIndex ?? 0) - Number(b.columnIndex ?? 0));
+		const idx = siblings.findIndex((m) => m._id === target._id);
+		const swapWith = siblings[direction === 'left' ? idx - 1 : idx + 1];
+		if (!swapWith) return;
+		const aCol = Number(target.columnIndex ?? 0);
+		const bCol = Number(swapWith.columnIndex ?? 0);
+		const updated = modules.map((m) => {
+			if (m._id === target._id) return { ...m, columnIndex: bCol };
+			if (m._id === swapWith._id) return { ...m, columnIndex: aCol };
+			return m;
+		});
+		if (!editingPage) {
+			modules = updated;
+			return;
+		}
+		await persistModulesRowOrder(updated);
+	}
+
 	async function handleMoveRow(fromRowOrder: number, toRowOrder: number) {
 		if (fromRowOrder === toRowOrder) return;
 		const updated = modules.map((m) => {
@@ -2472,6 +2489,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								onInsertRow={handleInsertRow}
 								onDeleteRow={handleDeleteRow}
 								onRemoveEmptyColumn={handleRemoveEmptyColumn}
+								onMoveCell={handleMoveCell}
 								availableModuleTypes={MODULE_TYPES}
 							/>
 						{/if}
@@ -3480,6 +3498,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							onInsertRow={handleInsertRow}
 							onDeleteRow={handleDeleteRow}
 							onRemoveEmptyColumn={handleRemoveEmptyColumn}
+							onMoveCell={handleMoveCell}
 							availableModuleTypes={MODULE_TYPES}
 						/>
 					{/if}

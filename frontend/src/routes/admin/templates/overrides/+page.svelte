@@ -527,6 +527,7 @@
 			'searchForm',
 			'searchResults',
 			'hero',
+			'heroStats',
 			'richText',
 			'divider',
 			'featureGrid',
@@ -784,6 +785,47 @@
 		}
 		pmBy[pt] = row;
 		localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
+	}
+
+	/**
+	 * Position of a module within its row's left-to-right ordering of placed cells.
+	 * Used to enable/disable left/right move buttons on each cell.
+	 */
+	function pageGridRowSiblingIndex(pt: string, mod: any): { idx: number; total: number } {
+		const bp = editingBreakpoint;
+		const arr = (getModulesForPageType(pt, bp) ?? []) as any[];
+		const targetRow = rowOrderNum(mod);
+		const siblings = arr
+			.filter((m: any) => rowOrderNum(m) === targetRow && m.columnIndex !== undefined)
+			.sort((a: any, b: any) => Number(a.columnIndex ?? 0) - Number(b.columnIndex ?? 0));
+		const idx = siblings.findIndex((m: any) => m._id === mod._id);
+		return { idx, total: siblings.length };
+	}
+
+	/** Swap a cell with its adjacent occupied sibling in the same row (mirrors header/footer behavior). */
+	function movePageGridCell(pt: string, moduleId: string, direction: 'left' | 'right') {
+		const bp = editingBreakpoint;
+		const arr = [...(getModulesForPageType(pt, bp) ?? [])] as any[];
+		const target = arr.find((m: any) => m._id === moduleId);
+		if (!target || target.columnIndex === undefined) return;
+		const targetRow = rowOrderNum(target);
+		const siblings = arr
+			.filter((m: any) => rowOrderNum(m) === targetRow && m.columnIndex !== undefined)
+			.sort((a: any, b: any) => Number(a.columnIndex ?? 0) - Number(b.columnIndex ?? 0));
+		const idx = siblings.findIndex((m: any) => m._id === target._id);
+		const swapWith = siblings[direction === 'left' ? idx - 1 : idx + 1];
+		if (!swapWith) return;
+		const aCol = Number(target.columnIndex ?? 0);
+		const bCol = Number(swapWith.columnIndex ?? 0);
+		const nextMods = arr.map((m: any) => {
+			if (m._id === target._id) return { ...m, columnIndex: bCol };
+			if (m._id === swapWith._id) return { ...m, columnIndex: aCol };
+			return m;
+		});
+		putPageModulesForBreakpointOrAll(pt, bp, nextMods);
+		syncLegacyFromBreakpoints();
+		hasChanges = true;
+		clearSelection();
 	}
 
 	/**
@@ -4020,7 +4062,28 @@ let draggedAlbumHeaderField: string | null = null;
 											{#if rs > 1 || cs > 1}
 												<p class="text-xs text-(--color-surface-600-400) mt-1">{rs}×{cs} span</p>
 											{/if}
-											<div class="flex gap-2 mt-2">
+											<div class="flex gap-2 mt-2 items-center">
+												{@const sib = pageGridRowSiblingIndex(editingPageType, mod)}
+												<button
+													type="button"
+													class="px-1.5 py-0.5 text-[11px] rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-40"
+													title="Move cell left"
+													aria-label="Move cell left"
+													disabled={sib.idx <= 0}
+													onclick={() => movePageGridCell(editingPageType, mod._id, 'left')}
+												>
+													←
+												</button>
+												<button
+													type="button"
+													class="px-1.5 py-0.5 text-[11px] rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-40"
+													title="Move cell right"
+													aria-label="Move cell right"
+													disabled={sib.idx < 0 || sib.idx >= sib.total - 1}
+													onclick={() => movePageGridCell(editingPageType, mod._id, 'right')}
+												>
+													→
+												</button>
 												<button
 													type="button"
 													class="text-xs text-(--color-primary-600) hover:text-(--color-primary-800) font-medium"

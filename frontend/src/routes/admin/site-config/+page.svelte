@@ -672,21 +672,26 @@
 			}
 
 			const result = await response.json();
-			
+			const uploaded = result?.success && result.data ? result.data : result;
+			const uploadedUrl: string | undefined = uploaded?.url;
+			if (!uploadedUrl) {
+				throw new Error('Upload succeeded but response did not include a URL');
+			}
+
 			// Update config with the uploaded URL
 			if (type === 'logo') {
-				config = { ...config, logo: result.url } as SiteConfig;
+				config = { ...config, logo: uploadedUrl } as SiteConfig;
 			} else if (type === 'favicon') {
-				config = { ...config, favicon: result.url } as SiteConfig;
+				config = { ...config, favicon: uploadedUrl } as SiteConfig;
 			} else if (type === 'whiteLabelLogo') {
 				config = {
 					...config,
-					whiteLabel: { ...(config.whiteLabel || {}), logo: result.url }
+					whiteLabel: { ...(config.whiteLabel || {}), logo: uploadedUrl }
 				} as SiteConfig;
 			} else {
 				config = {
 					...config,
-					whiteLabel: { ...(config.whiteLabel || {}), favicon: result.url }
+					whiteLabel: { ...(config.whiteLabel || {}), favicon: uploadedUrl }
 				} as SiteConfig;
 			}
 

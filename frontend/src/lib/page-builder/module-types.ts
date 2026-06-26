@@ -15,6 +15,7 @@ export const PAGE_MODULE_TYPES = [
 	{ type: 'searchForm', label: 'Search Form' },
 	{ type: 'searchResults', label: 'Search Results' },
 	{ type: 'hero', label: 'Hero' },
+	{ type: 'heroStats', label: 'Hero Stats' },
 	{ type: 'richText', label: 'Rich Text' },
 	{ type: 'divider', label: 'Horizontal line' },
 	{ type: 'featureGrid', label: 'Feature Grid' },

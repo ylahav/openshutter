@@ -55,6 +55,7 @@ These **`type`** aliases are registered today in **`PAGE_MODULE_TYPES`** (`front
 | Alias (`type`) | Admin label | Typical picker |
 |----------------|-------------|----------------|
 | `hero` | Hero | Content |
+| `heroStats` | Hero Stats | Content |
 | `richText` | Rich Text | Content; Footer |
 | `featureGrid` | Feature Grid | Content |
 | `albumsGrid` | Albums Grid | Content |
