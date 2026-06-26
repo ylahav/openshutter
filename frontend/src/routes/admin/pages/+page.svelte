@@ -327,6 +327,9 @@
 
 	/** Snapshot of the picked instance's stored props, captured at pick time + on editModule when ref is preset. */
 	let pickedInstanceSnapshot = $state<Record<string, unknown> | null>(null);
+	/** Snapshot of the form's starting state (instance merged with placement overrides on open, or instance on pick).
+	 *  Used to decide whether the user actually edited anything before save. */
+	let editingPlacementBaseline = $state<Record<string, unknown> | null>(null);
 	/** Open state for the "share or override" confirm dialog. */
 	let shareConfirmOpen = $state(false);
 	/** Save flow waiting on the share/override choice. */
@@ -786,6 +789,7 @@ let layoutShellInstances: Record<
 		};
 		moduleInstanceRef = undefined;
 		pickedInstanceSnapshot = null;
+		editingPlacementBaseline = null;
 		shareConfirmOpen = false;
 		pendingShareSave = null;
 		layoutShellPresetKey = '';
@@ -1354,6 +1358,22 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	}
 
 	/**
+	 * True when the form was actually edited (vs just opened/picked). Compares form props
+	 * against `editingPlacementBaseline` ignoring `instanceRef` / `className`. Without a
+	 * baseline (rare), treats any non-empty form as edited.
+	 */
+	function propsChangedFromBaseline(formProps: Record<string, unknown>): boolean {
+		const strip = (p: Record<string, unknown> | null | undefined) => {
+			const out: Record<string, unknown> = {};
+			if (!p) return out;
+			for (const [k, v] of Object.entries(p)) if (!PLACEMENT_ONLY_KEYS.has(k)) out[k] = v;
+			return out;
+		};
+		if (!editingPlacementBaseline) return Object.keys(strip(formProps)).length > 0;
+		return JSON.stringify(strip(formProps)) !== JSON.stringify(strip(editingPlacementBaseline));
+	}
+
+	/**
 	 * Write the given props into `template.moduleInstances[type][name]` and refresh the
 	 * live siteConfig store so the next render (and any other placements pointing at
 	 * this instance) pick up the new values immediately.
@@ -1493,12 +1513,16 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		moduleInstanceRef = next;
 		if (!next) {
 			pickedInstanceSnapshot = null;
+			// Baseline left alone — user can clear the ref then save inline if they want to.
 			return;
 		}
 		const inst = getInstanceProps(moduleForm.type, next);
 		if (inst) {
 			pickedInstanceSnapshot = { ...inst };
 			loadFormStateFromProps(moduleForm.type, inst);
+			// Treat the just-populated form as the new baseline — opening + saving without
+			// further edits should leave the placement as a ref-only pointer.
+			editingPlacementBaseline = { ...inst };
 		} else {
 			pickedInstanceSnapshot = null;
 		}
@@ -1518,6 +1542,22 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		moduleInstanceRef = typeof existingRef === 'string' && existingRef.trim() ? existingRef : undefined;
 		pickedInstanceSnapshot = moduleInstanceRef
 			? (getInstanceProps(module.type, moduleInstanceRef) ?? null)
+			: null;
+		// If linked to a shared instance, splice the instance's stored props underneath the
+		// placement's own props so the form below shows the resolved view the user sees on
+		// the live page (placement still wins on conflicts). The original `editingModule`
+		// reference is unchanged — we only rebind the local `module` for per-type init.
+		if (pickedInstanceSnapshot) {
+			module = {
+				...module,
+				props: {
+					...pickedInstanceSnapshot,
+					...((module.props || {}) as Record<string, unknown>)
+				}
+			};
+		}
+		editingPlacementBaseline = module.props
+			? ({ ...(module.props as Record<string, unknown>) } as Record<string, unknown>)
 			: null;
 		
 		// Initialize feature grid form if it's a featureGrid module
@@ -1834,17 +1874,17 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			props = applyModuleWrapperClassName(props as Record<string, unknown>);
 			props = applyGenericInstanceRef(props as Record<string, unknown>);
 
-			// Instance is linked AND user has overrides → ask whether to save here or to the shared instance.
+			// Instance is linked AND user actually edited the form → ask where to save the change.
 			if (
 				moduleInstanceRef &&
 				pickedInstanceSnapshot &&
-				hasOverridesAgainstSnapshot(props as Record<string, unknown>)
+				propsChangedFromBaseline(props as Record<string, unknown>)
 			) {
 				pendingShareSave = { flow: 'edit', props: props as Record<string, unknown> };
 				shareConfirmOpen = true;
 				return;
 			}
-			// Instance linked + no overrides → store just the ref (+ chrome), drop the redundant copy.
+			// Instance linked + form untouched → keep placement minimal (ref-only + any existing inline overrides).
 			if (moduleInstanceRef && pickedInstanceSnapshot) {
 				props = stripInstanceOverlap(props as Record<string, unknown>, pickedInstanceSnapshot);
 			}
@@ -2057,7 +2097,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			if (
 				moduleInstanceRef &&
 				pickedInstanceSnapshot &&
-				hasOverridesAgainstSnapshot(props as Record<string, unknown>)
+				propsChangedFromBaseline(props as Record<string, unknown>)
 			) {
 				pendingShareSave = { flow: 'create', props: props as Record<string, unknown> };
 				shareConfirmOpen = true;
