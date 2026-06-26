@@ -23,7 +23,7 @@
 	import ModulePropsForm from '$lib/components/ModulePropsForm.svelte';
 	import ModuleInstancePicker from '$lib/components/admin/ModuleInstancePicker.svelte';
 	import { get } from 'svelte/store';
-	import { siteConfigData } from '$stores/siteConfig';
+	import { siteConfigData, siteConfig as siteConfigStore } from '$stores/siteConfig';
 	import {
 		legacySocialObjectToLinksJson,
 		parseLinksJson
@@ -324,6 +324,14 @@
 	/** `props.instanceRef` for the generic moduleInstances registry (separate from menu/layoutShell own refs). */
 	let moduleInstanceRef = $state<string | undefined>(undefined);
 	let photoModuleProps = $state<Record<string, any>>({});
+
+	/** Snapshot of the picked instance's stored props, captured at pick time + on editModule when ref is preset. */
+	let pickedInstanceSnapshot = $state<Record<string, unknown> | null>(null);
+	/** Open state for the "share or override" confirm dialog. */
+	let shareConfirmOpen = $state(false);
+	/** Save flow waiting on the share/override choice. */
+	type PendingSave = { flow: 'edit' | 'create'; props: Record<string, unknown> } | null;
+	let pendingShareSave = $state<PendingSave>(null);
 
 	// Form state
 	let formData = $state({
@@ -777,6 +785,9 @@ let layoutShellInstances: Record<
 			propsJson: '{}'
 		};
 		moduleInstanceRef = undefined;
+		pickedInstanceSnapshot = null;
+		shareConfirmOpen = false;
+		pendingShareSave = null;
 		layoutShellPresetKey = '';
 		layoutShellReusePick = '';
 		layoutShellPresetError = '';
@@ -1306,6 +1317,72 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		return props;
 	}
 
+	/** Keys that always live on the placement, never inherited from the instance (per-placement chrome). */
+	const PLACEMENT_ONLY_KEYS = new Set(['instanceRef', 'className']);
+
+	/**
+	 * Strip props that match the picked instance's snapshot so the placement only carries
+	 * its true overrides — preserves the "edit-once-update-everywhere" semantic when the
+	 * user leaves shared values untouched. PLACEMENT_ONLY_KEYS always survive.
+	 */
+	function stripInstanceOverlap(
+		formProps: Record<string, unknown>,
+		snapshot: Record<string, unknown> | null
+	): Record<string, unknown> {
+		if (!snapshot) return formProps;
+		const out: Record<string, unknown> = {};
+		for (const [k, v] of Object.entries(formProps)) {
+			if (PLACEMENT_ONLY_KEYS.has(k)) {
+				out[k] = v;
+				continue;
+			}
+			if (JSON.stringify(v) !== JSON.stringify(snapshot[k])) {
+				out[k] = v;
+			}
+		}
+		return out;
+	}
+
+	/** True when the form has values that differ from the snapshot (i.e. real overrides). */
+	function hasOverridesAgainstSnapshot(formProps: Record<string, unknown>): boolean {
+		if (!pickedInstanceSnapshot) return false;
+		for (const [k, v] of Object.entries(formProps)) {
+			if (PLACEMENT_ONLY_KEYS.has(k)) continue;
+			if (JSON.stringify(v) !== JSON.stringify(pickedInstanceSnapshot[k])) return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Write the given props into `template.moduleInstances[type][name]` and refresh the
+	 * live siteConfig store so the next render (and any other placements pointing at
+	 * this instance) pick up the new values immediately.
+	 *
+	 * Placement-only keys (`className`, stale `instanceRef`) are stripped before storing.
+	 */
+	async function writeInstanceProps(type: string, name: string, formProps: Record<string, unknown>) {
+		const sc = get(siteConfigData);
+		const current = (sc?.template?.moduleInstances || {}) as Record<
+			string,
+			Record<string, { props?: Record<string, unknown> }>
+		>;
+		const next: Record<string, Record<string, { props?: Record<string, unknown> }>> = { ...current };
+		const byType = { ...(next[type] || {}) };
+		const cleanProps: Record<string, unknown> = { ...formProps };
+		for (const k of PLACEMENT_ONLY_KEYS) delete cleanProps[k];
+		byType[name] = { props: cleanProps };
+		next[type] = byType;
+		const response = await fetch('/api/admin/site-config', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ template: { moduleInstances: next } })
+		});
+		if (!response.ok) await handleApiErrorResponse(response);
+		await siteConfigStore.load();
+		// Refresh snapshot so subsequent edits compare against the new shared baseline.
+		pickedInstanceSnapshot = { ...cleanProps };
+	}
+
 	/** Read an instance's stored props from the live siteConfig store, or `null` if unknown. */
 	function getInstanceProps(type: string, name: string): Record<string, unknown> | null {
 		if (!type || !name) return null;
@@ -1411,12 +1488,20 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		moduleWrapperClassName = String((props as { className?: unknown }).className ?? '').trim();
 	}
 
-	/** Picker change handler: write the ref, and pre-fill the form with the instance's data. */
+	/** Picker change handler: write the ref, snapshot the instance, and pre-fill the form. */
 	function handleInstancePickerChange(next: string | undefined) {
 		moduleInstanceRef = next;
-		if (!next) return;
+		if (!next) {
+			pickedInstanceSnapshot = null;
+			return;
+		}
 		const inst = getInstanceProps(moduleForm.type, next);
-		if (inst) loadFormStateFromProps(moduleForm.type, inst);
+		if (inst) {
+			pickedInstanceSnapshot = { ...inst };
+			loadFormStateFromProps(moduleForm.type, inst);
+		} else {
+			pickedInstanceSnapshot = null;
+		}
 	}
 
 	function editModule(module: PageModuleData) {
@@ -1431,6 +1516,9 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		moduleWrapperClassName = String((module.props as Record<string, unknown> | undefined)?.className ?? '').trim();
 		const existingRef = (module.props as Record<string, unknown> | undefined)?.instanceRef;
 		moduleInstanceRef = typeof existingRef === 'string' && existingRef.trim() ? existingRef : undefined;
+		pickedInstanceSnapshot = moduleInstanceRef
+			? (getInstanceProps(module.type, moduleInstanceRef) ?? null)
+			: null;
 		
 		// Initialize feature grid form if it's a featureGrid module
 		if (module.type === 'featureGrid') {
@@ -1745,68 +1833,124 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 
 			props = applyModuleWrapperClassName(props as Record<string, unknown>);
 			props = applyGenericInstanceRef(props as Record<string, unknown>);
-			// Layout shell popup mode: update the shell-instance module list locally.
-			if (editingLayoutShellModule) {
-				layoutShellEditorModules = layoutShellEditorModules.map((m) =>
-					m._id === editingModule!._id ? { ...m, type: moduleForm.type, props } : m
-				);
-				editingLayoutShellModule = false;
-				showModuleEditDialog = false;
-				editingModule = null;
-				resetModuleForm();
+
+			// Instance is linked AND user has overrides → ask whether to save here or to the shared instance.
+			if (
+				moduleInstanceRef &&
+				pickedInstanceSnapshot &&
+				hasOverridesAgainstSnapshot(props as Record<string, unknown>)
+			) {
+				pendingShareSave = { flow: 'edit', props: props as Record<string, unknown> };
+				shareConfirmOpen = true;
 				return;
 			}
-
-			// Create mode: update module locally (no API, page not created yet)
-			if (!editingPage) {
-				modules = modules.map((m) =>
-					m._id === editingModule!._id ? { ...m, type: moduleForm.type, props } : m
-				);
-				showModuleEditDialog = false;
-				editingModule = null;
-				resetModuleForm();
-				return;
+			// Instance linked + no overrides → store just the ref (+ chrome), drop the redundant copy.
+			if (moduleInstanceRef && pickedInstanceSnapshot) {
+				props = stripInstanceOverlap(props as Record<string, unknown>, pickedInstanceSnapshot);
 			}
 
-			// Edit mode: save via API
-			const payload: ModulePayload = {
-				type: moduleForm.type,
-				props: props as Record<string, unknown>
-			};
-			if (editingModule.rowOrder !== undefined) {
-				payload.rowOrder = editingModule.rowOrder;
-				payload.columnIndex = editingModule.columnIndex;
-				payload.columnProportion = editingModule.columnProportion || 1;
-				if (editingModule.rowSpan) payload.rowSpan = editingModule.rowSpan;
-				if (editingModule.colSpan) payload.colSpan = editingModule.colSpan;
-			} else {
-				// Legacy zone/order
-				payload.zone = moduleForm.zone;
-				payload.order = Number(moduleForm.order) || 0;
-			}
-
-			const response = await fetch(`/api/admin/pages/${editingPage._id}/modules/${editingModule._id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(payload)
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const result = await response.json();
-			const moduleData = (result.data || result) as PageModuleData;
-			modules = modules.map((m) => (m._id === editingModule!._id ? moduleData : m));
-			showModuleEditDialog = false;
-			editingModule = null;
-			resetModuleForm();
-			// Keep Edit Page dialog open after module save.
-			showEditDialog = true;
-			await loadModules(editingPage._id);
+			await finalizeEditSave(props as Record<string, unknown>);
 		} catch (err) {
 			logger.error('Error updating module:', err);
 			modulesError = handleError(err, 'Failed to update module');
+		}
+	}
+
+	/** Tail of `saveModuleEdit` — does the actual local update or API PUT. Called either
+	 *  directly from saveModuleEdit, or via the share/override confirm handler. */
+	async function finalizeEditSave(props: Record<string, unknown>) {
+		if (!editingModule) return;
+		// Layout shell popup mode: update the shell-instance module list locally.
+		if (editingLayoutShellModule) {
+			layoutShellEditorModules = layoutShellEditorModules.map((m) =>
+				m._id === editingModule!._id ? { ...m, type: moduleForm.type, props } : m
+			);
+			editingLayoutShellModule = false;
+			showModuleEditDialog = false;
+			editingModule = null;
+			resetModuleForm();
+			return;
+		}
+
+		// Create mode: update module locally (no API, page not created yet)
+		if (!editingPage) {
+			modules = modules.map((m) =>
+				m._id === editingModule!._id ? { ...m, type: moduleForm.type, props } : m
+			);
+			showModuleEditDialog = false;
+			editingModule = null;
+			resetModuleForm();
+			return;
+		}
+
+		// Edit mode: save via API
+		const payload: ModulePayload = {
+			type: moduleForm.type,
+			props
+		};
+		if (editingModule.rowOrder !== undefined) {
+			payload.rowOrder = editingModule.rowOrder;
+			payload.columnIndex = editingModule.columnIndex;
+			payload.columnProportion = editingModule.columnProportion || 1;
+			if (editingModule.rowSpan) payload.rowSpan = editingModule.rowSpan;
+			if (editingModule.colSpan) payload.colSpan = editingModule.colSpan;
+		} else {
+			// Legacy zone/order
+			payload.zone = moduleForm.zone;
+			payload.order = Number(moduleForm.order) || 0;
+		}
+
+		const response = await fetch(`/api/admin/pages/${editingPage._id}/modules/${editingModule._id}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		});
+
+		if (!response.ok) {
+			await handleApiErrorResponse(response);
+		}
+
+		const result = await response.json();
+		const moduleData = (result.data || result) as PageModuleData;
+		modules = modules.map((m) => (m._id === editingModule!._id ? moduleData : m));
+		showModuleEditDialog = false;
+		editingModule = null;
+		resetModuleForm();
+		// Keep Edit Page dialog open after module save.
+		showEditDialog = true;
+		await loadModules(editingPage._id);
+	}
+
+	/** Confirm-dialog handler: either save the form values as placement overrides (here only)
+	 *  or push them back to the shared instance and save the placement as a ref-only pointer. */
+	async function handleShareConfirm(choice: 'override' | 'share') {
+		if (!pendingShareSave || !moduleInstanceRef) {
+			shareConfirmOpen = false;
+			pendingShareSave = null;
+			return;
+		}
+		const { flow, props: formProps } = pendingShareSave;
+		const ref = moduleInstanceRef;
+		shareConfirmOpen = false;
+		try {
+			let nextProps: Record<string, unknown>;
+			if (choice === 'share') {
+				// Push the form values into the shared instance, then leave the placement as a ref-only pointer.
+				await writeInstanceProps(moduleForm.type, ref, formProps);
+				nextProps = { instanceRef: ref };
+				const cls = String((formProps as { className?: unknown }).className ?? '').trim();
+				if (cls) nextProps.className = cls;
+			} else {
+				// Save as placement override — drop keys that match the instance to keep the override set minimal.
+				nextProps = stripInstanceOverlap(formProps, pickedInstanceSnapshot);
+			}
+			if (flow === 'edit') await finalizeEditSave(nextProps);
+			else await finalizeCreateSave(nextProps);
+		} catch (err) {
+			logger.error('Share-save failed:', err);
+			modulesError = handleError(err, 'Failed to save module');
+		} finally {
+			pendingShareSave = null;
 		}
 	}
 
@@ -1909,37 +2053,57 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 
 			props = applyModuleWrapperClassName(props as Record<string, unknown>);
 			props = applyGenericInstanceRef(props as Record<string, unknown>);
-			const propsPayload: Record<string, unknown> = { ...props };
-			const payload: ModulePayload = {
-				type: moduleForm.type,
-				zone: moduleForm.zone,
-				order: Number(moduleForm.order) || 0,
-				props: propsPayload
-			};
-			const endpoint = moduleForm.id
-				? `/api/admin/pages/${editingPage._id}/modules/${moduleForm.id}`
-				: `/api/admin/pages/${editingPage._id}/modules`;
-			const method = moduleForm.id ? 'PUT' : 'POST';
-			const response = await fetch(endpoint, {
-				method,
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(payload)
-			});
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
+
+			if (
+				moduleInstanceRef &&
+				pickedInstanceSnapshot &&
+				hasOverridesAgainstSnapshot(props as Record<string, unknown>)
+			) {
+				pendingShareSave = { flow: 'create', props: props as Record<string, unknown> };
+				shareConfirmOpen = true;
+				return;
 			}
-			const result = await response.json();
-			const moduleData = result.data || result;
-			if (moduleForm.id) {
-				modules = modules.map((m) => (m._id === moduleForm.id ? moduleData : m));
-			} else {
-				modules = [...modules, moduleData];
+			if (moduleInstanceRef && pickedInstanceSnapshot) {
+				props = stripInstanceOverlap(props as Record<string, unknown>, pickedInstanceSnapshot);
 			}
-			resetModuleForm();
+
+			await finalizeCreateSave(props as Record<string, unknown>);
 		} catch (err) {
 			logger.error('Error saving module:', err);
 			modulesError = handleError(err, 'Failed to save module');
 		}
+	}
+
+	/** Tail of `saveModule` (create flow) — POST or PUT to the modules API. */
+	async function finalizeCreateSave(props: Record<string, unknown>) {
+		if (!editingPage) return;
+		const propsPayload: Record<string, unknown> = { ...props };
+		const payload: ModulePayload = {
+			type: moduleForm.type,
+			zone: moduleForm.zone,
+			order: Number(moduleForm.order) || 0,
+			props: propsPayload
+		};
+		const endpoint = moduleForm.id
+			? `/api/admin/pages/${editingPage._id}/modules/${moduleForm.id}`
+			: `/api/admin/pages/${editingPage._id}/modules`;
+		const method = moduleForm.id ? 'PUT' : 'POST';
+		const response = await fetch(endpoint, {
+			method,
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		});
+		if (!response.ok) {
+			await handleApiErrorResponse(response);
+		}
+		const result = await response.json();
+		const moduleData = result.data || result;
+		if (moduleForm.id) {
+			modules = modules.map((m) => (m._id === moduleForm.id ? moduleData : m));
+		} else {
+			modules = [...modules, moduleData];
+		}
+		resetModuleForm();
 	}
 
 	async function deleteModule(moduleId: string) {
@@ -2729,6 +2893,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					onChange={handleInstancePickerChange}
 				/>
 
+				{#key (moduleInstanceRef ?? '') + ':' + moduleForm.type}
 				{#if moduleForm.type === 'featureGrid'}
 					<!-- Feature Grid Form -->
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
@@ -2906,35 +3071,43 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</div>
 				{:else if moduleForm.type === 'hero'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<ModulePropsForm
-							moduleType="hero"
-							props={heroModuleProps}
-							onChange={(p) => (heroModuleProps = p)}
-						/>
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm
+								moduleType="hero"
+								props={heroModuleProps}
+								onChange={(p) => (heroModuleProps = p)}
+							/>
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'photo'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<ModulePropsForm
-							moduleType="photo"
-							showPlacementInGrid={false}
-							props={photoModuleProps}
-							onChange={(p) => (photoModuleProps = p)}
-						/>
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm
+								moduleType="photo"
+								showPlacementInGrid={false}
+								props={photoModuleProps}
+								onChange={(p) => (photoModuleProps = p)}
+							/>
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'loginForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
-						<ModulePropsForm
-							moduleType="loginForm"
-							props={loginFormModuleProps as Record<string, unknown>}
-							showPlacementInGrid={false}
-							onChange={(next) => {
-								loginFormModuleProps = next;
-							}}
-						/>
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm
+								moduleType="loginForm"
+								props={loginFormModuleProps as Record<string, unknown>}
+								showPlacementInGrid={false}
+								onChange={(next) => {
+									loginFormModuleProps = next;
+								}}
+							/>
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
@@ -3347,6 +3520,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						</div>
 					</div>
 				{/if}
+				{/key}
 				<div class="space-y-1 border-t border-surface-200-800 pt-4">
 					<label for="module-wrapper-class" class="block text-sm font-medium text-(--color-surface-800-200)">
 						Wrapper class name (optional)
@@ -3895,35 +4069,43 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</div>
 				{:else if moduleForm.type === 'hero'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<ModulePropsForm
-							moduleType="hero"
-							props={heroModuleProps}
-							onChange={(p) => (heroModuleProps = p)}
-						/>
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm
+								moduleType="hero"
+								props={heroModuleProps}
+								onChange={(p) => (heroModuleProps = p)}
+							/>
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'photo'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<ModulePropsForm
-							moduleType="photo"
-							showPlacementInGrid={false}
-							props={photoModuleProps}
-							onChange={(p) => (photoModuleProps = p)}
-						/>
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm
+								moduleType="photo"
+								showPlacementInGrid={false}
+								props={photoModuleProps}
+								onChange={(p) => (photoModuleProps = p)}
+							/>
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'loginForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
-						<ModulePropsForm
-							moduleType="loginForm"
-							props={loginFormModuleProps as Record<string, unknown>}
-							showPlacementInGrid={false}
-							onChange={(next) => {
-								loginFormModuleProps = next;
-							}}
-						/>
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm
+								moduleType="loginForm"
+								props={loginFormModuleProps as Record<string, unknown>}
+								showPlacementInGrid={false}
+								onChange={(next) => {
+									loginFormModuleProps = next;
+								}}
+							/>
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
@@ -4643,35 +4825,43 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</div>
 				{:else if moduleForm.type === 'hero'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<ModulePropsForm
-							moduleType="hero"
-							props={heroModuleProps}
-							onChange={(p) => (heroModuleProps = p)}
-						/>
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm
+								moduleType="hero"
+								props={heroModuleProps}
+								onChange={(p) => (heroModuleProps = p)}
+							/>
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'photo'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<ModulePropsForm
-							moduleType="photo"
-							showPlacementInGrid={false}
-							props={photoModuleProps}
-							onChange={(p) => (photoModuleProps = p)}
-						/>
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm
+								moduleType="photo"
+								showPlacementInGrid={false}
+								props={photoModuleProps}
+								onChange={(p) => (photoModuleProps = p)}
+							/>
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'loginForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
-						<ModulePropsForm
-							moduleType="loginForm"
-							props={loginFormModuleProps as Record<string, unknown>}
-							showPlacementInGrid={false}
-							onChange={(next) => {
-								loginFormModuleProps = next;
-							}}
-						/>
+						{#key moduleInstanceRef ?? ''}
+							<ModulePropsForm
+								moduleType="loginForm"
+								props={loginFormModuleProps as Record<string, unknown>}
+								showPlacementInGrid={false}
+								onChange={(next) => {
+									loginFormModuleProps = next;
+								}}
+							/>
+						{/key}
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
@@ -4844,6 +5034,51 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						Save Module
 					</button>
 				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if shareConfirmOpen}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-[80]" role="dialog" aria-modal="true" aria-labelledby="share-confirm-title">
+		<div class="card preset-outlined-surface-200-800 bg-(--color-surface-50-950) shadow-xl w-full max-w-md p-6">
+			<h2 id="share-confirm-title" class="text-lg font-bold text-(--color-surface-950-50) mb-2">
+				Save changes where?
+			</h2>
+			<p class="text-sm text-(--color-surface-700-300) mb-4">
+				This module is linked to the shared instance
+				<code class="font-mono text-xs">{moduleInstanceRef}</code>.
+				You changed at least one value — pick how to save:
+			</p>
+			<ul class="text-sm text-(--color-surface-700-300) space-y-2 mb-6 list-disc pl-5">
+				<li><strong>Save here only</strong> — your edits become overrides on this placement; other placements pointing to the instance stay unchanged.</li>
+				<li><strong>Update shared instance</strong> — your edits replace the instance's stored values; every placement that uses this instance picks them up.</li>
+			</ul>
+			<div class="flex flex-col sm:flex-row justify-end gap-2">
+				<button
+					type="button"
+					class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+					onclick={() => {
+						shareConfirmOpen = false;
+						pendingShareSave = null;
+					}}
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+					onclick={() => handleShareConfirm('override')}
+				>
+					Save here only
+				</button>
+				<button
+					type="button"
+					class="{adminBtnPrimarySm} {adminRingPrimary}"
+					onclick={() => handleShareConfirm('share')}
+				>
+					Update shared instance
+				</button>
 			</div>
 		</div>
 	</div>
