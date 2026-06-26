@@ -57,7 +57,17 @@ export const heroConfig = {
 			label: 'Background image',
 			required: false,
 			placeholder: 'https://…',
-			description: 'Full-width image behind the hero (URL or upload).'
+			description: 'Image behind the hero (URL or upload). Width follows the flag below.'
+		},
+		{
+			key: 'backgroundFullWidth',
+			type: 'boolean',
+			label: 'Background fills viewport width',
+			required: false,
+			default: false,
+			description:
+				'When on, the background image breaks out of the page container and spans the full viewport width. Off (default) keeps it within the template width.',
+			visibleWhen: undefined
 		},
 		{
 			key: 'contentMediaOrder',

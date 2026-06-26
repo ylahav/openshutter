@@ -39,6 +39,7 @@
 	const btn2Url = $derived(String(n.button2Url ?? '').trim());
 
 	const bgSrc = $derived(typeof n.backgroundImage === 'string' ? n.backgroundImage.trim() : '');
+	const bgFullWidth = $derived(n.backgroundFullWidth === true);
 
 	const order = $derived(n.contentMediaOrder as HeroContentMediaOrder);
 	const mediaSource = $derived(normalizeHeroMediaSource(n.mediaSource));
@@ -156,11 +157,13 @@
 	<section
 		class="hero"
 		class:hero--has-bg={!!bgSrc}
+		class:hero--bg-fullwidth={!!bgSrc && bgFullWidth}
 		data-hero-pack={heroPack}
 		data-hero-layout={String(n.heroLayout ?? n.layoutVariant ?? '').trim().toLowerCase() || undefined}
 		data-content-media-order={order}
 		data-media-arrangement={arrangement}
 		data-media-source={mediaSource}
+		data-hero-bg-fullwidth={bgFullWidth ? 'true' : undefined}
 	>
 		{#if bgSrc}
 			<img class="hero-img" src={bgSrc} alt="" loading="eager" decoding="async" />

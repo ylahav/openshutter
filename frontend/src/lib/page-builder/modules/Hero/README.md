@@ -26,6 +26,7 @@ Legacy pack hooks may still set **`data-hero-layout`** (e.g. from `heroLayout` /
 | `title`, `subtitle`, `description` | MultiLang; optional — omitted when empty. |
 | `buttonLabel` / `buttonUrl`, `button2Label` / `button2Url` | Primary/secondary CTA; optional. |
 | `backgroundImage` | URL or upload (site asset). Owner Site Settings also supports selecting from existing uploaded photos. |
+| `backgroundFullWidth` | Boolean (default `false`). When `true`, the hero section breaks out of the page container and renders edge-to-edge across the viewport; `.hero-inner` (content + media) stays centered at its `max-width`. Off keeps the section at the template's content width (the surrounding grid cell). Layout hook: class `.hero--bg-fullwidth` and attribute `data-hero-bg-fullwidth="true"`. |
 | `contentMediaOrder` | Row order, stack, or hide one side. |
 | `mediaMaxCount` | Cap on strip photos (1–12). |
 | `mediaSource` | `galleryLeading` or uploads list. |
@@ -45,7 +46,7 @@ In `routes/owner/site-settings/+page.svelte`, when Hero background style is `ima
 
 ## Classes & tokens for template styles
 
-- **Root:** `.hero`, `.hero--has-bg`, `.hero-inner`, `.hero-content`, `.hero-media`, `.hero-img`, `.hero-title`, `.hero-subtitle`, `.hero-description`, `.hero-actions`, `.hero-btn`, carousel/dot hooks under `.hero-media__*`.
+- **Root:** `.hero`, `.hero--has-bg`, `.hero--bg-fullwidth`, `.hero-inner`, `.hero-content`, `.hero-media`, `.hero-img`, `.hero-title`, `.hero-subtitle`, `.hero-description`, `.hero-actions`, `.hero-btn`, carousel/dot hooks under `.hero-media__*`.
 - **Base CSS:** `modules/Hero/_hero.scss` (loaded via **`modules/styles/_index.scss`**).
 - **Pack overrides:** `templates/<pack>/styles/_hero.scss`, loaded after the pack stylesheet via **`loadPackPageBuilderPartials`** where configured.
 

@@ -13,6 +13,17 @@
 		min-height: min(70vh, 720px);
 	}
 
+	// Break out of the page container and render edge-to-edge across the viewport.
+	// `.hero-inner` keeps its `max-width: 1200px` so content stays centered while
+	// only the background and section bounds span the viewport.
+	// Scrollbar-aware (avoids a tiny horizontal scrollbar on narrow viewports).
+	&--bg-fullwidth {
+		width: 100vw;
+		max-width: 100vw;
+		margin-left: calc(50% - 50vw);
+		margin-right: calc(50% - 50vw);
+	}
+
 	&-img {
 		position: absolute;
 		inset: 0;
