@@ -167,9 +167,10 @@
 			createError = `An instance named "${name}" already exists for ${typeLabel(type)}.`;
 			return;
 		}
+		const cloned: InstancesMap = structuredClone($state.snapshot(instances));
 		const next: InstancesMap = {
-			...instances,
-			[type]: { ...(instances[type] || {}), [name]: { props: {} } }
+			...cloned,
+			[type]: { ...(cloned[type] || {}), [name]: { props: {} } }
 		};
 		try {
 			await persistInstances(next);
@@ -191,11 +192,16 @@
 	}
 
 	async function handleSaveEdit() {
+		// Deep-snapshot via structuredClone — strips Svelte 5 `$state` proxies and
+		// guarantees no shared references between sibling instances when serialized.
+		// `$state.snapshot` on editProps protects against any inner proxy too.
+		const snapshotProps = structuredClone($state.snapshot(editProps));
+		const cloned: InstancesMap = structuredClone($state.snapshot(instances));
 		const next: InstancesMap = {
-			...instances,
+			...cloned,
 			[editType]: {
-				...(instances[editType] || {}),
-				[editName]: { props: { ...editProps } }
+				...(cloned[editType] || {}),
+				[editName]: { props: snapshotProps }
 			}
 		};
 		try {
@@ -214,11 +220,13 @@
 		while (instances[type]?.[candidate]) {
 			candidate = `${name}_copy${n++}`;
 		}
+		const cloned: InstancesMap = structuredClone($state.snapshot(instances));
+		const baseSnapshot = structuredClone($state.snapshot(base));
 		const next: InstancesMap = {
-			...instances,
+			...cloned,
 			[type]: {
-				...(instances[type] || {}),
-				[candidate]: { props: JSON.parse(JSON.stringify(base.props ?? {})) }
+				...(cloned[type] || {}),
+				[candidate]: { props: (baseSnapshot.props ?? {}) as Record<string, unknown> }
 			}
 		};
 		await persistInstances(next).catch(() => undefined);
@@ -227,9 +235,10 @@
 	async function handleDeleteConfirmed() {
 		if (!confirmDelete) return;
 		const { type, name } = confirmDelete;
-		const nextByName = { ...(instances[type] || {}) };
+		const cloned: InstancesMap = structuredClone($state.snapshot(instances));
+		const nextByName = { ...(cloned[type] || {}) };
 		delete nextByName[name];
-		const next: InstancesMap = { ...instances };
+		const next: InstancesMap = { ...cloned };
 		if (Object.keys(nextByName).length > 0) next[type] = nextByName;
 		else delete next[type];
 		confirmDelete = null;
@@ -447,12 +456,14 @@
 				</div>
 			</div>
 
-			<ModulePropsForm
-				moduleType={editType}
-				bind:props={editProps}
-				onChange={handleEditPropsChange}
-				showPlacementInGrid={false}
-			/>
+			{#key editType + ':' + editName}
+				<ModulePropsForm
+					moduleType={editType}
+					props={editProps}
+					onChange={handleEditPropsChange}
+					showPlacementInGrid={false}
+				/>
+			{/key}
 
 			<div class="mt-6 flex justify-end gap-2">
 				<button
