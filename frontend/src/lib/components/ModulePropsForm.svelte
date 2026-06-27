@@ -598,7 +598,9 @@
 					</button>
 				{:else if field.type === 'featureList'}
 					{@const featureKey = field.key}
-					{@const featureItems = getFeatures(featureKey)}
+					{@const featureRaw = Array.isArray(props[featureKey])
+						? (props[featureKey] as unknown[])
+						: []}
 					<div class="border-t border-gray-200 pt-4">
 						<div class="flex items-center justify-between mb-3">
 							<!-- svelte-ignore a11y_label_has_associated_control -->
@@ -611,7 +613,11 @@
 							<button
 								type="button"
 								class="text-sm px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
-								onclick={() => addFeature(featureKey)}
+								onclick={(e) => {
+									e.preventDefault();
+									e.stopPropagation();
+									addFeature(featureKey);
+								}}
 							>
 								+ Add feature
 							</button>
@@ -619,13 +625,14 @@
 						{#if field.description}
 							<p class="text-xs text-gray-500 mb-3">{field.description}</p>
 						{/if}
-						{#if featureItems.length === 0}
+						{#if featureRaw.length === 0}
 							<p class="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-300 rounded">
 								No features yet. Click "Add feature" to add one.
 							</p>
 						{:else}
 							<div class="space-y-3">
-								{#each featureItems as item, index (index)}
+								{#each featureRaw as raw, index (index)}
+									{@const item = asFeatureItem(raw)}
 									<div class="border border-gray-300 rounded-lg p-3 bg-white">
 										<div class="flex items-center justify-between mb-2">
 											<span class="text-sm font-medium text-gray-700">Feature {index + 1}</span>
@@ -645,7 +652,7 @@
 													class="px-1.5 py-0.5 text-[11px] rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40"
 													title="Move down"
 													aria-label="Move feature down"
-													disabled={index === featureItems.length - 1}
+													disabled={index === featureRaw.length - 1}
 													onclick={() => moveFeature(featureKey, index, 1)}
 												>
 													↓
