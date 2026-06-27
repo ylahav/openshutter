@@ -26,6 +26,7 @@ import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
 import { storageCtxForPhoto } from '../services/storage/photo-storage-context';
+import { resolveOwnerStorageContext } from '../services/storage/owner-storage-context';
 import { TagFeedbackService } from '../services/tag-feedback';
 
 /** Native MongoDB Db-like (mongoose.connection.db); avoids depending on mongoose.mongodb which may not exist in all mongoose versions. */
@@ -1449,7 +1450,20 @@ export class PhotosAdminController {
 
 			const storageManager = StorageManager.getInstance();
 			const provider = photo.storage.provider as any;
-			const pctx = await storageCtxForPhoto(db, photo);
+			// IMPORTANT: use the SAME storage context the public serve URL will resolve to.
+			// `storageCtxForPhoto` falls back to album.createdBy when the photo has no
+			// stored `storageOwnerId`, which can route the upload to a DIFFERENT bucket
+			// from the one `/api/storage/serve/...` will read (the serve only consults the
+			// `?storageOwnerId=` query, which mirrors `photo.storage.storageOwnerId`). The
+			// strict reader matches that exactly so the new file lands in the same bucket
+			// the visitor URL will look in.
+			const storedOwnerId =
+				typeof photo.storage.storageOwnerId === 'string' && photo.storage.storageOwnerId.trim()
+					? String(photo.storage.storageOwnerId).trim()
+					: undefined;
+			const pctx = storedOwnerId
+				? await resolveOwnerStorageContext(storedOwnerId)
+				: undefined;
 			const storageService = await storageManager.getProvider(provider, pctx);
 			const extractPathFromUrl = (url: string): string | null => extractStorageServePath(url);
 
@@ -1486,6 +1500,30 @@ export class PhotosAdminController {
 					reason: 'replace-photo',
 				}
 			);
+
+			// Sanity check: confirm the file is actually readable at the path the upload
+			// reported. If a storage context mismatch routed the upload to a different
+			// bucket from where the serve URL will read, this catches it before we
+			// destroy the old file and update the DB pointer.
+			if (typeof (storageService as any).getFileInfo === 'function') {
+				try {
+					await (storageService as any).getFileInfo(uploadResult.path);
+				} catch (verifyErr) {
+					this.logger.error(
+						`Post-upload verify failed for ${uploadResult.path}: ${verifyErr instanceof Error ? verifyErr.message : String(verifyErr)}`
+					);
+					// Best-effort cleanup of the orphaned upload (don't fail the rollback if delete also errors).
+					try {
+						await storageService.deleteFile(uploadResult.path);
+					} catch {
+						/* ignore */
+					}
+					throw new InternalServerErrorException(
+						'Replacement file was uploaded but is not retrievable at the recorded path. ' +
+							'Storage context mismatch — please report.'
+					);
+				}
+			}
 
 			// Delete the old original.
 			try {
