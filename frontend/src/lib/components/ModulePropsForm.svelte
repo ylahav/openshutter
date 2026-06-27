@@ -3,6 +3,8 @@
 	import MultiLangInput from './MultiLangInput.svelte';
 	import MultiLangHTMLEditor from './MultiLangHTMLEditor.svelte';
 	import ImageUrlWithUpload from './ImageUrlWithUpload.svelte';
+	import IconSelector from './IconSelector.svelte';
+	import type { MultiLangText, MultiLangHTML } from '$lib/types/multi-lang';
 	import { heroConfig } from '$lib/page-builder/modules/Hero/config';
 	import { photoConfig } from '$lib/page-builder/modules/Photo/config';
 	import { richTextConfig } from '$lib/page-builder/modules/RichText/config';
@@ -84,6 +86,65 @@
 		const updated = { ...props, [key]: value };
 		props = updated;
 		if (onChange) onChange(updated);
+	}
+
+	type FeatureItem = { icon: string; title: MultiLangText; description: MultiLangHTML };
+
+	/** Normalize a stored feature into the editor shape, tolerating legacy plain-string title/description. */
+	function asFeatureItem(raw: unknown): FeatureItem {
+		const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+		const titleRaw = r.title;
+		const descRaw = r.description;
+		return {
+			icon: typeof r.icon === 'string' ? r.icon : '',
+			title:
+				typeof titleRaw === 'string'
+					? ({ en: titleRaw, he: '' } as MultiLangText)
+					: ((titleRaw as MultiLangText) ?? ({ en: '', he: '' } as MultiLangText)),
+			description:
+				typeof descRaw === 'string'
+					? ({ en: descRaw, he: '' } as MultiLangHTML)
+					: ((descRaw as MultiLangHTML) ?? ({ en: '', he: '' } as MultiLangHTML))
+		};
+	}
+
+	function getFeatures(key: string): FeatureItem[] {
+		const raw = props[key];
+		return Array.isArray(raw) ? raw.map(asFeatureItem) : [];
+	}
+
+	function addFeature(key: string) {
+		const list = getFeatures(key);
+		updateProp(key, [
+			...list,
+			{ icon: '', title: { en: '', he: '' }, description: { en: '', he: '' } } as FeatureItem
+		]);
+	}
+
+	function removeFeature(key: string, index: number) {
+		const list = getFeatures(key);
+		updateProp(
+			key,
+			list.filter((_, i) => i !== index)
+		);
+	}
+
+	function moveFeature(key: string, index: number, direction: -1 | 1) {
+		const list = getFeatures(key);
+		const j = index + direction;
+		if (j < 0 || j >= list.length) return;
+		const next = [...list];
+		const tmp = next[index];
+		next[index] = next[j];
+		next[j] = tmp;
+		updateProp(key, next);
+	}
+
+	function patchFeature(key: string, index: number, patch: Partial<FeatureItem>) {
+		const list = getFeatures(key);
+		if (!list[index]) return;
+		const next = list.map((item, i) => (i === index ? { ...item, ...patch } : item));
+		updateProp(key, next);
 	}
 
 	function updateNestedProp(parentKey: string, childKey: string, value: any) {
@@ -535,8 +596,108 @@
 					>
 						Add link
 					</button>
-				{:else if field.type === 'featureList' || field.type === 'albumPicker'}
-					<!-- Complex types that would need custom components - show placeholder for now -->
+				{:else if field.type === 'featureList'}
+					{@const featureKey = field.key}
+					{@const featureItems = getFeatures(featureKey)}
+					<div class="border-t border-gray-200 pt-4">
+						<div class="flex items-center justify-between mb-3">
+							<!-- svelte-ignore a11y_label_has_associated_control -->
+							<label class="block text-sm font-medium text-gray-700">
+								{field.label}
+								{#if field.required}
+									<span class="text-red-500">*</span>
+								{/if}
+							</label>
+							<button
+								type="button"
+								class="text-sm px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
+								onclick={() => addFeature(featureKey)}
+							>
+								+ Add feature
+							</button>
+						</div>
+						{#if field.description}
+							<p class="text-xs text-gray-500 mb-3">{field.description}</p>
+						{/if}
+						{#if featureItems.length === 0}
+							<p class="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-300 rounded">
+								No features yet. Click "Add feature" to add one.
+							</p>
+						{:else}
+							<div class="space-y-3">
+								{#each featureItems as item, index (index)}
+									<div class="border border-gray-300 rounded-lg p-3 bg-white">
+										<div class="flex items-center justify-between mb-2">
+											<span class="text-sm font-medium text-gray-700">Feature {index + 1}</span>
+											<div class="flex items-center gap-1">
+												<button
+													type="button"
+													class="px-1.5 py-0.5 text-[11px] rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40"
+													title="Move up"
+													aria-label="Move feature up"
+													disabled={index === 0}
+													onclick={() => moveFeature(featureKey, index, -1)}
+												>
+													↑
+												</button>
+												<button
+													type="button"
+													class="px-1.5 py-0.5 text-[11px] rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40"
+													title="Move down"
+													aria-label="Move feature down"
+													disabled={index === featureItems.length - 1}
+													onclick={() => moveFeature(featureKey, index, 1)}
+												>
+													↓
+												</button>
+												<button
+													type="button"
+													class="text-xs text-red-600 hover:text-red-800 ml-2"
+													onclick={() => removeFeature(featureKey, index)}
+												>
+													Remove
+												</button>
+											</div>
+										</div>
+										<div class="space-y-3">
+											<div>
+												<span class="block text-xs font-medium text-gray-600 mb-1">Icon</span>
+												<IconSelector
+													value={item.icon}
+													placeholder="Select an icon…"
+													onchange={(e) =>
+														patchFeature(featureKey, index, {
+															icon: String((e as CustomEvent<{ value?: unknown }>).detail?.value ?? '')
+														})}
+												/>
+											</div>
+											<div>
+												<!-- svelte-ignore a11y_label_has_associated_control -->
+												<label class="block text-xs font-medium text-gray-600 mb-1">Title</label>
+												<MultiLangInput
+													value={item.title}
+													onChange={(value) => patchFeature(featureKey, index, { title: value as MultiLangText })}
+												/>
+											</div>
+											<div>
+												<!-- svelte-ignore a11y_label_has_associated_control -->
+												<label class="block text-xs font-medium text-gray-600 mb-1">
+													Description (Rich Text)
+												</label>
+												<MultiLangHTMLEditor
+													value={item.description}
+													onChange={(value) =>
+														patchFeature(featureKey, index, { description: value as MultiLangHTML })}
+												/>
+											</div>
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{:else if field.type === 'albumPicker'}
+					<!-- Album picker still needs a dedicated component; placeholder for now. -->
 					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-sm font-medium text-gray-700 mb-1">
 						{field.label}
@@ -546,9 +707,8 @@
 					</label>
 					<div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
 						<p class="text-sm text-yellow-800">
-							{field.type === 'featureList' 
-								? 'Feature list editing will be available in module edit mode after creation.'
-								: 'Album picker will be available in module edit mode after creation.'}
+							Album picker is only available in the page-builder module editor. Configure
+							<code class="text-xs">selectedAlbums</code> there.
 						</p>
 					</div>
 				{/if}
