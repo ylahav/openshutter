@@ -4037,6 +4037,7 @@ let draggedAlbumHeaderField: string | null = null;
 									{@const c = mod.columnIndex ?? 0}
 									{@const rs = mod.rowSpan ?? 1}
 									{@const cs = mod.colSpan ?? 1}
+									{@const sib = pageGridRowSiblingIndex(editingPageType, mod)}
 									<div
 										class="border border-green-300 rounded-lg p-3 bg-green-50/50"
 										style="grid-column: {c + 2} / span {cs}; grid-row: {r + 1} / span {rs}"
@@ -4065,7 +4066,6 @@ let draggedAlbumHeaderField: string | null = null;
 												<p class="text-xs text-(--color-surface-600-400) mt-1">{rs}×{cs} span</p>
 											{/if}
 											<div class="flex gap-2 mt-2 items-center">
-												{@const sib = pageGridRowSiblingIndex(editingPageType, mod)}
 												<button
 													type="button"
 													class="px-1.5 py-0.5 text-[11px] rounded border bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900) disabled:opacity-40"
