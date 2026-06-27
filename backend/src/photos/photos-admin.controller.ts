@@ -1487,8 +1487,14 @@ export class PhotosAdminController {
 			const uploadedBase = uploadedBaseRaw.slice(0, 80); // keep filenames sane
 			const newFilename = `${Date.now()}-${uploadedBase}.${uploadedExt}`;
 
-			// Upload the new original first — if anything below fails we still have the
-			// old file in storage. Old files are only removed after the new upload succeeds.
+			this.logger.debug(
+				`Replace photo ${id}: uploading new file "${newFilename}" (${(fileBuffer.length / 1024).toFixed(1)} KB, ${file.mimetype}) to ` +
+					`provider=${provider} bucket-ctx=${storedOwnerId ?? 'global'} albumPath=${albumPath || '<root>'}`
+			);
+
+			// Upload the new original first — old file/thumbnails/backup are only removed
+			// AFTER the DB row is rewritten to point at the new path, so any earlier failure
+			// leaves the original photo intact and the user can simply retry.
 			const uploadResult = await storageService.uploadFile(
 				fileBuffer,
 				newFilename,
@@ -1500,60 +1506,39 @@ export class PhotosAdminController {
 					reason: 'replace-photo',
 				}
 			);
+			this.logger.debug(
+				`Replace photo ${id}: upload returned path="${uploadResult.path}" fileId="${uploadResult.fileId}"`
+			);
 
-			// Sanity check: confirm the file is actually readable at the path the upload
-			// reported. If a storage context mismatch routed the upload to a different
-			// bucket from where the serve URL will read, this catches it before we
-			// destroy the old file and update the DB pointer.
+			// Sanity check: confirm the new file is actually readable at the path the upload
+			// reported AND that its size matches the buffer we uploaded. Catches a storage
+			// context mismatch that routes the upload to a different bucket than the serve
+			// URL will read, plus silent partial / 0-byte uploads.
 			if (typeof (storageService as any).getFileInfo === 'function') {
 				try {
-					await (storageService as any).getFileInfo(uploadResult.path);
+					const info = await (storageService as any).getFileInfo(uploadResult.path);
+					const reportedSize =
+						info && typeof info === 'object' && 'size' in info
+							? Number((info as { size?: unknown }).size ?? 0)
+							: NaN;
+					if (Number.isFinite(reportedSize) && reportedSize > 0 && reportedSize !== fileBuffer.length) {
+						throw new Error(
+							`Uploaded ${fileBuffer.length} bytes but storage reports ${reportedSize} bytes at ${uploadResult.path}`
+						);
+					}
 				} catch (verifyErr) {
 					this.logger.error(
-						`Post-upload verify failed for ${uploadResult.path}: ${verifyErr instanceof Error ? verifyErr.message : String(verifyErr)}`
+						`Replace photo ${id}: post-upload verify failed for ${uploadResult.path}: ${verifyErr instanceof Error ? verifyErr.message : String(verifyErr)}`
 					);
-					// Best-effort cleanup of the orphaned upload (don't fail the rollback if delete also errors).
 					try {
 						await storageService.deleteFile(uploadResult.path);
 					} catch {
-						/* ignore */
+						/* best-effort orphan cleanup */
 					}
 					throw new InternalServerErrorException(
-						'Replacement file was uploaded but is not retrievable at the recorded path. ' +
-							'Storage context mismatch — please report.'
+						'Replacement upload completed but the file is not retrievable. ' +
+							'No changes were made to the existing photo. Please retry; if this persists check the storage provider config.'
 					);
-				}
-			}
-
-			// Delete the old original.
-			try {
-				await storageService.deleteFile(photo.storage.path);
-			} catch (delErr) {
-				this.logger.warn(`Failed to delete old original during replace: ${delErr instanceof Error ? delErr.message : String(delErr)}`);
-			}
-
-			// Delete the old thumbnails (best effort).
-			if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
-				for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
-					try {
-						const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
-						if (thumbnailPath && thumbnailPath !== photo.storage.path) {
-							await storageService.deleteFile(thumbnailPath);
-						}
-					} catch (thumbErr) {
-						this.logger.warn(`Failed to delete old ${size} thumbnail during replace: ${thumbErr instanceof Error ? thumbErr.message : String(thumbErr)}`);
-					}
-				}
-			}
-
-			// Delete the stored crop/edit backup (it pointed at a previous version of this photo,
-			// which is now meaningless because the binary is completely different).
-			const backupPath = (photo as any).originalBackupPath as string | undefined;
-			if (backupPath) {
-				try {
-					await storageService.deleteFile(backupPath);
-				} catch (backupDelErr) {
-					this.logger.warn(`Failed to delete pre-edit backup during replace: ${backupDelErr instanceof Error ? backupDelErr.message : String(backupDelErr)}`);
 				}
 			}
 
@@ -1622,6 +1607,50 @@ export class PhotosAdminController {
 			);
 			if (updateResult.modifiedCount === 0) {
 				throw new InternalServerErrorException('Failed to update photo after replace');
+			}
+
+			// DB now points at the new file. Tear down the previous file / thumbnails /
+			// backup AFTER the rewrite so a delete-then-fail can't strand the user with
+			// nothing displayable. Every delete here is best-effort; orphaned objects
+			// only cost storage. The OLD original/thumbnails are intentionally never the
+			// same key as the new upload (newFilename has a fresh `Date.now()` prefix), so
+			// these deletes can't accidentally remove the just-uploaded file.
+			if (photo.storage.path && photo.storage.path !== uploadResult.path) {
+				try {
+					await storageService.deleteFile(photo.storage.path);
+				} catch (delErr) {
+					this.logger.warn(
+						`Replace photo ${id}: failed to delete old original ${photo.storage.path}: ${delErr instanceof Error ? delErr.message : String(delErr)}`
+					);
+				}
+			}
+			if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+				for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
+					try {
+						const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+						if (
+							thumbnailPath &&
+							thumbnailPath !== photo.storage.path &&
+							thumbnailPath !== uploadResult.path
+						) {
+							await storageService.deleteFile(thumbnailPath);
+						}
+					} catch (thumbErr) {
+						this.logger.warn(
+							`Replace photo ${id}: failed to delete old ${size} thumbnail: ${thumbErr instanceof Error ? thumbErr.message : String(thumbErr)}`
+						);
+					}
+				}
+			}
+			const backupPath = (photo as any).originalBackupPath as string | undefined;
+			if (backupPath && backupPath !== uploadResult.path) {
+				try {
+					await storageService.deleteFile(backupPath);
+				} catch (backupDelErr) {
+					this.logger.warn(
+						`Replace photo ${id}: failed to delete pre-edit backup ${backupPath}: ${backupDelErr instanceof Error ? backupDelErr.message : String(backupDelErr)}`
+					);
+				}
 			}
 
 			const updatedPhoto = await db.collection('photos').findOne({ _id: objectId });
