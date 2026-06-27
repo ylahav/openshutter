@@ -10,12 +10,16 @@ import {
 	Req,
 	Res,
 	UseGuards,
+	UseInterceptors,
+	UploadedFile,
 	BadRequestException,
 	NotFoundException,
 	ForbiddenException,
 	Logger,
 	InternalServerErrorException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { MulterIncomingFile } from '../common/types/multer-incoming-file';
 import { Request, Response } from 'express';
 import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
@@ -1390,6 +1394,247 @@ export class PhotosAdminController {
 			}
 			throw new InternalServerErrorException(
 				`Crop photo failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Replace the photo file behind a photo document. Preserves the photo `_id`,
+	 * album placement, title/description, tags, isPublished, comments, gallery-leading
+	 * flags, etc. — only the underlying image binary, its thumbnails, dimensions and
+	 * EXIF are swapped. Face boxes from the old image are dropped (meaningless on a
+	 * new photo); any pre-edit "original" backup is also cleared since the restore
+	 * target no longer matches the live file.
+	 *
+	 * Path: POST /api/admin/photos/:id/replace
+	 * Body: multipart/form-data with `file` field (image/*, up to 100MB)
+	 */
+	@Post(':id/replace')
+	@UseInterceptors(
+		FileInterceptor('file', {
+			limits: { fileSize: 100 * 1024 * 1024 },
+		}),
+	)
+	async replacePhoto(
+		@Param('id') id: string,
+		@UploadedFile() file: MulterIncomingFile,
+		@Req() req: Request,
+	) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			if (!file) throw new BadRequestException('No file provided');
+			const fileBuffer = file.buffer;
+			if (!fileBuffer) throw new BadRequestException('File has no in-memory buffer');
+			if (typeof file.mimetype !== 'string' || !file.mimetype.startsWith('image/')) {
+				throw new BadRequestException('Replacement file must be an image (image/*)');
+			}
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) throw new NotFoundException('Photo not found');
+			await this.assertOwnerCanAccessPhoto(req, photo, db);
+
+			if (!photo.storage || !photo.storage.path || !photo.storage.provider) {
+				throw new BadRequestException('Photo does not have valid storage information');
+			}
+
+			const storageManager = StorageManager.getInstance();
+			const provider = photo.storage.provider as any;
+			const pctx = await storageCtxForPhoto(db, photo);
+			const storageService = await storageManager.getProvider(provider, pctx);
+			const extractPathFromUrl = (url: string): string | null => extractStorageServePath(url);
+
+			// Resolve album folder (replacement file lives next to other album photos).
+			let albumPath = '';
+			if (photo.albumId) {
+				const album = await db.collection('albums').findOne({ _id: photo.albumId });
+				if (!album) {
+					throw new BadRequestException('Original album no longer exists; cannot replace photo');
+				}
+				if (album.storagePath) albumPath = album.storagePath;
+			}
+
+			// Pick a fresh filename derived from the uploaded file so URLs change and
+			// browsers don't serve a cached version of the replaced image.
+			const uploadedName = (file.originalname || 'photo').replace(/[\\/]/g, '_');
+			const uploadedExt = uploadedName.includes('.')
+				? uploadedName.replace(/^.*\./, '').toLowerCase()
+				: ((file.mimetype.split('/')[1] || 'jpg').toLowerCase());
+			const uploadedBaseRaw = uploadedName.replace(/\.[^.]+$/, '') || uploadedName;
+			const uploadedBase = uploadedBaseRaw.slice(0, 80); // keep filenames sane
+			const newFilename = `${Date.now()}-${uploadedBase}.${uploadedExt}`;
+
+			// Upload the new original first — if anything below fails we still have the
+			// old file in storage. Old files are only removed after the new upload succeeds.
+			const uploadResult = await storageService.uploadFile(
+				fileBuffer,
+				newFilename,
+				file.mimetype,
+				albumPath,
+				{
+					originalFilename: file.originalname,
+					albumId: photo.albumId?.toString(),
+					reason: 'replace-photo',
+				}
+			);
+
+			// Delete the old original.
+			try {
+				await storageService.deleteFile(photo.storage.path);
+			} catch (delErr) {
+				this.logger.warn(`Failed to delete old original during replace: ${delErr instanceof Error ? delErr.message : String(delErr)}`);
+			}
+
+			// Delete the old thumbnails (best effort).
+			if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+				for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
+					try {
+						const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+						if (thumbnailPath && thumbnailPath !== photo.storage.path) {
+							await storageService.deleteFile(thumbnailPath);
+						}
+					} catch (thumbErr) {
+						this.logger.warn(`Failed to delete old ${size} thumbnail during replace: ${thumbErr instanceof Error ? thumbErr.message : String(thumbErr)}`);
+					}
+				}
+			}
+
+			// Delete the stored crop/edit backup (it pointed at a previous version of this photo,
+			// which is now meaningless because the binary is completely different).
+			const backupPath = (photo as any).originalBackupPath as string | undefined;
+			if (backupPath) {
+				try {
+					await storageService.deleteFile(backupPath);
+				} catch (backupDelErr) {
+					this.logger.warn(`Failed to delete pre-edit backup during replace: ${backupDelErr instanceof Error ? backupDelErr.message : String(backupDelErr)}`);
+				}
+			}
+
+			// Generate fresh thumbnails (all 5 sizes) + blur placeholder.
+			const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, newFilename);
+			const thumbnails: Record<string, string> = {};
+			for (const [sizeName, buffer] of Object.entries(thumbnailBuffers)) {
+				try {
+					const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any);
+					const thumbnailFilename = `${sizeName}-${newFilename}`;
+					const sizeFolderPath = albumPath ? `${albumPath}/${sizeConfig.folder}` : sizeConfig.folder;
+					const thumbnailResult = await storageService.uploadFile(
+						buffer,
+						thumbnailFilename,
+						'image/jpeg',
+						sizeFolderPath,
+						{ originalFile: newFilename, thumbnailSize: sizeName }
+					);
+					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
+				} catch (err) {
+					this.logger.warn(`Failed to upload ${sizeName} thumbnail for replaced photo ${photo.filename}: ${err instanceof Error ? err.message : String(err)}`);
+				}
+			}
+			const blurDataURL = await ThumbnailGenerator.generateBlurPlaceholder(fileBuffer);
+			const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
+
+			// Re-read dimensions, EXIF and size from the new file.
+			const newMetadata = await sharp(fileBuffer).metadata();
+			const newDimensions = {
+				width: newMetadata.width || 0,
+				height: newMetadata.height || 0,
+			};
+			const exifData = await ExifExtractor.extractExifData(fileBuffer);
+			const compressionResult = await ImageCompressionService.compressImage(fileBuffer, 'gallery');
+
+			// Drop face data (positions are tied to the old image). User can re-run Detect Faces.
+			// Drop pre-edit backup pointers too (we deleted the backup file above).
+			// Reset cumulativeCropOffset since the image binary changed entirely.
+			const updateSet: Record<string, unknown> = {
+				filename: newFilename,
+				originalFilename: file.originalname || newFilename,
+				mimeType: file.mimetype,
+				'storage.path': uploadResult.path,
+				'storage.fileId': uploadResult.fileId,
+				'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
+				'storage.thumbnails': thumbnails,
+				'storage.thumbnailPath': mediumThumbnail,
+				'storage.blurDataURL': blurDataURL,
+				dimensions: newDimensions,
+				size: compressionResult.compressed.length,
+				compressionRatio: compressionResult.compressionRatio,
+				exif: exifData,
+				updatedAt: new Date(),
+			};
+			const updateUnset: Record<string, unknown> = {
+				faceRecognition: '',
+				cumulativeCropOffset: '',
+				originalBackupPath: '',
+				originalBackupFilename: '',
+				originalBackupFaceRecognition: '',
+			};
+
+			const updateResult = await db.collection('photos').updateOne(
+				{ _id: objectId },
+				{ $set: updateSet, $unset: updateUnset }
+			);
+			if (updateResult.modifiedCount === 0) {
+				throw new InternalServerErrorException('Failed to update photo after replace');
+			}
+
+			const updatedPhoto = await db.collection('photos').findOne({ _id: objectId });
+			if (!updatedPhoto) throw new NotFoundException('Photo not found after replace');
+
+			const serialized: any = {
+				...updatedPhoto,
+				_id: updatedPhoto._id.toString(),
+				albumId: updatedPhoto.albumId ? updatedPhoto.albumId.toString() : null,
+				tags: updatedPhoto.tags
+					? updatedPhoto.tags.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString()))
+					: [],
+				people: updatedPhoto.people
+					? updatedPhoto.people.map((person: any) =>
+							person._id ? person._id.toString() : person.toString()
+						)
+					: [],
+				location: updatedPhoto.location
+					? updatedPhoto.location._id
+						? updatedPhoto.location._id.toString()
+						: updatedPhoto.location.toString()
+					: null,
+				uploadedBy: updatedPhoto.uploadedBy ? updatedPhoto.uploadedBy.toString() : null,
+				canRestoreOriginal: false,
+			};
+			if (updatedPhoto.storage) {
+				serialized.storage = {
+					provider: updatedPhoto.storage.provider || 'local',
+					fileId: updatedPhoto.storage.fileId || '',
+					url: updatedPhoto.storage.url || '',
+					path: updatedPhoto.storage.path || '',
+					thumbnailPath: updatedPhoto.storage.thumbnailPath || updatedPhoto.storage.url || '',
+					thumbnails: updatedPhoto.storage.thumbnails || {},
+					blurDataURL: updatedPhoto.storage.blurDataURL,
+					bucket: updatedPhoto.storage.bucket,
+					folderId: updatedPhoto.storage.folderId,
+				};
+			}
+
+			return { success: true, message: 'Photo replaced successfully', data: serialized };
+		} catch (error) {
+			this.logger.error(`Replace photo failed: ${error instanceof Error ? error.message : String(error)}`);
+			if (
+				error instanceof NotFoundException ||
+				error instanceof BadRequestException ||
+				error instanceof ForbiddenException
+			) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Replace photo failed: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
 	}

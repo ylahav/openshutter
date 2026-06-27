@@ -91,6 +91,8 @@
 	let croppingPhoto = $state(false);
 	let showCropModal = $state(false);
 	let restoringOriginal = $state(false);
+	let replacingPhoto = $state(false);
+	let replaceFileInput: HTMLInputElement | undefined = $state();
 	let error = $state('');
 	
 	let tags: Tag[] = $state([]);
@@ -449,6 +451,57 @@ $effect(() => {
 			error = handleError(err, 'Failed to update photo');
 		} finally {
 			saving = false;
+		}
+	}
+
+	function openReplacePicker() {
+		if (replacingPhoto) return;
+		replaceFileInput?.click();
+	}
+
+	async function handleReplacePhotoSelected(event: Event) {
+		if (!photo || replacingPhoto) return;
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0] ?? null;
+		// Clear the input so picking the same file twice in a row still fires `change`.
+		input.value = '';
+		if (!file) return;
+		if (!file.type.startsWith('image/')) {
+			adminToast.error({ title: 'Replacement must be an image (image/*)' });
+			return;
+		}
+		try {
+			replacingPhoto = true;
+			error = '';
+
+			const formData = new FormData();
+			formData.append('file', file, file.name);
+
+			const response = await fetch(`/api/admin/photos/${photoId}/replace`, {
+				method: 'POST',
+				body: formData,
+				credentials: 'include',
+			});
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			const updated = result?.data ?? result;
+			if (updated?.storage) {
+				photo = { ...photo, ...updated };
+			}
+			adminToast.success({ title: result.message || 'Photo replaced successfully' });
+			// Reload to pick up regenerated thumbnails, fresh EXIF and reset face data.
+			setTimeout(() => {
+				loadPhotoCalled = false;
+				lastLoadedPhotoId = null;
+				loadPhoto();
+			}, 800);
+		} catch (err) {
+			logger.error('Failed to replace photo:', err);
+			adminToast.error({ title: handleError(err, 'Failed to replace photo') });
+		} finally {
+			replacingPhoto = false;
 		}
 	}
 
@@ -1256,17 +1309,36 @@ $effect(() => {
 							</p>
 						{/if}
 					</div>
-					<div class="mt-4 text-center">
-						<button
-							type="button"
-							onclick={handleRegenerateThumbnails}
-							disabled={regeneratingThumbnails}
-							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							{regeneratingThumbnails ? 'Regenerating...' : 'Rebuild Thumbnails'}
-						</button>
-						<p class="text-xs text-(--color-surface-600-400) mt-2">
-							Regenerate thumbnails with correct orientation
+					<div class="mt-4 flex flex-col items-center gap-2">
+						<div class="flex flex-wrap items-center justify-center gap-2">
+							<button
+								type="button"
+								onclick={handleRegenerateThumbnails}
+								disabled={regeneratingThumbnails || replacingPhoto}
+								class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								{regeneratingThumbnails ? 'Regenerating...' : 'Rebuild Thumbnails'}
+							</button>
+							<button
+								type="button"
+								onclick={openReplacePicker}
+								disabled={regeneratingThumbnails || replacingPhoto}
+								class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								{replacingPhoto ? 'Replacing...' : 'Replace Photo'}
+							</button>
+							<input
+								bind:this={replaceFileInput}
+								type="file"
+								accept="image/*"
+								class="hidden"
+								onchange={handleReplacePhotoSelected}
+							/>
+						</div>
+						<p class="text-xs text-(--color-surface-600-400) text-center">
+							Rebuild regenerates all thumbnail sizes for the current photo. Replace
+							swaps the file behind this photo (keeps tags, description, comments,
+							album position; resets face data).
 						</p>
 					</div>
 				</div>
