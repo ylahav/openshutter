@@ -77,6 +77,7 @@
 		b2BucketName: '',
 		b2Region: '',
 		b2Endpoint: '',
+		b2PublicBaseUrl: '',
 		localBasePath: ''
 	});
 
@@ -202,6 +203,7 @@
 		formData.b2BucketName = String(c.bucketName ?? '');
 		formData.b2Region = String(c.region ?? '');
 		formData.b2Endpoint = String(c.endpoint ?? '');
+		formData.b2PublicBaseUrl = String(c.publicBaseUrl ?? '');
 	}
 
 	function applyProviderConfigToForm(id: string, c: Record<string, unknown>) {
@@ -244,7 +246,8 @@
 				applicationKey: formData.b2ApplicationKey?.trim() || undefined,
 				bucketName: formData.b2BucketName?.trim() || undefined,
 				region: formData.b2Region?.trim() || undefined,
-				endpoint: formData.b2Endpoint?.trim() || undefined
+				endpoint: formData.b2Endpoint?.trim() || undefined,
+				publicBaseUrl: formData.b2PublicBaseUrl?.trim() || ''
 			};
 		}
 		return {};
@@ -1311,6 +1314,20 @@
 										placeholder="B2 Application Key"
 										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
 									/>
+								</div>
+								<div>
+									<label for="owner-b2-public-base-url" class="block text-sm font-medium text-gray-700 mb-1">Public CDN base URL (optional)</label>
+									<input
+										id="owner-b2-public-base-url"
+										type="url"
+										inputmode="url"
+										bind:value={formData.b2PublicBaseUrl}
+										placeholder="https://cdn.example.com"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+									<p class="mt-1 text-xs text-gray-500">
+										Must include the scheme (<code>https://</code>). When set, new uploads emit direct CDN URLs (<code>{'{baseUrl}/{key}'}</code>) instead of the proxy. Leave empty to keep serving through <code>/api/storage/serve/backblaze/...</code>.
+									</p>
 								</div>
 								<button
 									type="submit"

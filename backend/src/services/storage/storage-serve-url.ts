@@ -28,3 +28,42 @@ export function coerceStorageServePathOrRaw(pathOrUrl: string | undefined | null
   }
   return s
 }
+
+/**
+ * Build the public URL for a stored object. When `publicBaseUrl` is set on the
+ * provider config, emits `${publicBaseUrl}/${key}` (path segments encoded,
+ * slashes preserved) + optional `?v=<hash>` for cache-busting. When empty,
+ * falls back to the existing `/api/storage/serve/{provider}/{key}` proxy URL
+ * (with `?storageOwnerId=` for owner-dedicated storage). This is the single
+ * source of truth for upload-time URL emission.
+ */
+export function buildPublicUrl(args: {
+  providerId: string
+  key: string
+  publicBaseUrl?: string
+  hash?: string
+  ownerUserId?: string
+}): string {
+  const { providerId, key, publicBaseUrl, hash, ownerUserId } = args
+
+  if (publicBaseUrl && publicBaseUrl.trim()) {
+    // Tolerate operator entering the host without a scheme (e.g. "cdn.yairl.com"
+    // instead of "https://cdn.yairl.com"); a scheme-less URL stored in
+    // Photo.storage.url breaks the frontend helper that detects absolute URLs by
+    // the `http` prefix and would otherwise re-wrap it in `/api/storage/serve/…`.
+    let base = publicBaseUrl.trim().replace(/\/+$/, '')
+    if (!/^https?:\/\//i.test(base)) {
+      base = `https://${base}`
+    }
+    const encodedKey = key.split('/').map(encodeURIComponent).join('/')
+    const url = `${base}/${encodedKey}`
+    if (hash) {
+      const v = hash.slice(0, 8)
+      return `${url}?v=${v}`
+    }
+    return url
+  }
+
+  const proxyUrl = `/api/storage/serve/${providerId}/${encodeURIComponent(key)}`
+  return appendStorageOwnerQuery(proxyUrl, ownerUserId)
+}

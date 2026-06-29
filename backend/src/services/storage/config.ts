@@ -379,7 +379,11 @@ export class StorageConfigService {
           applicationKey: '',
           bucketName: '',
           region: 'us-west-2',
-          endpoint: ''
+          endpoint: '',
+          // When set, uploads emit `${publicBaseUrl}/${key}` instead of the
+          // /api/storage/serve/backblaze/... proxy URL. Intended for a CDN
+          // (e.g. Cloudflare + B2). Empty = no behavior change.
+          publicBaseUrl: ''
           // isEnabled should NOT be in config object - it's only at root level
         },
         createdAt: new Date(),
