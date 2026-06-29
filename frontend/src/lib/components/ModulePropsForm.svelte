@@ -160,6 +160,13 @@
 	}
 
 	function shouldShowField(field: any): boolean {
+		if (typeof field.showIf === 'function') {
+			try {
+				if (!field.showIf(props)) return false;
+			} catch {
+				/* a broken predicate must not crash the form */
+			}
+		}
 		if (!field.visibleWhen) return true;
 		const condition = field.visibleWhen;
 		const key = Object.keys(condition)[0];
@@ -170,6 +177,32 @@
 			if (def?.default !== undefined) actual = def.default;
 		}
 		return actual === expected;
+	}
+
+	/** Group buckets: visible fields per declared group + any ungrouped fields, in declared order. */
+	// `props` referenced so Svelte re-derives when toggles flip the visibility of a field.
+	$: groupedBuckets = computeGroupBuckets(config, fields, props);
+
+	function computeGroupBuckets(
+		_config: any,
+		_fields: any[],
+		_props: Record<string, any>
+	): { declared: Array<{ id: string; label: string; defaultCollapsed?: boolean }>; byId: Map<string, any[]>; ungrouped: any[] } | null {
+		void _props;
+		const declared = Array.isArray(_config?.groups)
+			? (_config.groups as Array<{ id: string; label: string; defaultCollapsed?: boolean }>)
+			: [];
+		if (declared.length === 0) return null;
+		const visible = _fields.filter(shouldShowField);
+		const byId = new Map<string, any[]>();
+		for (const g of declared) byId.set(g.id, []);
+		const ungrouped: any[] = [];
+		for (const f of visible) {
+			const gid = typeof f.group === 'string' ? f.group : '';
+			if (gid && byId.has(gid)) byId.get(gid)!.push(f);
+			else ungrouped.push(f);
+		}
+		return { declared, byId, ungrouped };
 	}
 
 	const SOCIAL_PLATFORM_PRESETS = [
@@ -307,7 +340,7 @@
 			<p class="text-sm text-gray-600 mb-3">{config.description}</p>
 		{/if}
 
-		{#each fields.filter(shouldShowField) as field}
+		{#snippet renderField(field)}
 			<div>
 				{#if field.type === 'multilangText'}
 					<!-- svelte-ignore a11y_label_has_associated_control -->
@@ -720,7 +753,42 @@
 					</div>
 				{/if}
 			</div>
-		{/each}
+		{/snippet}
+
+		{#if groupedBuckets}
+			{#each groupedBuckets.declared as group (group.id)}
+				{@const groupFields = groupedBuckets.byId.get(group.id) ?? []}
+				{#if groupFields.length > 0}
+					<details
+						open={!group.defaultCollapsed}
+						class="rounded-md border border-gray-200 bg-white"
+					>
+						<summary
+							class="cursor-pointer select-none px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 rounded-md"
+						>
+							{group.label}
+							<span class="ml-1 text-xs font-normal text-gray-500">({groupFields.length})</span>
+						</summary>
+						<div class="space-y-4 px-3 pb-3 pt-2 border-t border-gray-100">
+							{#each groupFields as field (field.key)}
+								{@render renderField(field)}
+							{/each}
+						</div>
+					</details>
+				{/if}
+			{/each}
+			{#if groupedBuckets.ungrouped.length > 0}
+				<div class="space-y-4">
+					{#each groupedBuckets.ungrouped as field (field.key)}
+						{@render renderField(field)}
+					{/each}
+				</div>
+			{/if}
+		{:else}
+			{#each fields.filter(shouldShowField) as field (field.key)}
+				{@render renderField(field)}
+			{/each}
+		{/if}
 
 		{#if fields.length === 0}
 			<p class="text-sm text-gray-500 italic">This module type has no configurable properties.</p>
