@@ -14,6 +14,7 @@
 	import PhotoCard from './PhotoCard.svelte';
 	import JustifiedPhotoGrid from './JustifiedPhotoGrid.svelte';
 	import {
+		photoCardCaptionPlacement,
 		photoCardPresentation,
 		resolveAlbumCardVariant,
 		resolvePhotoGridVariant,
@@ -215,6 +216,7 @@
 			: photoGridVisual
 	);
 	const photoCardPres = $derived(photoCardPresentation(photoGridForLayout));
+	const photoCardCaption = $derived(photoCardCaptionPlacement(photoGridForLayout));
 
 	const albumListBaseClass = $derived.by(() => {
 		if (albumCardVisual === 'compactList') {
@@ -920,6 +922,7 @@
 												{descriptionLines}
 												showFeaturedBadge={showPhotoFeaturedBadge}
 												presentation={photoCardPres}
+												captionPlacement={photoCardCaption}
 												onopen={() => openLightboxForPhoto(album)}
 											/>
 										{/each}
@@ -939,6 +942,7 @@
 										{descriptionLines}
 										showFeaturedBadge={showPhotoFeaturedBadge}
 										presentation={photoCardPres}
+										captionPlacement={photoCardCaption}
 										onopen={() => openLightboxForPhoto(album)}
 									/>
 								{/each}
@@ -959,6 +963,7 @@
 									{descriptionLines}
 									showFeaturedBadge={showPhotoFeaturedBadge}
 									presentation={photoCardPres}
+									captionPlacement={photoCardCaption}
 									onopen={() => openLightboxForPhoto(album)}
 								/>
 							{:else}

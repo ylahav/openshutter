@@ -123,3 +123,16 @@ export function photoCardPresentation(grid: PhotoGridVisualVariant): 'full' | 't
 	}
 	return 'full';
 }
+
+/**
+ * Where to place the photo caption (title + description) for grid presets that don't render
+ * a full card body. `'full'` embeds the caption in the card body itself; tight grids show a
+ * hover overlay; roomier tile grids show a caption beneath the image.
+ */
+export function photoCardCaptionPlacement(
+	grid: PhotoGridVisualVariant
+): 'overlay' | 'below' | 'none' {
+	if (grid === 'squareTight' || grid === 'masonry') return 'overlay';
+	if (grid === 'landscape43' || grid === 'portrait34') return 'below';
+	return 'none';
+}
