@@ -37,12 +37,35 @@ import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { CropPhotoDto } from './dto/crop-photo.dto';
 import sharp from 'sharp';
 import { ImageCompressionService } from '../services/image-compression';
-import { extractStorageServePath } from '../services/storage/storage-serve-url';
+import { buildPublicUrl, extractStorageServePath } from '../services/storage/storage-serve-url';
 import { XmpSidecarService } from '../services/stag/xmp-sidecar.service';
 
-function storageServeQs(photo: unknown): string {
-	const id = (photo as { storage?: { storageOwnerId?: string } } | null | undefined)?.storage?.storageOwnerId;
-	return id ? `?storageOwnerId=${encodeURIComponent(String(id))}` : '';
+/**
+ * Build the URL stored in `Photo.storage.url` (and thumbnail map values) for admin
+ * re-upload flows (replace, crop, batch ops). Reads `publicBaseUrl` off the active
+ * storage service config — when set on B2, emits a direct CDN URL; otherwise the
+ * existing `/api/storage/serve/...` proxy URL. Owner-dedicated storage's
+ * `storageOwnerId` is carried over from the photo doc for the proxy path.
+ */
+function publicUrlFor(args: {
+	provider: string;
+	key: string;
+	photo: unknown;
+	storageService: { getConfig?: () => Record<string, unknown> } | null | undefined;
+}): string {
+	const cfg = args.storageService?.getConfig?.() ?? {};
+	const publicBaseUrl =
+		args.provider === 'backblaze' && typeof cfg.publicBaseUrl === 'string'
+			? cfg.publicBaseUrl.trim()
+			: '';
+	const ownerUserId = (args.photo as { storage?: { storageOwnerId?: string } } | null | undefined)
+		?.storage?.storageOwnerId;
+	return buildPublicUrl({
+		providerId: args.provider,
+		key: args.key,
+		publicBaseUrl,
+		ownerUserId,
+	});
 }
 
 @Controller('admin/photos')
@@ -800,7 +823,7 @@ export class PhotosAdminController {
 								sizeFolderPath,
 								{ originalFile: photo.filename, thumbnailSize: sizeName }
 							);
-							thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
+							thumbnails[sizeName] = publicUrlFor({ provider, key: thumbnailResult.path, photo, storageService });
 						} catch (err) {
 							this.logger.warn(`Failed to upload ${sizeName} thumbnail for ${photo.filename}: ${err}`);
 						}
@@ -933,7 +956,7 @@ export class PhotosAdminController {
 								sizeFolderPath,
 								{ originalFile: photo.filename, thumbnailSize: sizeName }
 							);
-							thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
+							thumbnails[sizeName] = publicUrlFor({ provider, key: thumbnailResult.path, photo, storageService });
 						} catch (err) {
 							this.logger.warn(`Failed to upload ${sizeName} thumbnail for ${photo.filename}: ${err}`);
 						}
@@ -1264,7 +1287,7 @@ export class PhotosAdminController {
 						}
 					);
 
-					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
+					thumbnails[sizeName] = publicUrlFor({ provider, key: thumbnailResult.path, photo, storageService });
 					this.logger.debug(`Successfully regenerated ${sizeName} thumbnail`);
 				} catch (error) {
 					this.logger.error(`Failed to upload ${sizeName} thumbnail:`, error);
@@ -1320,7 +1343,7 @@ export class PhotosAdminController {
 				filename: newFilename,
 				'storage.path': uploadResult.path,
 				'storage.fileId': uploadResult.fileId,
-				'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
+				'storage.url': publicUrlFor({ provider, key: uploadResult.path, photo, storageService }),
 				'storage.thumbnails': thumbnails,
 				'storage.thumbnailPath': mediumThumbnail,
 				'storage.blurDataURL': blurDataURL,
@@ -1487,8 +1510,32 @@ export class PhotosAdminController {
 			const uploadedBase = uploadedBaseRaw.slice(0, 80); // keep filenames sane
 			const newFilename = `${Date.now()}-${uploadedBase}.${uploadedExt}`;
 
+			// Phase 1 CDN: when emitting direct CDN URLs we bypass the serve endpoint
+			// (storage.controller.ts) that normally bakes EXIF orientation per request,
+			// so apply the rotation once here and reset the orientation tag.
+			const replaceCfg = storageService.getConfig?.() ?? {};
+			const replacePublicBaseUrl =
+				provider === 'backblaze' && typeof replaceCfg.publicBaseUrl === 'string'
+					? replaceCfg.publicBaseUrl.trim()
+					: '';
+			let uploadBuffer = fileBuffer;
+			if (replacePublicBaseUrl) {
+				try {
+					let pipeline = sharp(fileBuffer).rotate();
+					if (file.mimetype === 'image/png') pipeline = pipeline.png();
+					else if (file.mimetype === 'image/webp') pipeline = pipeline.webp();
+					else pipeline = pipeline.jpeg({ quality: 95 });
+					uploadBuffer = await pipeline.withMetadata({ orientation: 1 }).toBuffer();
+				} catch (e) {
+					this.logger.warn(
+						`Replace photo ${id}: EXIF orientation pre-bake failed, uploading original: ${e instanceof Error ? e.message : String(e)}`
+					);
+					uploadBuffer = fileBuffer;
+				}
+			}
+
 			this.logger.debug(
-				`Replace photo ${id}: uploading new file "${newFilename}" (${(fileBuffer.length / 1024).toFixed(1)} KB, ${file.mimetype}) to ` +
+				`Replace photo ${id}: uploading new file "${newFilename}" (${(uploadBuffer.length / 1024).toFixed(1)} KB, ${file.mimetype}) to ` +
 					`provider=${provider} bucket-ctx=${storedOwnerId ?? 'global'} albumPath=${albumPath || '<root>'}`
 			);
 
@@ -1496,7 +1543,7 @@ export class PhotosAdminController {
 			// AFTER the DB row is rewritten to point at the new path, so any earlier failure
 			// leaves the original photo intact and the user can simply retry.
 			const uploadResult = await storageService.uploadFile(
-				fileBuffer,
+				uploadBuffer,
 				newFilename,
 				file.mimetype,
 				albumPath,
@@ -1521,9 +1568,9 @@ export class PhotosAdminController {
 						info && typeof info === 'object' && 'size' in info
 							? Number((info as { size?: unknown }).size ?? 0)
 							: NaN;
-					if (Number.isFinite(reportedSize) && reportedSize > 0 && reportedSize !== fileBuffer.length) {
+					if (Number.isFinite(reportedSize) && reportedSize > 0 && reportedSize !== uploadBuffer.length) {
 						throw new Error(
-							`Uploaded ${fileBuffer.length} bytes but storage reports ${reportedSize} bytes at ${uploadResult.path}`
+							`Uploaded ${uploadBuffer.length} bytes but storage reports ${reportedSize} bytes at ${uploadResult.path}`
 						);
 					}
 				} catch (verifyErr) {
@@ -1557,7 +1604,7 @@ export class PhotosAdminController {
 						sizeFolderPath,
 						{ originalFile: newFilename, thumbnailSize: sizeName }
 					);
-					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
+					thumbnails[sizeName] = publicUrlFor({ provider, key: thumbnailResult.path, photo, storageService });
 				} catch (err) {
 					this.logger.warn(`Failed to upload ${sizeName} thumbnail for replaced photo ${photo.filename}: ${err instanceof Error ? err.message : String(err)}`);
 				}
@@ -1583,7 +1630,7 @@ export class PhotosAdminController {
 				mimeType: file.mimetype,
 				'storage.path': uploadResult.path,
 				'storage.fileId': uploadResult.fileId,
-				'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
+				'storage.url': publicUrlFor({ provider, key: uploadResult.path, photo, storageService }),
 				'storage.thumbnails': thumbnails,
 				'storage.thumbnailPath': mediumThumbnail,
 				'storage.blurDataURL': blurDataURL,
@@ -1823,10 +1870,35 @@ export class PhotosAdminController {
 			const ext = (photo.mimeType || 'image/jpeg').split('/')[1] || 'jpg';
 			const newFilename = `${Date.now()}-${baseName}.${ext}`;
 
+			// Phase 1 CDN: same gated EXIF orientation bake as the upload pipeline —
+			// the backup may carry orientation since it wasn't necessarily produced
+			// during a CDN-enabled upload.
+			const restoreCfg = storageService.getConfig?.() ?? {};
+			const restorePublicBaseUrl =
+				provider === 'backblaze' && typeof restoreCfg.publicBaseUrl === 'string'
+					? restoreCfg.publicBaseUrl.trim()
+					: '';
+			const restoreMime = photo.mimeType || 'image/jpeg';
+			let restoreBuffer = originalBuffer;
+			if (restorePublicBaseUrl) {
+				try {
+					let pipeline = sharp(originalBuffer).rotate();
+					if (restoreMime === 'image/png') pipeline = pipeline.png();
+					else if (restoreMime === 'image/webp') pipeline = pipeline.webp();
+					else pipeline = pipeline.jpeg({ quality: 95 });
+					restoreBuffer = await pipeline.withMetadata({ orientation: 1 }).toBuffer();
+				} catch (e) {
+					this.logger.warn(
+						`Restore original ${id}: EXIF orientation pre-bake failed, uploading backup as-is: ${e instanceof Error ? e.message : String(e)}`
+					);
+					restoreBuffer = originalBuffer;
+				}
+			}
+
 			const uploadResult = await storageService.uploadFile(
-				originalBuffer,
+				restoreBuffer,
 				newFilename,
-				photo.mimeType || 'image/jpeg',
+				restoreMime,
 				albumPath,
 				{ originalFilename: restoredFilename, reason: 'restore-original' }
 			);
@@ -1846,7 +1918,7 @@ export class PhotosAdminController {
 						sizeFolderPath,
 						{ originalFile: newFilename, thumbnailSize: sizeName }
 					);
-					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
+					thumbnails[sizeName] = publicUrlFor({ provider, key: thumbnailResult.path, photo, storageService });
 				} catch (err) {
 					this.logger.warn(`Failed to upload ${sizeName} thumbnail:`, err);
 				}
@@ -1869,7 +1941,7 @@ export class PhotosAdminController {
 				filename: newFilename,
 				'storage.path': uploadResult.path,
 				'storage.fileId': uploadResult.fileId,
-				'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
+				'storage.url': publicUrlFor({ provider, key: uploadResult.path, photo, storageService }),
 				'storage.thumbnails': thumbnails,
 				'storage.thumbnailPath': mediumThumbnail,
 				'storage.blurDataURL': blurDataURL,
@@ -2031,7 +2103,7 @@ export class PhotosAdminController {
 						}
 					);
 
-					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
+					thumbnails[sizeName] = publicUrlFor({ provider, key: thumbnailResult.path, photo, storageService });
 					this.logger.debug(`Successfully regenerated ${sizeName} thumbnail`);
 				} catch (error) {
 					this.logger.error(`Failed to upload ${sizeName} thumbnail:`, error);
