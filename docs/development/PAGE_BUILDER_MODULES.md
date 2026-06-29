@@ -166,6 +166,43 @@ const titleText = MultiLangUtils.getTextValue(config.title, $currentLanguage);
 
 **Legacy:** some modules still accept nested `props.config` during migration; new modules should prefer flat `module.props` only.
 
+### 5.1 Field schema (`ModulePropsForm`)
+
+The Admin form for editing a module's `props` is generated from the module's `config.ts` (`fields[]`). Each entry describes one form control: `{ key, type, label, default?, description?, required?, options? }`. Two optional schema features control layout and visibility:
+
+**Grouping.** Declare named sections on the config and tag each field with its group id:
+
+```ts
+export const myConfig = {
+  type: 'myModule',
+  label: 'My module',
+  groups: [
+    { id: 'content', label: 'Content' },
+    { id: 'advanced', label: 'Advanced', defaultCollapsed: true },
+  ],
+  fields: [
+    { key: 'title', type: 'multilangText', label: 'Title', group: 'content' },
+    { key: 'debugMode', type: 'boolean', label: 'Debug', group: 'advanced' },
+  ],
+} as const;
+```
+
+`ModulePropsForm` renders each group as a collapsible `<details>` (with the field count in the summary) and hides a group entirely when all its fields evaluate to hidden. Fields without a `group` (or whose id isn't declared) fall back to flat rendering after the grouped sections. If `groups` is omitted, the form keeps the flat layout — existing configs need no changes.
+
+**Conditional visibility.** Two forms are supported:
+
+| Form | When to use |
+|------|-------------|
+| `visibleWhen: { otherKey: 'value' }` | Single-key equality. Concise; preferred for one-off toggles. |
+| `showIf: (props) => boolean` | Multi-key, inverse, or computed conditions. Receives the live props object; must not throw (the form swallows predicate errors). |
+
+```ts
+{ key: 'selectedAlbums', type: 'albumPicker', label: 'Selected albums',
+  showIf: (p) => p.albumSource === 'selected' }
+```
+
+See `frontend/src/lib/page-builder/modules/AlbumGallery/config.ts` for a worked example combining both features.
+
 ---
 
 ## 6) Registration steps (minimal touch)
@@ -629,3 +666,5 @@ Move from scattered registration to a **single manifest** (alias, title, region,
 **2026-04:** Added **implemented UI components** table (§1); extended **§13** with **`albumsGrid`** and **`albumView`** narratives and JSON, plus renumbered blog examples to **§13.3–§13.4**.
 
 **2026-04:** **§12** — clarified legacy **`props.config`** as debt, not a pattern for new modules. **§13.1** — **`albumsGrid`** adapter reference (flat props + **`data`**); **§13.3** blog adapter called minimal vs §13.1.
+
+**2026-06:** **§5.1** — documented `ModulePropsForm`'s field-schema features: `config.groups[]` + per-field `group` for collapsible sections, and `field.showIf: (props) => boolean` predicate alongside the legacy `visibleWhen` single-key form. AlbumGallery's `config.ts` is the worked example.
