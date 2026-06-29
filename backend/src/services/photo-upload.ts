@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import sharp from 'sharp'
 import { storageManager } from './storage'
 import { resolveOwnerStorageContext } from './storage/owner-storage-context'
-import { extractStorageServePath } from './storage/storage-serve-url'
+import { buildPublicUrl, extractStorageServePath } from './storage/storage-serve-url'
 import mongoose, { Types } from 'mongoose'
 import { ThumbnailGenerator } from './thumbnail-generator'
 import { ImageCompressionService } from './image-compression'
@@ -269,9 +269,6 @@ export class PhotoUploadService {
       const storageCtx = await resolveOwnerStorageContext(
         album?.createdBy ? String(album.createdBy) : undefined,
       )
-      const serveOwnerQs = storageCtx
-        ? `?storageOwnerId=${encodeURIComponent(storageCtx.ownerUserId)}`
-        : ''
 
       // Get storage service from the new storage manager
       this.logger.debug(`PhotoUploadService: Getting storage service for provider: ${storageProvider}`)
@@ -280,6 +277,21 @@ export class PhotoUploadService {
         storageCtx,
       )
       this.logger.debug(`PhotoUploadService: Storage service obtained: ${storageService.constructor.name}`)
+
+      // Phase 1 CDN: when B2 is configured with a publicBaseUrl, emit direct CDN
+      // URLs at upload time (`{publicBaseUrl}/{key}?v={hash}`) instead of the
+      // /api/storage/serve/backblaze/... proxy URL. Empty publicBaseUrl => proxy
+      // (unchanged behavior). Only applies to backblaze for now.
+      const providerCfg = storageService.getConfig?.() ?? {}
+      const publicBaseUrl =
+        storageProvider === 'backblaze' && typeof providerCfg.publicBaseUrl === 'string'
+          ? providerCfg.publicBaseUrl.trim()
+          : ''
+
+      // Hash of the original buffer — used as `?v=` cache-buster on CDN URLs so
+      // replace-photo flows produce a fresh URL automatically. Computed early so
+      // it's available when emitting both thumbnail and original URLs below.
+      const hash = this.calculateHash(fileBuffer)
 
       // Generate unique filename
       const timestamp = Date.now()
@@ -311,12 +323,32 @@ export class PhotoUploadService {
 
       // Compress original image for web delivery (used for serving, not storage)
       const compressionResult = await ImageCompressionService.compressImage(fileBuffer, 'gallery')
-      
+
+      // Phase 1 CDN: when emitting direct CDN URLs we bypass the serve endpoint
+      // (storage.controller.ts) that normally bakes EXIF orientation per request,
+      // so apply the rotation once here and reset the orientation tag. Thumbnails
+      // are already baked at orientation 1 by ThumbnailGenerator.
+      let uploadBuffer = fileBuffer
+      if (publicBaseUrl) {
+        try {
+          let pipeline = sharp(fileBuffer).rotate()
+          if (mimeType === 'image/png') pipeline = pipeline.png()
+          else if (mimeType === 'image/webp') pipeline = pipeline.webp()
+          else pipeline = pipeline.jpeg({ quality: 95 })
+          uploadBuffer = await pipeline.withMetadata({ orientation: 1 }).toBuffer()
+        } catch (e) {
+          this.logger.warn(
+            `PhotoUploadService: EXIF orientation pre-bake failed, uploading original: ${e instanceof Error ? e.message : String(e)}`,
+          )
+          uploadBuffer = fileBuffer
+        }
+      }
+
       // Upload ORIGINAL file to storage (not compressed version)
       // This preserves the full quality and size of the original image
-      this.logger.debug(`PhotoUploadService: Uploading ORIGINAL file ${filename} (${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB) to path: ${albumPath}`)
+      this.logger.debug(`PhotoUploadService: Uploading ORIGINAL file ${filename} (${(uploadBuffer.length / 1024 / 1024).toFixed(2)}MB) to path: ${albumPath}`)
       const uploadResult = await storageService.uploadFile(
-        fileBuffer, // Upload original file, not compressed version
+        uploadBuffer,
         filename,
         mimeType,
         albumPath,
@@ -376,7 +408,13 @@ export class PhotoUploadService {
           )
           
           this.logger.debug(`PhotoUploadService: Successfully uploaded ${sizeName} thumbnail:`, thumbnailResult.path)
-          thumbnails[sizeName] = `/api/storage/serve/${storageProvider}/${encodeURIComponent(thumbnailResult.path)}${serveOwnerQs}`
+          thumbnails[sizeName] = buildPublicUrl({
+            providerId: storageProvider,
+            key: thumbnailResult.path,
+            publicBaseUrl,
+            hash,
+            ownerUserId: storageCtx?.ownerUserId,
+          })
         } catch (error) {
           this.logger.error(`PhotoUploadService: Failed to upload ${sizeName} thumbnail:`, error)
           this.logger.error(`PhotoUploadService: Error details:`, {
@@ -433,9 +471,6 @@ export class PhotoUploadService {
         height
       }
 
-      // Calculate file hash for duplicate detection
-      const hash = this.calculateHash(fileBuffer)
-
       // Resolve uploader ObjectId (fallback to real system user if not provided)
       let uploaderObjectId: Types.ObjectId
       if (options.uploadedBy) {
@@ -470,7 +505,13 @@ export class PhotoUploadService {
         storage: {
           provider: storageProvider,
           fileId: uploadResult.fileId,
-          url: `/api/storage/serve/${storageProvider}/${encodeURIComponent(uploadResult.path)}${serveOwnerQs}`,
+          url: buildPublicUrl({
+            providerId: storageProvider,
+            key: uploadResult.path,
+            publicBaseUrl,
+            hash,
+            ownerUserId: storageCtx?.ownerUserId,
+          }),
           path: uploadResult.path,
           thumbnailPath: mediumThumbnail,
           thumbnails: thumbnails,

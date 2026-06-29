@@ -19,6 +19,7 @@ import {
   type _Object
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { buildPublicUrl } from '../storage-serve-url'
 
 export class BackblazeService implements IStorageService {
   private readonly logger = new Logger(BackblazeService.name)
@@ -270,7 +271,7 @@ export class BackblazeService implements IStorageService {
       return {
         provider: this.providerId,
         fileId: key,
-        url: `/api/storage/serve/backblaze/${encodeURIComponent(key)}`,
+        url: this.getFileUrl(key),
         folderId: folderPath || '',
         path: key,
         size: file.length,
@@ -449,7 +450,11 @@ export class BackblazeService implements IStorageService {
   }
 
   getFileUrl(filePath: string): string {
-    return `/api/storage/serve/backblaze/${encodeURIComponent(filePath)}`
+    return buildPublicUrl({
+      providerId: this.providerId,
+      key: filePath,
+      publicBaseUrl: typeof this.config?.publicBaseUrl === 'string' ? this.config.publicBaseUrl : undefined,
+    })
   }
 
   /**
