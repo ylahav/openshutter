@@ -13,14 +13,22 @@ export interface AlbumLeadingPhotoResult {
 export class AlbumLeadingPhotoService {
   private static readonly logger = new Logger(AlbumLeadingPhotoService.name)
   /**
+   * Depth cap for descendant recursion in step 4. Album trees are typically shallow;
+   * this guards against pathological data (or cycles) rather than being a real limit.
+   */
+  private static readonly MAX_DESCENDANT_DEPTH = 10
+
+  /**
    * Get the leading photo for an album using hierarchical selection:
    * 1. If album has coverPhotoId set, use that photo
    * 2. Find album's photo with isLeading === true
    * 3. If not found - pick a random photo from the album
-   * 4. If album has no photos - pick randomly one of sub-albums' leading photos
+   * 4. If album has no photos - recurse into direct children; each child resolves its own
+   *    leading photo via the same rules (including further descent). Pick one at random
+   *    from the children that produced a photo.
    * 5. If not found - show site logo (handled by getAlbumCoverImageUrl)
    */
-  static async getAlbumLeadingPhoto(albumId: string): Promise<AlbumLeadingPhotoResult> {
+  static async getAlbumLeadingPhoto(albumId: string, depth = 0): Promise<AlbumLeadingPhotoResult> {
     try {
       await connectDB()
       const album = await AlbumModel.findById(albumId)
@@ -74,57 +82,30 @@ export class AlbumLeadingPhotoService {
         }
       }
 
-      // Step 4: Album has no photos - collect sub-albums' leading photos and pick one randomly
-      const childAlbums = await AlbumModel.find({
-        parentAlbumId: albumId,
-        isPublic: true,
-      })
-        .lean()
-        .exec()
+      // Step 4: Album has no photos - recurse into children until a descendant yields a photo.
+      if (depth < AlbumLeadingPhotoService.MAX_DESCENDANT_DEPTH) {
+        const childAlbums = await AlbumModel.find({
+          parentAlbumId: albumId,
+          isPublic: true,
+        })
+          .select({ _id: 1 })
+          .lean()
+          .exec()
 
-      if (childAlbums.length > 0) {
-        const childLeadingPhotos: { photo: IPhoto; childAlbumId: string }[] = []
-        for (const childAlbum of childAlbums) {
-          let childPhoto: IPhoto | null = null
-          if (childAlbum.coverPhotoId) {
-            childPhoto = await PhotoModel.findOne({
-              _id: childAlbum.coverPhotoId,
-              isPublished: true,
-            })
-              .lean()
-              .exec() as IPhoto | null
-          }
-          if (!childPhoto) {
-            childPhoto = await PhotoModel.findOne({
-              albumId: childAlbum._id,
-              isLeading: true,
-              isPublished: true,
-            })
-              .lean()
-              .exec() as IPhoto | null
-          }
-          if (!childPhoto) {
-            const first = await PhotoModel.findOne({
-              $or: [{ albumId: childAlbum._id }, { albumId: childAlbum._id.toString() }],
-              isPublished: true,
-            })
-              .lean()
-              .exec()
-            if (first) childPhoto = first as IPhoto
-          }
-          if (childPhoto) {
-            childLeadingPhotos.push({
-              photo: childPhoto,
-              childAlbumId: childAlbum._id.toString(),
-            })
-          }
-        }
-        if (childLeadingPhotos.length > 0) {
-          const chosen = childLeadingPhotos[Math.floor(Math.random() * childLeadingPhotos.length)]
-          return {
-            photo: chosen.photo,
-            source: 'child-leading',
-            albumId: chosen.childAlbumId,
+        if (childAlbums.length > 0) {
+          const childResults = await Promise.all(
+            childAlbums.map((child) =>
+              AlbumLeadingPhotoService.getAlbumLeadingPhoto(String(child._id), depth + 1),
+            ),
+          )
+          const withPhotos = childResults.filter((r) => r.photo != null)
+          if (withPhotos.length > 0) {
+            const chosen = withPhotos[Math.floor(Math.random() * withPhotos.length)]
+            return {
+              photo: chosen.photo,
+              source: 'child-leading',
+              albumId: chosen.albumId,
+            }
           }
         }
       }
@@ -175,8 +156,8 @@ export class AlbumLeadingPhotoService {
       AlbumLeadingPhotoService.logger.error(`Error fetching site logo: ${error instanceof Error ? error.message : String(error)}`)
     }
     
-    // Final fallback to placeholder
-    return '/api/placeholder/400/300'
+    // No leading photo and no site logo — frontend AlbumCard renders its "No cover" fallback on empty URL.
+    return ''
   }
 
   /**
@@ -206,7 +187,7 @@ export class AlbumLeadingPhotoService {
           }
         }
         
-        results.set(albumId, siteLogo || '/api/placeholder/400/300')
+        results.set(albumId, siteLogo || '')
       }
     }
     
