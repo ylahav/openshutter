@@ -686,7 +686,7 @@
 			>
 				<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
 			</button>
-			<div class="max-h-[85vh] max-w-[92vw] relative flex items-center">
+			<div class="max-h-[85vh] max-w-[92vw] relative flex items-center gap-6">
 				<div class="relative shrink-0">
 					<!-- Loading indicator when switching photos -->
 					{#if imageLoading}
@@ -722,7 +722,7 @@
 				<!-- Info Overlay -->
 				{#if showInfo}
 					<div
-						class="ml-4 bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 shrink-0 photo-lightbox-info-panel"
+						class="bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 shrink-0 photo-lightbox-info-panel"
 						bind:this={panelRef}
 					>
 						<div class="space-y-3">
@@ -966,7 +966,7 @@
 					</div>
 				{:else if showShare}
 					<div
-						class="ml-4 bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 shrink-0 photo-lightbox-share-panel"
+						class="bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 shrink-0 photo-lightbox-share-panel"
 						bind:this={panelRef}
 					>
 						<div class="space-y-3">

@@ -179,11 +179,47 @@ export class SearchService {
 			const titleDesc = ['title', 'description'].flatMap((f) =>
 				langs.map((code) => ({ [`${f}.${code}`]: { $regex: q, $options: 'i' } })),
 			);
+			// Resolve `q` against people/tag/location names so text search finds photos
+			// referenced by those entities (e.g. typing a person's name finds their photos).
+			const peopleNameFields = ['firstName', 'lastName', 'fullName', 'nickname'];
+			const [personRefs, tagRefs, locationRefs] = await Promise.all([
+				db
+					.collection('people')
+					.find(
+						{ $or: peopleNameFields.flatMap((f) => langs.map((code) => ({ [`${f}.${code}`]: { $regex: q, $options: 'i' } }))) },
+						{ projection: { _id: 1 } },
+					)
+					.toArray(),
+				db
+					.collection('tags')
+					.find({ name: { $regex: q, $options: 'i' } }, { projection: { _id: 1 } })
+					.toArray(),
+				db
+					.collection('locations')
+					.find(
+						{
+							$or: [
+								...langs.map((code) => ({ [`name.${code}`]: { $regex: q, $options: 'i' } })),
+								{ address: { $regex: q, $options: 'i' } },
+								{ city: { $regex: q, $options: 'i' } },
+								{ country: { $regex: q, $options: 'i' } },
+							],
+						},
+						{ projection: { _id: 1 } },
+					)
+					.toArray(),
+			]);
+			const personIds = personRefs.map((d) => d._id);
+			const tagIds = tagRefs.map((d) => d._id);
+			const locationIds = locationRefs.map((d) => d._id);
 			textMatch = {
 				$or: [
 					...titleDesc,
 					{ filename: { $regex: q, $options: 'i' } },
 					{ originalFilename: { $regex: q, $options: 'i' } },
+					...(personIds.length > 0 ? [{ people: { $in: personIds } }] : []),
+					...(tagIds.length > 0 ? [{ tags: { $in: tagIds } }] : []),
+					...(locationIds.length > 0 ? [{ location: { $in: locationIds } }] : []),
 				],
 			};
 		}

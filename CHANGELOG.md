@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Fixed
+- **Search page crashed with `effect_update_depth_exceeded`:** **`SearchResultsModule`** and **`AdvancedFilterSearch`** declared **`searchTimeout`** as **`$state(null)`**. The effect that reads **`$searchModulesState`** / `filters` also calls **`triggerSearch()`**, which writes **`searchTimeout = setTimeout(...)`** — a synchronous state write inside a reactive effect that already depends on state, so Svelte 5 aborted with `effect_update_depth_exceeded` before the search POST fired (empty Network tab, no results). The timeout handle is not reactive UI data; both files now use a plain `let`.
+- **Lightbox info/share panel had no visible gap next to the photo:** **`PhotoLightbox`** used **`ml-4`** (physical `margin-left`) on the info/share side panel. In RTL (Hebrew) the flex row reverses visually, so the physical left margin fell on the viewport-facing side while the image-facing edge collapsed against the photo. Replaced with **`gap-6`** on the parent flex container — direction-agnostic and consistent between LTR and RTL.
+
+### Changed
+- **Photo text search now resolves people, tags, and locations:** **`SearchService.searchPhotos`** used to match **`q`** only against **`title.<lang>`**, **`description.<lang>`**, **`filename`**, and **`originalFilename`**. Typing a person's name returned nothing even though the person had photos (explicit `people: [id]` filter worked). It now runs three lightweight name lookups (people **`firstName`/`lastName`/`fullName`/`nickname`**, tag **`name`**, location **`name`/`address`/`city`/`country`**), collects matching **`_id`**s, and folds **`people`/`tags`/`location`** `$in` clauses into the same `$or` as the existing text-field matches — so text search now finds photos referenced by any of those entities.
+
 ## [1.3.3] - 2026-06-25
 
 ### Added
