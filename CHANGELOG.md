@@ -1,11 +1,17 @@
 ## [Unreleased]
 
+## [1.3.4] - 2026-07-02
+
 ### Fixed
 - **Search page crashed with `effect_update_depth_exceeded`:** **`SearchResultsModule`** and **`AdvancedFilterSearch`** declared **`searchTimeout`** as **`$state(null)`**. The effect that reads **`$searchModulesState`** / `filters` also calls **`triggerSearch()`**, which writes **`searchTimeout = setTimeout(...)`** — a synchronous state write inside a reactive effect that already depends on state, so Svelte 5 aborted with `effect_update_depth_exceeded` before the search POST fired (empty Network tab, no results). The timeout handle is not reactive UI data; both files now use a plain `let`.
 - **Lightbox info/share panel had no visible gap next to the photo:** **`PhotoLightbox`** used **`ml-4`** (physical `margin-left`) on the info/share side panel. In RTL (Hebrew) the flex row reverses visually, so the physical left margin fell on the viewport-facing side while the image-facing edge collapsed against the photo. Replaced with **`gap-6`** on the parent flex container — direction-agnostic and consistent between LTR and RTL.
+- **Album cover fell back to a broken `/api/placeholder/400/300` URL:** **`AlbumLeadingPhotoService.getAlbumCoverImageUrl`** (and the batch variant) returned `/api/placeholder/400/300` as the final fallback when an album had no leading photo and no site logo — but no such endpoint exists, so **`AlbumCard`** rendered a broken `<img>`. Both callers now return `''`, which activates the styled "No cover" placeholder already implemented in every `AlbumCard` variant. Also removed two orphaned frontend `album-leading-photo.ts` copies (dead code, not imported anywhere).
 
 ### Changed
 - **Photo text search now resolves people, tags, and locations:** **`SearchService.searchPhotos`** used to match **`q`** only against **`title.<lang>`**, **`description.<lang>`**, **`filename`**, and **`originalFilename`**. Typing a person's name returned nothing even though the person had photos (explicit `people: [id]` filter worked). It now runs three lightweight name lookups (people **`firstName`/`lastName`/`fullName`/`nickname`**, tag **`name`**, location **`name`/`address`/`city`/`country`**), collects matching **`_id`**s, and folds **`people`/`tags`/`location`** `$in` clauses into the same `$or` as the existing text-field matches — so text search now finds photos referenced by any of those entities.
+- **Album cover falls back through the full descendant tree:** **`AlbumLeadingPhotoService.getAlbumLeadingPhoto`** step 4 used to inline "coverPhotoId → isLeading → first photo" for each direct child only, so an empty grandparent whose direct children were also empty (but whose grandchildren had photos) got the site logo. It now recurses via the same method on each direct child (depth cap **`MAX_DESCENDANT_DEPTH = 10`**) — an empty ancestor picks a random child branch that itself has resolved a photo, at any depth.
+
+> Note: prior work merged since 2026-06-26 (direct CDN URLs across upload/replace/crop/restore, storage **`publicBaseUrl`** + B2 config, page-builder photo module, module-instance pre-fill and share-or-override, `ModulePropsForm` grouped fields + `showIf`, inline featureList editor, album-gallery photo captions, hero `backgroundFullWidth`, admin/photos replace-file preserving metadata, etc.) is not itemized here — see `git log v1.3.3..HEAD` for the full list.
 
 ## [1.3.3] - 2026-06-25
 
