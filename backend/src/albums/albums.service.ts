@@ -1064,6 +1064,29 @@ export class AlbumsService {
     const photosData = await this.findPhotosByAlbumId(albumId, page, limit, accessContext);
     this.logger.debug(`getAlbumData - Received ${photosData.photos.length} photos`);
 
+    // Get videos (no pagination for v1 — album's videoCount is small in practice).
+    let videos: any[] = [];
+    if (db) {
+      try {
+        const rawVideos = await db
+          .collection('videos')
+          .find({ albumId: albumObjectId, isPublished: true })
+          .sort({ uploadedAt: -1 })
+          .toArray();
+        videos = rawVideos.map((v: any) => ({
+          ...v,
+          _id: v._id?.toString?.() ?? String(v._id),
+          albumId: v.albumId ? String(v.albumId) : null,
+          uploadedBy: v.uploadedBy ? String(v.uploadedBy) : null,
+          mediaType: 'video',
+        }));
+      } catch (e) {
+        this.logger.warn(
+          `getAlbumData - failed to fetch videos: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+    }
+
     // Serialize album (album is already a plain object from lean())
     const serializedAlbum: any = {
       ...album,
@@ -1109,6 +1132,7 @@ export class AlbumsService {
       album: serializedAlbum,
       subAlbums: serializedSubAlbums,
       photos: photosData.photos,
+      videos,
       pagination: photosData.pagination,
     };
   }

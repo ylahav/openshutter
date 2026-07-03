@@ -48,22 +48,36 @@
 		return '';
 	}
 
+	const isVideo = $derived(photo?.mediaType === 'video');
+
 	const photoTitle = $derived(
 		resolveTitle(photo?.title) ||
 			resolveTitle(photo?.name) ||
 			(typeof photo?.originalName === 'string' ? photo.originalName : '') ||
 			(typeof photo?.filename === 'string' ? photo.filename : '') ||
-			'Photo'
+			(isVideo ? 'Video' : 'Photo')
 	);
 
 	const photoUrl = $derived(
-		(typeof photo?.coverUrl === 'string' && photo.coverUrl) ||
-			(typeof photo?.thumbnailUrl === 'string' && photo.thumbnailUrl) ||
-			(typeof photo?.previewUrl === 'string' && photo.previewUrl) ||
-			(typeof photo?.url === 'string' && photo.url) ||
-			(typeof photo?.imageUrl === 'string' && photo.imageUrl) ||
-			getPhotoUrl(photo ?? {}, { preferThumbnail: true, fallback: '' })
+		isVideo
+			? ((typeof photo?.coverUrl === 'string' && photo.coverUrl) || '')
+			: ((typeof photo?.coverUrl === 'string' && photo.coverUrl) ||
+					(typeof photo?.thumbnailUrl === 'string' && photo.thumbnailUrl) ||
+					(typeof photo?.previewUrl === 'string' && photo.previewUrl) ||
+					(typeof photo?.url === 'string' && photo.url) ||
+					(typeof photo?.imageUrl === 'string' && photo.imageUrl) ||
+					getPhotoUrl(photo ?? {}, { preferThumbnail: true, fallback: '' }))
 	);
+
+	function formatDuration(seconds: unknown): string {
+		const s = Number(seconds);
+		if (!Number.isFinite(s) || s <= 0) return '';
+		const m = Math.floor(s / 60);
+		const r = Math.round(s % 60);
+		return `${m}:${r.toString().padStart(2, '0')}`;
+	}
+
+	const durationLabel = $derived(isVideo ? formatDuration(photo?.duration) : '');
 
 	const captionTitle = $derived(
 		cardFieldOrder.includes('title') && showTitle ? photoTitle : ''
@@ -96,6 +110,15 @@
 		<div class="pb-photoCard__tileFrame {coverAspectClass}">
 			{#if photoUrl}
 				<img src={photoUrl} alt="" class="pb-photoCard__tileImg" />
+			{:else if isVideo}
+				<div class="pb-photoCard__videoPlaceholder">
+					<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24" aria-hidden="true">
+						<path fill="currentColor" d="M8 5v14l11-7z" />
+					</svg>
+					{#if durationLabel}
+						<span class="pb-photoCard__videoDuration">{durationLabel}</span>
+					{/if}
+				</div>
 			{:else}
 				<div class="pb-photoCard__tileFallback">No image</div>
 			{/if}
@@ -136,6 +159,15 @@
 	>
 		{#if photoUrl}
 			<img src={photoUrl} alt="" class="pb-photoCard__masonryImg" />
+		{:else if isVideo}
+			<div class="pb-photoCard__videoPlaceholder pb-photoCard__videoPlaceholder--masonry">
+				<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24" aria-hidden="true">
+					<path fill="currentColor" d="M8 5v14l11-7z" />
+				</svg>
+				{#if durationLabel}
+					<span class="pb-photoCard__videoDuration">{durationLabel}</span>
+				{/if}
+			</div>
 		{:else}
 			<div class="pb-photoCard__masonryFallback">No image</div>
 		{/if}
@@ -176,6 +208,15 @@
 					<div class="pb-photoCard__cover {coverAspectClass}">
 						{#if photoUrl}
 							<img src={photoUrl} alt={photoTitle} class="pb-photoCard__coverImage" />
+						{:else if isVideo}
+							<div class="pb-photoCard__videoPlaceholder">
+								<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24" aria-hidden="true">
+									<path fill="currentColor" d="M8 5v14l11-7z" />
+								</svg>
+								{#if durationLabel}
+									<span class="pb-photoCard__videoDuration">{durationLabel}</span>
+								{/if}
+							</div>
 						{:else}
 							<div class="pb-photoCard__coverFallback">No image</div>
 						{/if}

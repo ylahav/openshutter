@@ -466,20 +466,27 @@
 	});
 
 	const lightboxPhotos = $derived(
-		lightboxPhotosSource.map((p: any) => ({
-			_id: p?._id,
-			url: getPhotoFullUrl(p),
-			thumbnailUrl: getPhotoUrl(p, { preferThumbnail: true }),
-			title: p?.title ?? p?.name ?? p?.filename ?? p?.originalName ?? '',
-			description: p?.description,
-			takenAt: p?.exif?.dateTimeOriginal,
-			exif: p?.exif,
-			iptcXmp: p?.iptcXmp,
-			rotation: p?.rotation,
-			metadata: p?.metadata,
-			storage: p?.storage,
-			faceRecognition: p?.faceRecognition
-		}))
+		lightboxPhotosSource.map((p: any) => {
+			const isVideo = (p as any)?.mediaType === 'video';
+			return {
+				_id: p?._id,
+				// For videos we bypass photoUrl helpers and use the raw storage URL directly.
+				url: isVideo ? (p?.storage?.url ?? '') : getPhotoFullUrl(p),
+				thumbnailUrl: isVideo ? '' : getPhotoUrl(p, { preferThumbnail: true }),
+				title: p?.title ?? p?.name ?? p?.filename ?? p?.originalName ?? '',
+				description: p?.description,
+				takenAt: p?.exif?.dateTimeOriginal,
+				exif: p?.exif,
+				iptcXmp: p?.iptcXmp,
+				rotation: p?.rotation,
+				metadata: p?.metadata,
+				storage: p?.storage,
+				faceRecognition: p?.faceRecognition,
+				mediaType: isVideo ? ('video' as const) : ('photo' as const),
+				mimeType: p?.mimeType,
+				duration: p?.duration
+			};
+		})
 	);
 
 	const effectiveSelectedAlbums = $derived(
@@ -581,9 +588,11 @@
 								? albumData.subAlbums.map((item: any) => ({ ...item, cardType: 'subAlbum' as const }))
 								: [];
 							const photos = Array.isArray(albumData.photos) ? mapFetchedPhotosToAlbumCards(albumData.photos) : [];
+							const videos = Array.isArray(albumData.videos) ? mapFetchedVideosToAlbumCards(albumData.videos) : [];
+							const media = [...photos, ...videos];
 							if (cardDataType === 'subAlbums') albums = subAlbums;
-							else if (cardDataType === 'photos') albums = photos;
-							else albums = [...subAlbums, ...photos];
+							else if (cardDataType === 'photos') albums = media;
+							else albums = [...subAlbums, ...media];
 							if (albums.some((item) => item.cardType === 'subAlbum')) {
 								void fetchCoverImages();
 							}
@@ -701,6 +710,24 @@
 			description: item?.description,
 			order: typeof item?.order === 'number' ? item.order : (typeof item?.photoOrder === 'number' ? item.photoOrder : undefined),
 			coverUrl: item?.thumbnailUrl ?? item?.previewUrl ?? item?.url ?? item?.imageUrl ?? ''
+		}));
+	}
+
+	/**
+	 * Videos are folded into the same card list as photos (with `cardType: 'photo'`)
+	 * so every render path (justified rows, grouped grid, interleaved) picks them up
+	 * without branching. `mediaType: 'video'` is the discriminator PhotoCard and
+	 * PhotoLightbox use to swap in video-specific rendering.
+	 */
+	function mapFetchedVideosToAlbumCards(raw: any[]): AlbumCard[] {
+		return raw.map((item: any) => ({
+			...item,
+			cardType: 'photo' as const,
+			mediaType: 'video' as const,
+			name: item?.title ?? item?.name ?? item?.filename ?? item?.originalName ?? 'Video',
+			description: item?.description,
+			// No poster in v1 — PhotoCard renders a placeholder background + play icon.
+			coverUrl: ''
 		}));
 	}
 

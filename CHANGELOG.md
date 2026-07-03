@@ -1,5 +1,22 @@
 ## [Unreleased]
 
+### Added
+- **MP4 video uploads alongside photos:** New separate **`videos`** collection with model **`Video.ts`** (title, description, filename, hash, duration, dimensions, `storage`, `albumId`, `tags`, `people`, `location`, `isPublished`). Endpoints under **`/api/videos/*`**:
+  - **`POST /upload`** (`AdminOrOwnerGuard`, ≤500MB, `video/mp4` only, `ftyp/isom|mp42|avc1|…` magic-byte check; body: `albumId` required, plus optional `title`, `description`, `duration`, `width`, `height` — client extracts intrinsics from a hidden `<video>` before sending).
+  - **`GET /?albumId=`** — lightweight list for the admin album page.
+  - **`GET /:id`** (public, published-only) / **`GET /:id/admin`** (`AdminOrOwnerGuard`, returns unpublished too, owner scoped to their own albums).
+  - **`PUT /:id`** (`AdminOrOwnerGuard`) — updates title, description, tags, people, location, isPublished.
+  - **`DELETE /:id`** (`AdminOrOwnerGuard`) — removes storage object + decrements **`Album.videoCount`**.
+  - **`Album.videoCount`** field; **`AlbumsService.getAlbumData`** now returns a **`videos`** array alongside photos.
+  - Storage goes through the same **`StorageManager`** + album folder pipeline as photos; no compression, no thumbnails, no EXIF/IPTC extraction for videos.
+- **Frontend video upload UI:** **`/admin/videos/upload?albumId=…`** (single-file MP4 picker, XHR progress bar, client-side metadata extraction) and **`/admin/videos/[id]/edit`** (title EN/HE, description EN/HE, location dropdown, tags/people checkbox lists, isPublished). "Upload Video" button next to "Upload Photos" on the album admin toolbar; hover on any video card shows **Edit** + **Delete** actions.
+- **Videos in the visitor gallery + lightbox:** **`AlbumGallery/Layout.svelte`** folds fetched videos into the card list with `cardType: 'photo'` + `mediaType: 'video'` so every render path (justified rows, grouped grid, interleaved, largePreview, masonry) picks them up without branching. **`PhotoCard.svelte`** renders a dark placeholder with a centered play icon + `m:ss` duration badge when `mediaType === 'video'` and no poster is present. **`PhotoLightbox.svelte`** swaps `<img>` for `<video controls preload="metadata">` when the current item is a video and skips the face-detection canvas. `LightboxPhoto` gained `mediaType`, `mimeType`, `duration`.
+
+### Non-goals (v1, still standing)
+- No server-side transcoding, poster/thumbnail extraction (FFmpeg not required), or HLS/DASH streaming — browser plays the stored MP4 directly.
+- No range-request streaming layer; providers handle `Range` themselves.
+- No search on videos, no video-as-album-cover, no video hover-preview.
+
 ## [1.3.4] - 2026-07-02
 
 ### Fixed

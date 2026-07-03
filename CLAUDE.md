@@ -72,6 +72,10 @@ Two separate surfaces (not the same code path):
 
 TensorFlow (`@tensorflow/tfjs-node`) + `face-api.js` run on the backend. Models are loaded at startup; detection and recognition live in `backend/src/face-detection/` and `backend/src/face-recognition/`. Setup: `docs/guides/FACE_RECOGNITION_SETUP.md`.
 
+### Videos
+
+Videos are a separate collection from photos (`backend/src/videos/`, model `Video.ts`). V1 accepts **MP4 only** (H.264/AAC), up to **500MB**, no server-side transcoding or poster extraction. Client-side JS reads intrinsic width/height/duration from a `<video>` element before upload and posts them alongside the file. Storage goes through the same `StorageManager` and album folder as photos. Album pages return both `photos` and `videos` from `GET /api/albums/:idOrAlias/data`; the visitor `AlbumGallery` folds videos into the photo-card grid with `mediaType: 'video'` and the lightbox renders `<video controls>`. Admin edit at `/admin/videos/[id]/edit` covers title / description / tags / people / location / published.
+
 ### Key documentation
 
 | Path | Contents |

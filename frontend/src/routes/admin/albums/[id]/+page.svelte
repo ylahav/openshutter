@@ -75,10 +75,14 @@
 
 	let album = $state<Album | null>(null);
 	let photos = $state<Photo[]>([]);
+	let videos = $state<Array<{ _id: string; filename?: string; originalFilename?: string; title?: any; size?: number; duration?: number; dimensions?: { width?: number; height?: number }; storage?: { url?: string } }>>([]);
 	let loading = $state(true);
 	let photosLoading = $state(true);
+	let videosLoading = $state(true);
+	let videoDeleteId = $state<string | null>(null);
 	let albumError = $state('');
 	let photosError = $state('');
+	let videosError = $state('');
 	/** Inline feedback for actions on this page (delete, bulk, etc.) */
 	let error = $state('');
 	let showDeleteDialog = $state(false);
@@ -655,8 +659,65 @@
 		}
 	}
 
+	async function loadVideos() {
+		videosError = '';
+		videosLoading = true;
+		try {
+			const response = await fetch(`/api/videos?albumId=${encodeURIComponent(String(albumId))}&t=${Date.now()}`, {
+				cache: 'no-store',
+				credentials: 'include',
+			});
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			videos = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+		} catch (err) {
+			logger.error('Failed to fetch videos:', err);
+			videos = [];
+			videosError = handleError(err, 'Failed to load videos');
+		} finally {
+			videosLoading = false;
+		}
+	}
+
+	async function deleteVideo(videoId: string) {
+		if (!confirm('Delete this video?')) return;
+		videoDeleteId = videoId;
+		try {
+			const response = await fetch(`/api/videos/${videoId}`, {
+				method: 'DELETE',
+				credentials: 'include',
+			});
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			videos = videos.filter((v) => v._id !== videoId);
+		} catch (err) {
+			logger.error('Failed to delete video:', err);
+			videosError = handleError(err, 'Failed to delete video');
+		} finally {
+			videoDeleteId = null;
+		}
+	}
+
+	function formatVideoDuration(seconds: number | undefined): string {
+		if (!Number.isFinite(seconds as number) || (seconds as number) <= 0) return '';
+		const s = Number(seconds);
+		const m = Math.floor(s / 60);
+		const r = Math.round(s % 60);
+		return `${m}:${r.toString().padStart(2, '0')}`;
+	}
+
+	function formatVideoSize(bytes: number | undefined): string {
+		if (!Number.isFinite(bytes as number) || (bytes as number) <= 0) return '';
+		const mb = Number(bytes) / 1024 / 1024;
+		if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
+		return `${mb.toFixed(1)} MB`;
+	}
+
 	onMount(async () => {
-		await Promise.all([loadAlbum(), loadPhotos()]);
+		await Promise.all([loadAlbum(), loadPhotos(), loadVideos()]);
 	});
 </script>
 
@@ -737,6 +798,9 @@
 					<div class="flex shrink-0 flex-wrap items-center gap-2">
 						<a href="/admin/photos/upload?albumId={albumId}" class={btnGhost}>
 							{$t('admin.uploadPhotos')}
+						</a>
+						<a href="/admin/videos/upload?albumId={albumId}" class={btnGhost}>
+							{$t('admin.uploadVideo')}
 						</a>
 						<a href="/admin/albums/new?parentAlbumId={albumId}" class={btnGhost}>
 							{$t('admin.createSubAlbum')}
@@ -1044,6 +1108,73 @@
 										</span>
 									</div>
 								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+			<!-- Videos Grid (v1: no poster, play icon + delete) -->
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 mt-6">
+				<div class="flex items-center justify-between mb-6">
+					<h2 class="text-2xl font-bold text-(--color-surface-950-50)">
+						Videos ({videos.length})
+					</h2>
+					<a href="/admin/videos/upload?albumId={albumId}" class={btnGhostSm}>
+						{$t('admin.uploadVideo')}
+					</a>
+				</div>
+
+				{#if videosError}
+					<div class="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">{videosError}</div>
+				{/if}
+
+				{#if videosLoading}
+					<div class="text-center py-8 text-sm text-(--color-surface-600-400)">Loading videos…</div>
+				{:else if videos.length === 0}
+					<div class="text-center py-8 text-sm text-(--color-surface-600-400)">
+						No videos in this album.
+					</div>
+				{:else}
+					<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+						{#each videos as video}
+							<div class="relative group">
+								<div class="aspect-video w-full overflow-hidden rounded-md bg-black flex items-center justify-center relative">
+									<svg class="w-12 h-12 text-white/85 drop-shadow" viewBox="0 0 24 24" aria-hidden="true">
+										<path fill="currentColor" d="M8 5v14l11-7z" />
+									</svg>
+									{#if video.duration}
+										<span class="absolute bottom-1.5 right-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-white">
+											{formatVideoDuration(video.duration)}
+										</span>
+									{/if}
+								</div>
+								<div class="mt-2 text-xs text-(--color-surface-800-200)">
+									<div class="truncate font-medium" title={video.originalFilename || video.filename || ''}>
+										{video.originalFilename || video.filename || 'Video'}
+									</div>
+									<div class="mt-0.5 flex gap-2 text-(--color-surface-500-500)">
+										{#if video.size}<span>{formatVideoSize(video.size)}</span>{/if}
+										{#if video.dimensions?.width && video.dimensions?.height}
+											<span>{video.dimensions.width}×{video.dimensions.height}</span>
+										{/if}
+									</div>
+								</div>
+								<div class="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+									<a
+										href="/admin/videos/{video._id}/edit"
+										class="rounded-md border border-white/50 bg-white/10 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm hover:bg-white/20"
+									>
+										{$t('admin.edit')}
+									</a>
+									<button
+										type="button"
+										onclick={() => deleteVideo(video._id)}
+										disabled={videoDeleteId === video._id}
+										class="rounded-md border border-red-300/80 bg-red-500/20 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm hover:bg-red-500/35 disabled:opacity-50"
+									>
+										{videoDeleteId === video._id ? 'Deleting…' : $t('admin.delete')}
+									</button>
+								</div>
 							</div>
 						{/each}
 					</div>

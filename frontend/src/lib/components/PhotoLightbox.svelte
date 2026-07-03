@@ -28,6 +28,10 @@
 		_id?: string;
 		url?: string;
 		thumbnailUrl?: string;
+		/** 'video' swaps <img> for <video controls>; 'photo' or omitted = normal photo. */
+		mediaType?: 'photo' | 'video';
+		mimeType?: string;
+		duration?: number;
 		title?: string | any; // Can be string or multi-language object
 		description?: string | any; // Can be string or multi-language HTML object
 		takenAt?: string | Date;
@@ -555,6 +559,7 @@
 
 	let photo = $derived(photos[current]);
 	let photoUrl = $derived(photo?.url || photo?.storage?.url || photo?.storage?.thumbnailPath || '');
+	let isVideo = $derived(photo?.mediaType === 'video' || String(photo?.mimeType ?? '').startsWith('video/'));
 	let photoTitle = $derived(
 		typeof photo?.title === 'string' 
 			? photo.title 
@@ -699,17 +704,29 @@
 							<span class="text-white/90 text-sm">Loading photo…</span>
 						</div>
 					{/if}
-					<img
-						bind:this={imageRef}
-						src={photoUrl}
-						alt={photoTitle}
-						class="object-contain max-h-[85vh] max-w-[92vw] transition-opacity duration-200 {imageLoading ? 'opacity-30' : 'opacity-100'}"
-						style={getPhotoRotationStyle(photo)}
-						draggable="false"
-						onload={handleImageLoad}
-						onerror={() => (imageLoading = false)}
-					/>
-					{#if showFaces && matchedFaces.length > 0}
+					{#if isVideo}
+						<!-- svelte-ignore a11y_media_has_caption -->
+						<video
+							src={photoUrl}
+							controls
+							preload="metadata"
+							class="object-contain max-h-[85vh] max-w-[92vw] bg-black transition-opacity duration-200 {imageLoading ? 'opacity-30' : 'opacity-100'}"
+							onloadedmetadata={() => (imageLoading = false)}
+							onerror={() => (imageLoading = false)}
+						></video>
+					{:else}
+						<img
+							bind:this={imageRef}
+							src={photoUrl}
+							alt={photoTitle}
+							class="object-contain max-h-[85vh] max-w-[92vw] transition-opacity duration-200 {imageLoading ? 'opacity-30' : 'opacity-100'}"
+							style={getPhotoRotationStyle(photo)}
+							draggable="false"
+							onload={handleImageLoad}
+							onerror={() => (imageLoading = false)}
+						/>
+					{/if}
+					{#if !isVideo && showFaces && matchedFaces.length > 0}
 						<canvas
 							bind:this={canvasRef}
 							class="absolute top-0 left-0 cursor-pointer"

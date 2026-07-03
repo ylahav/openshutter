@@ -29,6 +29,7 @@ export interface Album {
   order: number
   coverPhotoId?: string
   photoCount: number
+  videoCount?: number
   firstPhotoDate?: Date
   lastPhotoDate?: Date
   createdAt: Date
@@ -116,6 +117,10 @@ export const AlbumSchema = new Schema<IAlbum>({
     default: null
   },
   photoCount: {
+    type: Number,
+    default: 0
+  },
+  videoCount: {
     type: Number,
     default: 0
   },

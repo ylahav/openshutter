@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/c
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { PhotosModule } from './photos/photos.module';
+import { VideosModule } from './videos/videos.module';
 import { AlbumsModule } from './albums/albums.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
@@ -59,6 +60,7 @@ import { AuditLogsController } from './audit-logs/audit-logs.controller';
     }),
     DatabaseModule,
     PhotosModule,
+    VideosModule,
     AlbumsModule,
     AuthModule,
     PeopleModule,
