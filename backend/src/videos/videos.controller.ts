@@ -207,6 +207,136 @@ export class VideosController {
     return result.video
   }
 
+  /**
+   * Two-step presigned upload — bypasses Cloudflare/nginx/SvelteKit body limits.
+   *
+   * Client flow:
+   *   1. POST /videos/upload-init { albumId, filename, mimeType, size } → { uploadUrl, key, … }
+   *   2. Client PUTs the MP4 body directly to `uploadUrl` (bucket CORS required)
+   *   3. POST /videos/upload-finalize { key, albumId, filename, mimeType, size, duration, width, height }
+   *
+   * Only works for storage providers that implement `getPresignedUploadUrl` (currently Backblaze).
+   */
+  @Post('upload-init')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminOrOwnerGuard)
+  async initPresignedUpload(
+    @Req() req: Request,
+    @Body()
+    body: {
+      albumId?: string
+      originalFilename?: string
+      mimeType?: string
+      size?: number
+    },
+  ) {
+    if (!body.albumId) throw new BadRequestException('albumId is required')
+    if (!body.originalFilename) throw new BadRequestException('originalFilename is required')
+    if (body.mimeType !== 'video/mp4') throw new BadRequestException('Only video/mp4 is supported')
+    if (!body.size || body.size <= 0) throw new BadRequestException('size must be a positive number')
+    if (body.size > MAX_VIDEO_SIZE) {
+      throw new BadRequestException(
+        `File size ${body.size} exceeds maximum ${MAX_VIDEO_SIZE} bytes`,
+      )
+    }
+
+    const result = await this.videoUploadService.initPresignedUpload({
+      albumId: body.albumId,
+      originalFilename: body.originalFilename,
+      mimeType: body.mimeType,
+      size: body.size,
+    })
+    if (!result.success) throw new BadRequestException(result.error || 'Failed to init upload')
+    return result.data
+  }
+
+  @Post('upload-finalize')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(AdminOrOwnerGuard)
+  async finalizePresignedUpload(
+    @Req() req: Request,
+    @Body()
+    body: {
+      key?: string
+      albumId?: string
+      originalFilename?: string
+      mimeType?: string
+      size?: number
+      duration?: number
+      width?: number
+      height?: number
+    },
+  ) {
+    if (!body.key) throw new BadRequestException('key is required')
+    if (!body.albumId) throw new BadRequestException('albumId is required')
+    if (!body.originalFilename) throw new BadRequestException('originalFilename is required')
+    if (!body.mimeType) throw new BadRequestException('mimeType is required')
+    if (!body.size || body.size <= 0) throw new BadRequestException('size must be a positive number')
+
+    const user = (req as any).user as { id?: string } | undefined
+    const width = Number.isFinite(Number(body.width)) ? Number(body.width) : undefined
+    const height = Number.isFinite(Number(body.height)) ? Number(body.height) : undefined
+    const dimensions = width !== undefined && height !== undefined ? { width, height } : undefined
+    const duration = Number.isFinite(Number(body.duration)) ? Number(body.duration) : undefined
+
+    const result = await this.videoUploadService.finalizePresignedUpload({
+      key: body.key,
+      albumId: body.albumId,
+      originalFilename: body.originalFilename,
+      mimeType: body.mimeType,
+      size: body.size,
+      duration,
+      dimensions,
+      uploadedBy: user?.id,
+    })
+    if (!result.success) {
+      if (result.skipped) {
+        return { skipped: true, reason: result.reason, message: result.reason }
+      }
+      throw new BadRequestException(result.error || 'Finalize failed')
+    }
+    return result.video
+  }
+
+  /** Upload a captured frame as the video's leading image / poster. */
+  @Post(':id/poster')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminOrOwnerGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max for a poster frame
+    }),
+  )
+  async setPoster(
+    @Param('id') id: string,
+    @UploadedFile() file: MulterIncomingFile,
+    @Req() req: Request,
+    @Body('width') width?: string,
+    @Body('height') height?: string,
+    @Body('capturedAtSeconds') capturedAtSeconds?: string,
+  ) {
+    if (!file) throw new BadRequestException('No file provided')
+    if (!file.buffer) throw new BadRequestException('File has no in-memory buffer')
+    if (!['image/jpeg', 'image/png'].includes(file.mimetype)) {
+      throw new BadRequestException('Poster must be image/jpeg or image/png')
+    }
+    const user = (req as any).user as { id?: string; role?: string } | undefined
+    if (!user?.id) throw new BadRequestException('User not authenticated')
+
+    const w = width && Number.isFinite(Number(width)) ? Number(width) : undefined
+    const h = height && Number.isFinite(Number(height)) ? Number(height) : undefined
+    const t =
+      capturedAtSeconds && Number.isFinite(Number(capturedAtSeconds))
+        ? Number(capturedAtSeconds)
+        : undefined
+
+    return this.videosService.setPoster(id, user.id, user.role || 'owner', file.buffer, file.mimetype, {
+      width: w,
+      height: h,
+      capturedAtSeconds: t,
+    })
+  }
+
   @Delete(':id')
   @UseGuards(AdminOrOwnerGuard)
   async remove(@Param('id') id: string, @Req() req: Request) {

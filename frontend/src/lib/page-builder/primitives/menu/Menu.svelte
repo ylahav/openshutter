@@ -108,14 +108,11 @@
 			const hasLoginItem = result.some(item => item.type === 'login' || item.href === '/login');
 			const hasLogoutItem = result.some(item => item.type === 'logout');
 			const hasAdminLink = result.some(item => item.href === '/admin');
-			const hasOwnerLink = result.some(item => item.href === '/owner');
 			const hasMemberLink = result.some(item => item.href === '/member');
 
 			if ($auth.authenticated && $auth.user) {
-				if ($auth.user.role === 'admin' && !hasAdminLink) {
+				if (($auth.user.role === 'admin' || $auth.user.role === 'owner') && !hasAdminLink) {
 					result.push({ labelKey: 'navigation.admin', href: '/admin' });
-				} else if ($auth.user.role === 'owner' && !hasOwnerLink) {
-					result.push({ labelKey: 'header.myGallery', href: '/owner' });
 				} else if ($auth.user.role === 'guest' && !hasMemberLink) {
 					result.push({ label: 'My Account', href: '/member' });
 				}

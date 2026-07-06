@@ -1,12 +1,27 @@
-import { Controller, Get, Query, UseGuards, Logger, InternalServerErrorException, Res } from '@nestjs/common';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { Controller, Get, Query, UseGuards, Logger, InternalServerErrorException, Res, Req } from '@nestjs/common';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { AnalyticsService } from './analytics.service';
-import { Response } from 'express';
+import { Response, Request } from 'express';
+
+/** Resolve the scope filter for a caller. Admin → null (site-wide). Owner → owner id + album ids. */
+async function resolveOwnerScope(
+  db: NonNullable<typeof mongoose.connection.db>,
+  user: { id: string; role: string } | undefined,
+): Promise<{ ownerId: string; ownerObjectId: Types.ObjectId; albumIds: Types.ObjectId[] } | null> {
+  if (!user || user.role !== 'owner') return null;
+  const ownerObjectId = new Types.ObjectId(user.id);
+  const albumDocs = await db
+    .collection('albums')
+    .find({ createdBy: ownerObjectId }, { projection: { _id: 1 } })
+    .toArray();
+  const albumIds = albumDocs.map((doc) => doc._id as Types.ObjectId);
+  return { ownerId: user.id, ownerObjectId, albumIds };
+}
 
 @Controller('admin/analytics')
-@UseGuards(AdminGuard)
+@UseGuards(AdminOrOwnerGuard)
 export class AnalyticsController {
   private readonly logger = new Logger(AnalyticsController.name);
 
@@ -16,11 +31,23 @@ export class AnalyticsController {
    * Path: GET /api/admin/analytics
    */
   @Get()
-  async getAnalytics() {
+  async getAnalytics(@Req() req: Request) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
       if (!db) throw new InternalServerErrorException('Database connection not established');
+
+      const user = (req as any).user as { id: string; role: string } | undefined;
+      const scope = await resolveOwnerScope(db, user);
+      const isOwner = scope !== null;
+
+      // Filters scoped to owner when applicable
+      const ownerAlbumFilter = isOwner ? { createdBy: scope.ownerObjectId } : {};
+      const ownerPhotoFilter = isOwner ? { uploadedBy: scope.ownerObjectId } : {};
+      const ownerTagFilter = isOwner ? { createdBy: scope.ownerObjectId } : {};
+      const ownerLocationFilter = isOwner ? { createdBy: scope.ownerObjectId } : {};
+      const ownerPeopleFilter = isOwner ? { createdBy: scope.ownerObjectId } : {};
+      const ownerPageFilter = isOwner ? { createdBy: scope.ownerObjectId } : {};
 
       // Get counts for all collections
       const [
@@ -42,29 +69,31 @@ export class AnalyticsController {
         totalBlogCategories,
         activeBlogCategories,
       ] = await Promise.all([
-        db.collection('photos').countDocuments({}),
-        db.collection('photos').countDocuments({ isPublished: true }),
-        db.collection('albums').countDocuments({}),
-        db.collection('albums').countDocuments({ isPublic: true }),
-        db.collection('users').countDocuments({}),
-        db.collection('users').countDocuments({ blocked: { $ne: true } }),
-        db.collection('tags').countDocuments({}),
-        db.collection('tags').countDocuments({ isActive: true }),
-        db.collection('locations').countDocuments({}),
-        db.collection('locations').countDocuments({ isActive: true }),
-        db.collection('people').countDocuments({}),
-        db.collection('people').countDocuments({ isActive: true }),
-        db.collection('groups').countDocuments({}),
-        db.collection('pages').countDocuments({}),
-        db.collection('pages').countDocuments({ isPublished: true }),
-        db.collection('blogcategories').countDocuments({}),
-        db.collection('blogcategories').countDocuments({ isActive: true }),
+        db.collection('photos').countDocuments({ ...ownerPhotoFilter }),
+        db.collection('photos').countDocuments({ ...ownerPhotoFilter, isPublished: true }),
+        db.collection('albums').countDocuments({ ...ownerAlbumFilter }),
+        db.collection('albums').countDocuments({ ...ownerAlbumFilter, isPublic: true }),
+        // users/groups: not owner-scopable, return 0 for owners
+        isOwner ? Promise.resolve(0) : db.collection('users').countDocuments({}),
+        isOwner ? Promise.resolve(0) : db.collection('users').countDocuments({ blocked: { $ne: true } }),
+        db.collection('tags').countDocuments({ ...ownerTagFilter }),
+        db.collection('tags').countDocuments({ ...ownerTagFilter, isActive: true }),
+        db.collection('locations').countDocuments({ ...ownerLocationFilter }),
+        db.collection('locations').countDocuments({ ...ownerLocationFilter, isActive: true }),
+        db.collection('people').countDocuments({ ...ownerPeopleFilter }),
+        db.collection('people').countDocuments({ ...ownerPeopleFilter, isActive: true }),
+        isOwner ? Promise.resolve(0) : db.collection('groups').countDocuments({}),
+        db.collection('pages').countDocuments({ ...ownerPageFilter }),
+        db.collection('pages').countDocuments({ ...ownerPageFilter, isPublished: true }),
+        // blogcategories has no createdBy: return 0 for owners
+        isOwner ? Promise.resolve(0) : db.collection('blogcategories').countDocuments({}),
+        isOwner ? Promise.resolve(0) : db.collection('blogcategories').countDocuments({ isActive: true }),
       ]);
 
       // Get storage statistics (approximate)
       const photos = await db
         .collection('photos')
-        .find({}, { projection: { size: 1 } })
+        .find({ ...ownerPhotoFilter }, { projection: { size: 1 } })
         .toArray();
       const totalStorageBytes = photos.reduce((sum, photo) => sum + (photo.size || 0), 0);
       const totalStorageMB = Math.round((totalStorageBytes / (1024 * 1024)) * 100) / 100;
@@ -79,15 +108,16 @@ export class AnalyticsController {
         recentAlbums,
         recentUsers,
       ] = await Promise.all([
-        db.collection('photos').countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
-        db.collection('albums').countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
-        db.collection('users').countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+        db.collection('photos').countDocuments({ ...ownerPhotoFilter, createdAt: { $gte: thirtyDaysAgo } }),
+        db.collection('albums').countDocuments({ ...ownerAlbumFilter, createdAt: { $gte: thirtyDaysAgo } }),
+        isOwner ? Promise.resolve(0) : db.collection('users').countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
       ]);
 
       // Get top albums by photo count
       const albumsWithCounts = await db
         .collection('albums')
         .aggregate([
+          ...(isOwner ? [{ $match: ownerAlbumFilter }] : []),
           {
             $lookup: {
               from: 'photos',
@@ -116,20 +146,21 @@ export class AnalyticsController {
       // Get top tags by usage (include category and color for enhanced display)
       const tagsWithUsage = await db
         .collection('tags')
-        .find({}, { projection: { name: 1, usageCount: 1, isActive: 1, category: 1, color: 1 } })
+        .find({ ...ownerTagFilter }, { projection: { name: 1, usageCount: 1, isActive: 1, category: 1, color: 1 } })
         .sort({ usageCount: -1 })
         .limit(10)
         .toArray();
 
       // --- Enhanced tag analytics ---
-      const unusedTagsCount = await db.collection('tags').countDocuments({ usageCount: 0 });
+      const unusedTagsCount = await db.collection('tags').countDocuments({ ...ownerTagFilter, usageCount: 0 });
       const recentTagsCount = await db
         .collection('tags')
-        .countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
+        .countDocuments({ ...ownerTagFilter, createdAt: { $gte: thirtyDaysAgo } });
 
       const tagsByCategory = await db
         .collection('tags')
         .aggregate([
+          ...(isOwner ? [{ $match: ownerTagFilter }] : []),
           { $group: { _id: { $ifNull: ['$category', 'general'] }, count: { $sum: 1 } } },
           { $sort: { count: -1 } },
         ])
@@ -137,14 +168,14 @@ export class AnalyticsController {
 
       const unusedTagsList = await db
         .collection('tags')
-        .find({ usageCount: 0 }, { projection: { name: 1, category: 1, isActive: 1 } })
+        .find({ ...ownerTagFilter, usageCount: 0 }, { projection: { name: 1, category: 1, isActive: 1 } })
         .sort({ createdAt: -1 })
         .limit(20)
         .toArray();
 
       const recentTagsList = await db
         .collection('tags')
-        .find({ createdAt: { $gte: thirtyDaysAgo } }, { projection: { name: 1, usageCount: 1, category: 1, createdAt: 1 } })
+        .find({ ...ownerTagFilter, createdAt: { $gte: thirtyDaysAgo } }, { projection: { name: 1, usageCount: 1, category: 1, createdAt: 1 } })
         .sort({ createdAt: -1 })
         .limit(10)
         .toArray();
@@ -153,6 +184,7 @@ export class AnalyticsController {
       const photoTagDistribution = await db
         .collection('photos')
         .aggregate([
+          ...(isOwner ? [{ $match: ownerPhotoFilter }] : []),
           {
             $project: {
               tagCount: { $size: { $ifNull: ['$tags', []] } },
@@ -287,12 +319,19 @@ export class AnalyticsController {
     }
   }
 
+  /** For owner callers: return the owner id so the service can scope. Admin: undefined. */
+  private ownerIdForScope(req: Request): string | undefined {
+    const user = (req as any).user as { id: string; role: string } | undefined;
+    return user?.role === 'owner' ? user.id : undefined;
+  }
+
   /**
    * Get views analytics
    * Path: GET /api/admin/analytics/views
    */
   @Get('views')
   async getViewsAnalytics(
+    @Req() req: Request,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('period') period?: 'day' | 'week' | 'month',
@@ -309,6 +348,7 @@ export class AnalyticsController {
         period || 'day',
         type || 'all',
         resourceId,
+        this.ownerIdForScope(req),
       );
     } catch (error) {
       this.logger.error(`Error fetching views analytics: ${error instanceof Error ? error.message : String(error)}`);
@@ -324,6 +364,7 @@ export class AnalyticsController {
    */
   @Get('search')
   async getSearchAnalytics(
+    @Req() req: Request,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('limit') limit?: string,
@@ -335,7 +376,12 @@ export class AnalyticsController {
         dateTo: dateTo ? new Date(dateTo) : undefined,
       };
       const limitNum = limit ? parseInt(limit, 10) || 20 : 20;
-      return await this.analyticsService.getSearchAnalytics(dateRange, limitNum, period || 'day');
+      return await this.analyticsService.getSearchAnalytics(
+        dateRange,
+        limitNum,
+        period || 'day',
+        this.ownerIdForScope(req),
+      );
     } catch (error) {
       this.logger.error(`Error fetching search analytics: ${error instanceof Error ? error.message : String(error)}`);
       throw new InternalServerErrorException(
@@ -350,6 +396,7 @@ export class AnalyticsController {
    */
   @Get('tags')
   async getTagUsageTrends(
+    @Req() req: Request,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('period') period?: 'day' | 'week' | 'month',
@@ -359,7 +406,11 @@ export class AnalyticsController {
         dateFrom: dateFrom ? new Date(dateFrom) : undefined,
         dateTo: dateTo ? new Date(dateTo) : undefined,
       };
-      return await this.analyticsService.getTagUsageTrends(dateRange, period || 'day');
+      return await this.analyticsService.getTagUsageTrends(
+        dateRange,
+        period || 'day',
+        this.ownerIdForScope(req),
+      );
     } catch (error) {
       this.logger.error(`Error fetching tag trends: ${error instanceof Error ? error.message : String(error)}`);
       throw new InternalServerErrorException(
@@ -373,9 +424,15 @@ export class AnalyticsController {
    * Path: GET /api/admin/analytics/storage
    */
   @Get('storage')
-  async getStorageAnalytics(@Query('groupBy') groupBy?: 'album' | 'provider' | 'both') {
+  async getStorageAnalytics(
+    @Req() req: Request,
+    @Query('groupBy') groupBy?: 'album' | 'provider' | 'both',
+  ) {
     try {
-      return await this.analyticsService.getStorageAnalytics(groupBy || 'both');
+      return await this.analyticsService.getStorageAnalytics(
+        groupBy || 'both',
+        this.ownerIdForScope(req),
+      );
     } catch (error) {
       this.logger.error(`Error fetching storage analytics: ${error instanceof Error ? error.message : String(error)}`);
       throw new InternalServerErrorException(
@@ -390,6 +447,7 @@ export class AnalyticsController {
    */
   @Get('export')
   async exportAnalytics(
+    @Req() req: Request,
     @Res() res: Response,
     @Query('type') type: 'overview' | 'views' | 'search' | 'tags' | 'albums' | 'storage',
     @Query('dateFrom') dateFrom?: string,
@@ -402,25 +460,26 @@ export class AnalyticsController {
         dateFrom: dateFrom ? new Date(dateFrom) : undefined,
         dateTo: dateTo ? new Date(dateTo) : undefined,
       };
+      const ownerId = this.ownerIdForScope(req);
 
       let data: any;
       let filename: string;
 
       switch (type) {
         case 'views':
-          data = await this.analyticsService.getViewsAnalytics(dateRange);
+          data = await this.analyticsService.getViewsAnalytics(dateRange, 'day', 'all', undefined, ownerId);
           filename = `views-analytics-${new Date().toISOString().split('T')[0]}.csv`;
           break;
         case 'search':
-          data = await this.analyticsService.getSearchAnalytics(dateRange, 20, period || 'day');
+          data = await this.analyticsService.getSearchAnalytics(dateRange, 20, period || 'day', ownerId);
           filename = `search-analytics-${new Date().toISOString().split('T')[0]}.csv`;
           break;
         case 'tags':
-          data = await this.analyticsService.getTagUsageTrends(dateRange);
+          data = await this.analyticsService.getTagUsageTrends(dateRange, 'day', ownerId);
           filename = `tags-analytics-${new Date().toISOString().split('T')[0]}.csv`;
           break;
         case 'storage':
-          data = await this.analyticsService.getStorageAnalytics();
+          data = await this.analyticsService.getStorageAnalytics('both', ownerId);
           filename = `storage-analytics-${new Date().toISOString().split('T')[0]}.csv`;
           break;
         default:

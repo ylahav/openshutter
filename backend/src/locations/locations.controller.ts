@@ -10,11 +10,12 @@ import {
   UseGuards,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
   Logger,
   InternalServerErrorException,
   Request,
 } from '@nestjs/common';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
@@ -75,7 +76,7 @@ function isValidAreaBounds(b: { south: number; north: number; west: number; east
 }
 
 @Controller('admin/locations')
-@UseGuards(AdminGuard)
+@UseGuards(AdminOrOwnerGuard)
 export class LocationsController {
   private readonly logger = new Logger(LocationsController.name);
   private readonly nominatimUserAgent = 'OpenShutter/1.0 (admin geocode; contact: admin@localhost)';
@@ -570,7 +571,7 @@ export class LocationsController {
    * Path: PUT /api/admin/locations/:id
    */
   @Put(':id')
-  async updateLocation(@Param('id') id: string, @Body() body: UpdateLocationDto) {
+  async updateLocation(@Request() req: any, @Param('id') id: string, @Body() body: UpdateLocationDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -580,6 +581,11 @@ export class LocationsController {
       const location = await collection.findOne({ _id: new Types.ObjectId(id) });
       if (!location) {
         throw new NotFoundException(`Location not found: ${id}`);
+      }
+
+      const user = req.user;
+      if (user?.role === 'owner' && location.createdBy?.toString() !== user.id) {
+        throw new ForbiddenException('You can only edit locations you created');
       }
 
       const {
@@ -776,7 +782,7 @@ export class LocationsController {
         usageCount: usageMap.get(updatedLocation._id.toString()) ?? 0,
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
         throw error;
       }
       this.logger.error(`Error updating location: ${error instanceof Error ? error.message : String(error)}`);
@@ -791,7 +797,7 @@ export class LocationsController {
    * Path: DELETE /api/admin/locations/:id
    */
   @Delete(':id')
-  async deleteLocation(@Param('id') id: string) {
+  async deleteLocation(@Request() req: any, @Param('id') id: string) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -803,11 +809,16 @@ export class LocationsController {
         throw new NotFoundException(`Location not found: ${id}`);
       }
 
+      const user = req.user;
+      if (user?.role === 'owner' && location.createdBy?.toString() !== user.id) {
+        throw new ForbiddenException('You can only delete locations you created');
+      }
+
       await collection.deleteOne({ _id: new Types.ObjectId(id) });
 
       return { success: true, message: 'Location deleted successfully' };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
       this.logger.error(`Error deleting location: ${error instanceof Error ? error.message : String(error)}`);

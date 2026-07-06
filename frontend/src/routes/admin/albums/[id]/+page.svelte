@@ -75,7 +75,7 @@
 
 	let album = $state<Album | null>(null);
 	let photos = $state<Photo[]>([]);
-	let videos = $state<Array<{ _id: string; filename?: string; originalFilename?: string; title?: any; size?: number; duration?: number; dimensions?: { width?: number; height?: number }; storage?: { url?: string } }>>([]);
+	let videos = $state<Array<{ _id: string; filename?: string; originalFilename?: string; title?: any; size?: number; duration?: number; dimensions?: { width?: number; height?: number }; storage?: { url?: string }; poster?: { url?: string } }>>([]);
 	let loading = $state(true);
 	let photosLoading = $state(true);
 	let videosLoading = $state(true);
@@ -799,9 +799,6 @@
 						<a href="/admin/photos/upload?albumId={albumId}" class={btnGhost}>
 							{$t('admin.uploadPhotos')}
 						</a>
-						<a href="/admin/videos/upload?albumId={albumId}" class={btnGhost}>
-							{$t('admin.uploadVideo')}
-						</a>
 						<a href="/admin/albums/new?parentAlbumId={albumId}" class={btnGhost}>
 							{$t('admin.createSubAlbum')}
 						</a>
@@ -1119,7 +1116,7 @@
 					<h2 class="text-2xl font-bold text-(--color-surface-950-50)">
 						Videos ({videos.length})
 					</h2>
-					<a href="/admin/videos/upload?albumId={albumId}" class={btnGhostSm}>
+					<a href="/admin/photos/upload?albumId={albumId}" class={btnGhostSm}>
 						{$t('admin.uploadVideo')}
 					</a>
 				</div>
@@ -1139,7 +1136,15 @@
 						{#each videos as video}
 							<div class="relative group">
 								<div class="aspect-video w-full overflow-hidden rounded-md bg-black flex items-center justify-center relative">
-									<svg class="w-12 h-12 text-white/85 drop-shadow" viewBox="0 0 24 24" aria-hidden="true">
+									{#if video.poster?.url}
+										<img
+											src={video.poster.url}
+											alt=""
+											loading="lazy"
+											class="absolute inset-0 h-full w-full object-cover"
+										/>
+									{/if}
+									<svg class="relative w-12 h-12 text-white/85 drop-shadow" viewBox="0 0 24 24" aria-hidden="true">
 										<path fill="currentColor" d="M8 5v14l11-7z" />
 									</svg>
 									{#if video.duration}

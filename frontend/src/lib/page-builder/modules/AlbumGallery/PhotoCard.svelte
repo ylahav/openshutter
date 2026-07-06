@@ -110,6 +110,16 @@
 		<div class="pb-photoCard__tileFrame {coverAspectClass}">
 			{#if photoUrl}
 				<img src={photoUrl} alt="" class="pb-photoCard__tileImg" />
+				{#if isVideo}
+					<div class="pb-photoCard__videoOverlay" aria-hidden="true">
+						<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24">
+							<path fill="currentColor" d="M8 5v14l11-7z" />
+						</svg>
+						{#if durationLabel}
+							<span class="pb-photoCard__videoDuration">{durationLabel}</span>
+						{/if}
+					</div>
+				{/if}
 			{:else if isVideo}
 				<div class="pb-photoCard__videoPlaceholder">
 					<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24" aria-hidden="true">
@@ -159,6 +169,16 @@
 	>
 		{#if photoUrl}
 			<img src={photoUrl} alt="" class="pb-photoCard__masonryImg" />
+			{#if isVideo}
+				<div class="pb-photoCard__videoOverlay" aria-hidden="true">
+					<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24">
+						<path fill="currentColor" d="M8 5v14l11-7z" />
+					</svg>
+					{#if durationLabel}
+						<span class="pb-photoCard__videoDuration">{durationLabel}</span>
+					{/if}
+				</div>
+			{/if}
 		{:else if isVideo}
 			<div class="pb-photoCard__videoPlaceholder pb-photoCard__videoPlaceholder--masonry">
 				<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24" aria-hidden="true">
@@ -208,6 +228,16 @@
 					<div class="pb-photoCard__cover {coverAspectClass}">
 						{#if photoUrl}
 							<img src={photoUrl} alt={photoTitle} class="pb-photoCard__coverImage" />
+							{#if isVideo}
+								<div class="pb-photoCard__videoOverlay" aria-hidden="true">
+									<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24">
+										<path fill="currentColor" d="M8 5v14l11-7z" />
+									</svg>
+									{#if durationLabel}
+										<span class="pb-photoCard__videoDuration">{durationLabel}</span>
+									{/if}
+								</div>
+							{/if}
 						{:else if isVideo}
 							<div class="pb-photoCard__videoPlaceholder">
 								<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24" aria-hidden="true">

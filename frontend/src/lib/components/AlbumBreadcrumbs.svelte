@@ -34,11 +34,8 @@
   let currentAlbum = $state<TemplateAlbum | null>(null);
 
   function getBasePathAndRootName() {
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'owner') {
       return { basePath: '/admin/albums', rootName: 'Albums Management' };
-    }
-    if (role === 'owner') {
-      return { basePath: '/owner/albums', rootName: 'My Albums' };
     }
     return { basePath: '/albums', rootName: 'Albums' };
   }

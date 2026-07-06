@@ -13,7 +13,7 @@
 	<div class="max-w-6xl mx-auto px-4">
 		<OwnerStorageView
 			isSiteAdmin={data.isSiteAdmin === true}
-			backHref={data.isSiteAdmin ? '/admin' : '/owner'}
+			backHref="/admin"
 			initialStorageConfigs={data.storageConfigs}
 			initialStorageLoadError={data.storageLoadError}
 		/>

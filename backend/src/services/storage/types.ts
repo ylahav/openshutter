@@ -142,6 +142,17 @@ export interface IStorageService {
 
   /** Optional: proactive token refresh for OAuth providers (e.g. Google Drive). No-op for providers that don't need it. */
   refreshTokenIfNeeded?(): Promise<void>
+
+  /**
+   * Optional: generate a presigned URL the browser can PUT directly to (bypassing this server).
+   * Used for large video uploads that would otherwise exceed Cloudflare / SvelteKit / nginx body limits.
+   * Only implemented by S3-compatible providers today (Backblaze, AWS S3, Wasabi).
+   */
+  getPresignedUploadUrl?(
+    key: string,
+    mimeType: string,
+    options?: { expiresInSeconds?: number; contentLength?: number }
+  ): Promise<{ url: string; expiresAt: Date; requiredHeaders?: Record<string, string> }>
 }
 
 // Storage Manager Interface

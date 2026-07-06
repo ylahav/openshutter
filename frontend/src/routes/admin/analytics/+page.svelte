@@ -12,6 +12,8 @@
 
 	let { data }: { data: PageData } = $props();
 
+	const isAdmin = $derived(data.user?.role === 'admin');
+
 	type Tab = 'overview' | 'views' | 'search' | 'tags' | 'albums' | 'storage';
 	let activeTab: Tab = $state('overview');
 	type ProviderKey = 'google-vision' | 'clip' | 'local';
@@ -410,6 +412,7 @@
 					</div>
 				</div>
 
+				{#if isAdmin}
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 					<div class="flex items-center justify-between">
 						<div>
@@ -431,6 +434,7 @@
 						</div>
 					</div>
 				</div>
+				{/if}
 
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 					<div class="flex items-center justify-between">
@@ -511,6 +515,7 @@
 					</div>
 				</div>
 
+				{#if isAdmin}
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 					<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsGroupsHeading')}</h3>
 					<div class="space-y-2">
@@ -520,6 +525,7 @@
 						</div>
 					</div>
 				</div>
+				{/if}
 
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 					<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsPagesHeading')}</h3>
@@ -623,10 +629,12 @@
 						<p class="text-2xl font-bold text-green-600">{analytics.recentActivity.albums}</p>
 						<p class="text-sm text-(--color-surface-600-400) mt-1">{$t('admin.analyticsNewAlbums')}</p>
 					</div>
+					{#if isAdmin}
 					<div class="text-center p-4 bg-purple-50 rounded-lg">
 						<p class="text-2xl font-bold text-purple-600">{analytics.recentActivity.users}</p>
 						<p class="text-sm text-(--color-surface-600-400) mt-1">{$t('admin.analyticsNewUsers')}</p>
 					</div>
+					{/if}
 				</div>
 			</div>
 

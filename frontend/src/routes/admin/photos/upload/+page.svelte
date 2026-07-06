@@ -131,8 +131,168 @@
 		});
 	}
 
+	/** Read intrinsic width/height/duration from an MP4 via a hidden `<video>`. Non-blocking. */
+	function extractVideoMetadata(
+		file: File
+	): Promise<{ duration?: number; width?: number; height?: number }> {
+		return new Promise((resolve) => {
+			const url = URL.createObjectURL(file);
+			const v = document.createElement('video');
+			v.preload = 'metadata';
+			const cleanup = () => {
+				URL.revokeObjectURL(url);
+				v.remove();
+			};
+			v.onloadedmetadata = () => {
+				const out = {
+					duration: Number.isFinite(v.duration) ? Math.round(v.duration) : undefined,
+					width: v.videoWidth || undefined,
+					height: v.videoHeight || undefined
+				};
+				cleanup();
+				resolve(out);
+			};
+			v.onerror = () => {
+				cleanup();
+				resolve({});
+			};
+			v.src = url;
+		});
+	}
+
+	function setVideoError(uploadIndex: number, error: string) {
+		uploads = uploads.map((upload, i) =>
+			i === uploadIndex ? { ...upload, status: 'error', error, progress: 100 } : upload
+		);
+		checkAllComplete();
+	}
+
+	function putVideoToStorage(
+		file: File,
+		uploadUrl: string,
+		requiredHeaders: Record<string, string> | undefined,
+		uploadIndex: number
+	): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const xhr = new XMLHttpRequest();
+			xhr.upload.addEventListener('progress', (e) => {
+				if (e.lengthComputable) {
+					const progress = Math.round((e.loaded / e.total) * 100);
+					uploads = uploads.map((upload, i) =>
+						i === uploadIndex ? { ...upload, progress } : upload
+					);
+				}
+			});
+			xhr.addEventListener('load', () => {
+				if (xhr.status >= 200 && xhr.status < 300) resolve();
+				else reject(new Error(`Storage PUT failed (${xhr.status})`));
+			});
+			xhr.addEventListener('error', () => reject(new Error('Network error during storage PUT')));
+			xhr.addEventListener('abort', () => reject(new Error('Storage PUT aborted')));
+			xhr.open('PUT', uploadUrl);
+			if (requiredHeaders) {
+				for (const [k, v] of Object.entries(requiredHeaders)) {
+					xhr.setRequestHeader(k, v);
+				}
+			}
+			xhr.send(file);
+		});
+	}
+
+	/**
+	 * Direct-to-storage video upload (bypasses Cloudflare/nginx/SvelteKit body limits):
+	 *   1. POST /api/videos/upload-init → { uploadUrl, key, … }
+	 *   2. PUT file body directly to `uploadUrl`
+	 *   3. POST /api/videos/upload-finalize → creates the video document
+	 */
+	async function uploadVideoFile(file: File, uploadIndex: number) {
+		if (!albumId) return;
+		try {
+			const metadata = await extractVideoMetadata(file);
+
+			const initRes = await fetch('/api/videos/upload-init', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					albumId,
+					originalFilename: file.name,
+					mimeType: file.type || 'video/mp4',
+					size: file.size
+				})
+			});
+			const initBody = await initRes.json().catch(() => ({}));
+			if (!initRes.ok) {
+				setVideoError(
+					uploadIndex,
+					initBody?.message || initBody?.error || `Upload init failed (${initRes.status})`
+				);
+				return;
+			}
+			const { uploadUrl, key, requiredHeaders } = initBody as {
+				uploadUrl: string;
+				key: string;
+				requiredHeaders?: Record<string, string>;
+			};
+
+			try {
+				await putVideoToStorage(file, uploadUrl, requiredHeaders, uploadIndex);
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				setVideoError(uploadIndex, msg);
+				return;
+			}
+
+			const finalizeRes = await fetch('/api/videos/upload-finalize', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					key,
+					albumId,
+					originalFilename: file.name,
+					mimeType: file.type || 'video/mp4',
+					size: file.size,
+					duration: metadata.duration,
+					width: metadata.width,
+					height: metadata.height
+				})
+			});
+			const finalizeBody = await finalizeRes.json().catch(() => ({}));
+			if (!finalizeRes.ok) {
+				setVideoError(
+					uploadIndex,
+					finalizeBody?.message || finalizeBody?.error || `Finalize failed (${finalizeRes.status})`
+				);
+				return;
+			}
+			uploads = uploads.map((upload, i) =>
+				i === uploadIndex
+					? {
+							...upload,
+							status: finalizeBody?.skipped ? 'skipped' : 'success',
+							progress: 100,
+							reason: finalizeBody?.reason,
+							photoId: finalizeBody?._id
+						}
+					: upload
+			);
+			checkAllComplete();
+		} catch (err) {
+			logger.error(`[Video Upload] Exception for ${file.name}:`, err);
+			const errorMessage = err instanceof Error ? err.message : String(err);
+			setVideoError(uploadIndex, `Upload failed: ${errorMessage}`);
+		}
+	}
+
 	async function uploadFile(file: File, uploadIndex: number) {
 		if (!albumId) return;
+
+		// Videos (MP4): delegate to the video endpoint; the photos endpoint rejects video/*.
+		if (file.type.startsWith('video/')) {
+			await uploadVideoFile(file, uploadIndex);
+			return;
+		}
 
 		const formData = new FormData();
 		formData.append('file', file);
@@ -649,9 +809,9 @@
 			goto(returnTo);
 		} else if (albumId) {
 			// Owner: go to owner album; admin: go to admin album
-			goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
+			goto(`/admin/albums/${albumId}`);
 		} else {
-			goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
+			goto('/admin/albums');
 		}
 	}
 
@@ -678,16 +838,16 @@
 			return;
 		}
 
-		// Filter to only image files
+		// Filter to image and MP4 video files (MP4s are routed to the videos endpoint in uploadFile).
 		const imageFiles = Array.from(files).filter(file => {
-			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/tiff'];
+			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/tiff', 'video/mp4'];
 			const ext = file.name.toLowerCase().split('.').pop();
-			const validExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'tif'];
+			const validExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'tif', 'mp4'];
 			return validTypes.includes(file.type) || (ext && validExts.includes(ext));
 		});
 
 		if (imageFiles.length === 0) {
-			showError('No Image Files Found', 'The selected folder does not contain any valid image files. Please select a folder with images (JPEG, PNG, GIF, BMP, WebP, or TIFF).');
+			showError('No Media Files Found', 'The selected folder does not contain any valid photos or MP4 videos.');
 			return;
 		}
 
@@ -754,7 +914,7 @@
 </script>
 
 <svelte:head>
-	<title>{albumName ? `Upload Photos - ${albumName}` : 'Upload Photos'} - Admin</title>
+	<title>{albumName ? `Upload Media - ${albumName}` : 'Upload Media'} - Admin</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -762,7 +922,7 @@
 		<div class="flex items-center justify-between mb-8">
 			<div>
 				<h1 class="text-3xl font-bold text-(--color-surface-950-50)">
-					Upload Photos
+					Upload Media
 					{#if albumName}
 						<span class="text-2xl font-semibold text-(--color-surface-800-200)"> - {albumName}</span>
 					{/if}
@@ -780,8 +940,8 @@
 					type="button"
 					onclick={() => {
 						if (returnTo) goto(returnTo);
-						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
-						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
+						else if (albumId) goto(`/admin/albums/${albumId}`);
+						else goto('/admin/albums');
 					}}
 					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
@@ -866,7 +1026,7 @@
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-8 mb-8">
 				<h2 class="text-xl font-semibold text-(--color-surface-950-50) mb-4">Upload from Local Folder</h2>
 				<p class="text-sm text-(--color-surface-600-400) mb-6">
-					Select a folder from your computer containing images to upload. The system will automatically detect duplicates and skip them.
+					Select a folder from your computer containing photos and videos to upload. The system will automatically detect duplicates and skip them.
 				</p>
 
 				<div class="space-y-4">
@@ -879,7 +1039,7 @@
 							id="folderInput"
 							type="file"
 							multiple
-							accept="image/*"
+							accept="image/*,video/mp4"
 							class="hidden"
 							use:setWebkitDirectory
 							onchange={(e) => handleFolderSelected((e.currentTarget as HTMLInputElement).files)}
@@ -1079,7 +1239,7 @@
 				<input
 					bind:this={fileInput}
 					type="file"
-					accept="image/*"
+					accept="image/*,video/mp4"
 					multiple
 					class="hidden"
 					onchange={(e) => handleFilesSelected((e.currentTarget as HTMLInputElement).files)}
@@ -1269,8 +1429,8 @@
 					type="button"
 					onclick={() => {
 						if (returnTo) goto(returnTo);
-						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
-						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
+						else if (albumId) goto(`/admin/albums/${albumId}`);
+						else goto('/admin/albums');
 					}}
 					class="{adminBtnSecondary} {adminRingPrimary}"
 				>

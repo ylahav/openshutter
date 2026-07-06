@@ -91,6 +91,14 @@
 		if (m) return { brand: m[1].trim(), site: m[2].trim() };
 		return { brand: h || 'Admin', site: '' as string };
 	});
+
+	const currentRole = $derived(($page.data as { user?: { role?: string } })?.user?.role);
+	const visibleGroups = $derived(
+		ADMIN_NAV_GROUPS.map((group) => ({
+			...group,
+			items: group.items.filter((item) => currentRole === 'admin' || !item.adminOnly),
+		})).filter((group) => group.items.length > 0)
+	);
 </script>
 
 {#if mobileOpen}
@@ -155,7 +163,7 @@
 	</div>
 
 	<nav id="admin-sidebar-nav" class="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-5 min-h-0">
-		{#each ADMIN_NAV_GROUPS as group}
+		{#each visibleGroups as group}
 			<div class="space-y-1">
 				<div class="px-1 pt-0.5 pb-1 {useCollapsed ? 'lg:hidden' : ''}">
 					<div class="flex items-center gap-2 py-1.5">
@@ -210,6 +218,7 @@
 		{/each}
 	</nav>
 
+	{#if currentRole === 'admin'}
 	<div
 		class="shrink-0 border-t border-[color-mix(in_oklab,var(--color-surface-950)_8%,transparent)] dark:border-[color-mix(in_oklab,var(--color-surface-50)_10%,transparent)] px-2 pt-2 pb-1"
 	>
@@ -228,6 +237,7 @@
 			<span class="truncate {useCollapsed ? 'lg:sr-only' : ''}">{$t('admin.sidebarDevUiDocs')}</span>
 		</a>
 	</div>
+	{/if}
 	<div
 		class="shrink-0 border-t border-[color-mix(in_oklab,var(--color-surface-950)_8%,transparent)] dark:border-[color-mix(in_oklab,var(--color-surface-50)_10%,transparent)] p-2 space-y-1"
 	>

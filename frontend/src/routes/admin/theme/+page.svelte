@@ -112,7 +112,7 @@ import { t } from '$stores/i18n';
 {:else if !isOwner}
 	<div class="min-h-screen bg-gray-50 py-8 px-4">
 		<p class="text-gray-600 mb-4">{$t('owner.themeEditorsOnly')}</p>
-		<a href="/owner" class="text-blue-600 hover:underline">{$t('owner.backToDashboard')}</a>
+		<a href="/admin" class="text-blue-600 hover:underline">{$t('owner.backToDashboard')}</a>
 	</div>
 {:else}
 	<div class="min-h-screen bg-gray-50 py-8">
@@ -124,14 +124,14 @@ import { t } from '$stores/i18n';
 				</div>
 				<div class="flex gap-2">
 					<a
-						href="/owner/site-settings"
+						href="/admin/site-settings"
 						class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
 					>
 						{$t('owner.siteSettings')}
 					</a>
 					<button
 						type="button"
-						onclick={() => goto('/owner')}
+						onclick={() => goto('/admin')}
 						class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 					>
 						{$t('owner.backToDashboard')}

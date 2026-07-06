@@ -32,22 +32,22 @@ The access control system determines which albums users can view based on their 
 ### Admin
 - **Access**: Full system access
 - **Redirect**: `/admin` after login
-- **Capabilities**: All album management, user management, system configuration
+- **Capabilities**: All album management, user management, storage, backup/restore, site configuration, translations, marketplace, audit logs
 
-### Owner
-- **Access**: Own albums + public albums + albums with user/group access
-- **Redirect**: `/owner` (owner dashboard) after login
-- **Capabilities**: 
-  - Create, edit, and delete own albums
-  - Upload and manage photos in own albums
-  - Edit profile and change password
-  - View public albums and albums with granted access
-  - Access owner dashboard with focused interface
+### Owner (displayed as "Editor" in the UI)
+- **Access**: Content management under `/admin/*`
+- **Redirect**: `/admin` after login (formerly `/owner` — the legacy `/owner/*` tree has been folded into `/admin/*`; residual URLs redirect)
+- **Capabilities**:
+  - Full CRUD on own albums, photos, videos (backend enforces `createdBy === user.id` on writes)
+  - Create tags / people / locations; edit + delete only ones they created (see backend guards in `tags.controller.ts`, `people.controller.ts`, `locations.controller.ts`)
+  - Blog articles + categories, contact submissions, per-owner site settings + theme, pages, templates + theme layout, storage config, own profile
+  - Analytics scoped to their own content (photos, albums, tags/people/locations they created; `analytics.service.ts` filters by `uploadedBy` / `createdBy`)
+  - **Not allowed**: users, groups, admin site-config, backup-restore, audit-logs, marketplace, modules, translations, import-sync, docs
 
-### Guest
+### Guest (displayed as "Viewer")
 - **Access**: Based on album permissions
-- **Redirect**: `/` (home page) after login
-- **Capabilities**: View permitted albums and photos
+- **Redirect**: `/member` after login
+- **Capabilities**: View permitted albums and photos; personal profile only
 
 ## Database Schema
 
@@ -153,20 +153,19 @@ const albums = await db.collection('albums').find(query).toArray()
 ## Frontend Implementation
 
 ### Role-Based Redirects
-Location: `src/app/login/page.tsx`
+Location: `frontend/src/lib/page-builder/modules/LoginForm/Layout.svelte` (client login redirect) and `frontend/src/hooks.server.ts` (server-side `/member` and legacy `/owner/*` handlers).
 
 ```typescript
-useEffect(() => {
-  if (session?.user) {
-    if (session.user.role === 'admin') {
-      router.push('/admin')
-    } else if (session.user.role === 'owner') {
-      router.push('/owner')
-    } else {
-      router.push('/')
-    }
-  }
-}, [session, router])
+// After successful login:
+//   admin | owner → /admin
+//   guest         → /member
+//   (else)        → /
+const redirectPath =
+  data.user?.role === 'admin' || data.user?.role === 'owner'
+    ? redirectParam.startsWith('/admin') ? redirectParam : '/admin'
+    : data.user?.role === 'guest'
+      ? redirectParam.startsWith('/member') ? redirectParam : '/member'
+      : '/';
 ```
 
 ### Access Control in Components

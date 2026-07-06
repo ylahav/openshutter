@@ -472,7 +472,10 @@
 				_id: p?._id,
 				// For videos we bypass photoUrl helpers and use the raw storage URL directly.
 				url: isVideo ? (p?.storage?.url ?? '') : getPhotoFullUrl(p),
-				thumbnailUrl: isVideo ? '' : getPhotoUrl(p, { preferThumbnail: true }),
+				// For videos this becomes the `<video poster="">` — the captured leading image.
+				thumbnailUrl: isVideo
+					? (typeof (p as any)?.poster?.url === 'string' ? (p as any).poster.url : '')
+					: getPhotoUrl(p, { preferThumbnail: true }),
 				title: p?.title ?? p?.name ?? p?.filename ?? p?.originalName ?? '',
 				description: p?.description,
 				takenAt: p?.exif?.dateTimeOriginal,
@@ -726,8 +729,9 @@
 			mediaType: 'video' as const,
 			name: item?.title ?? item?.name ?? item?.filename ?? item?.originalName ?? 'Video',
 			description: item?.description,
-			// No poster in v1 — PhotoCard renders a placeholder background + play icon.
-			coverUrl: ''
+			// Use the uploaded poster (captured frame) when present; PhotoCard falls back
+			// to the black play-icon placeholder when the string is empty.
+			coverUrl: typeof item?.poster?.url === 'string' ? item.poster.url : ''
 		}));
 	}
 

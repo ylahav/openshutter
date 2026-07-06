@@ -25,7 +25,25 @@
 	);
 
 	function thumbUrl(p: any) {
+		// Videos: use the captured poster when set; otherwise fall through to the
+		// standard photo-url helper (which returns '' for videos and triggers the
+		// no-image fallback in the cell).
+		if (p?.mediaType === 'video' && typeof p?.poster?.url === 'string' && p.poster.url) {
+			return p.poster.url;
+		}
 		return getPhotoUrl(p ?? {}, { preferThumbnail: true, fallback: '' });
+	}
+
+	function isVideo(p: any): boolean {
+		return p?.mediaType === 'video';
+	}
+
+	function durationLabel(seconds: unknown): string {
+		const s = Number(seconds);
+		if (!Number.isFinite(s) || s <= 0) return '';
+		const m = Math.floor(s / 60);
+		const r = Math.round(s % 60);
+		return `${m}:${r.toString().padStart(2, '0')}`;
 	}
 
 	function label(p: any) {
@@ -67,6 +85,27 @@
 							class="pb-justifyPhotoGrid__img"
 							draggable="false"
 						/>
+						{#if isVideo(cell.item.photo)}
+							{@const dur = durationLabel(cell.item.photo?.duration)}
+							<div class="pb-photoCard__videoOverlay" aria-hidden="true">
+								<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24">
+									<path fill="currentColor" d="M8 5v14l11-7z" />
+								</svg>
+								{#if dur}
+									<span class="pb-photoCard__videoDuration">{dur}</span>
+								{/if}
+							</div>
+						{/if}
+					{:else if isVideo(cell.item.photo)}
+						{@const dur = durationLabel(cell.item.photo?.duration)}
+						<div class="pb-photoCard__videoPlaceholder">
+							<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24" aria-hidden="true">
+								<path fill="currentColor" d="M8 5v14l11-7z" />
+							</svg>
+							{#if dur}
+								<span class="pb-photoCard__videoDuration">{dur}</span>
+							{/if}
+						</div>
 					{:else}
 						<span class="pb-justifyPhotoGrid__fallback">No image</span>
 					{/if}

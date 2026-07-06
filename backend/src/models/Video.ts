@@ -22,6 +22,20 @@ export interface IVideo extends Document {
     path: string
     storageOwnerId?: string
   }
+  /** Optional captured frame used as the video's leading image / poster. */
+  poster?: {
+    url: string
+    storage: {
+      provider: string
+      fileId: string
+      path: string
+      folderId?: string
+      storageOwnerId?: string
+    }
+    width?: number
+    height?: number
+    capturedAtSeconds?: number
+  }
   albumId?: Types.ObjectId
   tags: Types.ObjectId[]
   people: Types.ObjectId[]
@@ -79,6 +93,10 @@ export const VideoSchema = new Schema<IVideo>(
       folderId: String,
       path: { type: String, required: true },
       storageOwnerId: String,
+    },
+    poster: {
+      type: Schema.Types.Mixed,
+      default: undefined,
     },
     albumId: {
       type: Schema.Types.ObjectId,

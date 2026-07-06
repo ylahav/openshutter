@@ -73,6 +73,8 @@ export class VideosService {
       people?: string[]
       location?: string | null
       isPublished?: boolean
+      /** Pass `null` to clear the poster. To set a new one, use POST /videos/:id/poster. */
+      poster?: null
     },
   ): Promise<any> {
     if (!Types.ObjectId.isValid(id)) {
@@ -136,8 +138,117 @@ export class VideosService {
     if (typeof body.isPublished === 'boolean') {
       update.isPublished = body.isPublished
     }
+    // Only supports clearing the poster from PUT; setting is via POST /:id/poster.
+    if (body.poster === null) {
+      update.poster = null
+    }
 
     await this.videoModel.updateOne({ _id: new Types.ObjectId(id) }, { $set: update }).exec()
+    const updated = await this.videoModel.findById(id).lean().exec()
+    return this.serialize(updated)
+  }
+
+  /**
+   * Store an uploaded frame image as this video's poster (leading image).
+   * Uploads to the same storage provider + album path as the video, under a
+   * `poster-` prefixed filename. Overwrites the previous poster if any.
+   */
+  async setPoster(
+    id: string,
+    userId: string,
+    role: string,
+    imageBuffer: Buffer,
+    mimeType: string,
+    options: { width?: number; height?: number; capturedAtSeconds?: number } = {},
+  ): Promise<any> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException(`Video not found: ${id}`)
+    }
+    const video = await this.videoModel.findById(id).lean().exec()
+    if (!video) throw new NotFoundException(`Video not found: ${id}`)
+
+    if (role !== 'admin' && video.albumId) {
+      const album = await mongoose.connection.db
+        ?.collection('albums')
+        .findOne({ _id: new Types.ObjectId(String(video.albumId)) })
+      if (!album || String(album.createdBy) !== String(userId)) {
+        throw new ForbiddenException('Access denied')
+      }
+    }
+
+    const album = video.albumId
+      ? await mongoose.connection.db
+          ?.collection('albums')
+          .findOne({ _id: new Types.ObjectId(String(video.albumId)) })
+      : null
+    const storageProvider = video.storage?.provider || album?.storageProvider || 'local'
+    const storageCtx = await resolveOwnerStorageContext(
+      album?.createdBy ? String(album.createdBy) : undefined,
+    )
+    const storageService = await storageManager.getProvider(
+      storageProvider as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi',
+      storageCtx,
+    )
+
+    const providerCfg = storageService.getConfig?.() ?? {}
+    const publicBaseUrl =
+      storageProvider === 'backblaze' && typeof providerCfg.publicBaseUrl === 'string'
+        ? providerCfg.publicBaseUrl.trim()
+        : ''
+
+    const albumPath = (album?.storagePath as string) || ''
+    const ext = mimeType.includes('png') ? 'png' : 'jpg'
+    const filename = `poster-${id}-${Date.now()}.${ext}`
+
+    const uploadResult = await storageService.uploadFile(
+      imageBuffer,
+      filename,
+      mimeType,
+      albumPath,
+      { videoId: id, kind: 'poster' },
+    )
+
+    const { buildPublicUrl } = await import('../services/storage/storage-serve-url')
+    const posterUrl = buildPublicUrl({
+      providerId: storageProvider,
+      key: uploadResult.path,
+      publicBaseUrl,
+      hash: '',
+      ownerUserId: storageCtx?.ownerUserId,
+    })
+
+    // Best-effort: remove the previous poster from storage.
+    const previous = (video as any).poster
+    if (previous?.storage?.path && previous.storage.path !== uploadResult.path) {
+      try {
+        await storageService.deleteFile(previous.storage.path)
+      } catch (e) {
+        this.logger.warn(
+          `setPoster: failed to remove previous poster ${previous.storage.path}: ${e instanceof Error ? e.message : String(e)}`,
+        )
+      }
+    }
+
+    const posterDoc = {
+      url: posterUrl,
+      storage: {
+        provider: storageProvider,
+        fileId: uploadResult.fileId,
+        path: uploadResult.path,
+        folderId: uploadResult.folderId,
+        ...(storageCtx ? { storageOwnerId: storageCtx.ownerUserId } : {}),
+      },
+      width: options.width,
+      height: options.height,
+      capturedAtSeconds: options.capturedAtSeconds,
+    }
+    await this.videoModel
+      .updateOne(
+        { _id: new Types.ObjectId(id) },
+        { $set: { poster: posterDoc, updatedAt: new Date() } },
+      )
+      .exec()
+
     const updated = await this.videoModel.findById(id).lean().exec()
     return this.serialize(updated)
   }

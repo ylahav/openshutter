@@ -32,7 +32,7 @@ const path = $derived($page.url.pathname);</script>
 				</div>
 				<div class="flex items-center gap-3">
 					<a
-						href="/owner"
+						href="/admin"
 						class="text-sm text-gray-600 hover:text-gray-900"
 					>
 						← Back to panel

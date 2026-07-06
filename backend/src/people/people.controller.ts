@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, HttpException, Request } from '@nestjs/common';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, ForbiddenException, Logger, InternalServerErrorException, HttpException, Request } from '@nestjs/common';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
@@ -16,7 +16,7 @@ export interface FaceAvatarFromPhoto {
 }
 
 @Controller('admin/people')
-@UseGuards(AdminGuard)
+@UseGuards(AdminOrOwnerGuard)
 export class PeopleController {
   private readonly logger = new Logger(PeopleController.name);
 
@@ -529,6 +529,10 @@ export class PeopleController {
         throw new NotFoundException(`Person not found: ${id}`);
       }
 
+      if (user.role === 'owner' && person.createdBy?.toString() !== user.id) {
+        throw new ForbiddenException('You can only edit people you created');
+      }
+
       const { firstName, lastName, nickname, birthDate, description, tags, isActive } = body;
 
       // Generate fullName if firstName or lastName changed
@@ -629,7 +633,7 @@ export class PeopleController {
    * Path: DELETE /api/admin/people/:id
    */
   @Delete(':id')
-  async deletePerson(@Param('id') id: string) {
+  async deletePerson(@Request() req: any, @Param('id') id: string) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -639,6 +643,11 @@ export class PeopleController {
       const person = await collection.findOne({ _id: new Types.ObjectId(id) });
       if (!person) {
         throw new NotFoundException(`Person not found: ${id}`);
+      }
+
+      const user = req.user;
+      if (user?.role === 'owner' && person.createdBy?.toString() !== user.id) {
+        throw new ForbiddenException('You can only delete people you created');
       }
 
       await collection.deleteOne({ _id: new Types.ObjectId(id) });

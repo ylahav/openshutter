@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, Request } from '@nestjs/common';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, ForbiddenException, Logger, InternalServerErrorException, Request } from '@nestjs/common';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
@@ -7,7 +7,7 @@ import { CreateTagDto } from './dto/create-tag.dto';
 import { TagFeedbackService } from '../services/tag-feedback';
 
 @Controller('admin/tags')
-@UseGuards(AdminGuard)
+@UseGuards(AdminOrOwnerGuard)
 export class TagsController {
   private readonly logger = new Logger(TagsController.name);
   /**
@@ -231,7 +231,7 @@ export class TagsController {
    * Path: PUT /api/admin/tags/:id
    */
   @Put(':id')
-  async updateTag(@Param('id') id: string, @Body() body: any) {
+  async updateTag(@Request() req: any, @Param('id') id: string, @Body() body: any) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -241,6 +241,11 @@ export class TagsController {
       const tag = await collection.findOne({ _id: new Types.ObjectId(id) });
       if (!tag) {
         throw new NotFoundException(`Tag not found: ${id}`);
+      }
+
+      const user = req.user;
+      if (user?.role === 'owner' && tag.createdBy?.toString() !== user.id) {
+        throw new ForbiddenException('You can only edit tags you created');
       }
 
       const { name, description, color, category, isActive } = body;
@@ -333,7 +338,7 @@ export class TagsController {
         createdBy: updatedTag.createdBy?.toString() || updatedTag.createdBy,
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
         throw error;
       }
       this.logger.error('Error updating tag:', error);
@@ -348,7 +353,7 @@ export class TagsController {
    * Path: DELETE /api/admin/tags/:id
    */
   @Delete(':id')
-  async deleteTag(@Param('id') id: string) {
+  async deleteTag(@Request() req: any, @Param('id') id: string) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -360,11 +365,16 @@ export class TagsController {
         throw new NotFoundException(`Tag not found: ${id}`);
       }
 
+      const user = req.user;
+      if (user?.role === 'owner' && tag.createdBy?.toString() !== user.id) {
+        throw new ForbiddenException('You can only delete tags you created');
+      }
+
       await collection.deleteOne({ _id: new Types.ObjectId(id) });
 
       return { success: true, message: 'Tag deleted successfully' };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
       this.logger.error('Error deleting tag:', error);

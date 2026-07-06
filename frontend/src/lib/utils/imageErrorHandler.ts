@@ -20,7 +20,7 @@ export async function handleImageError(imageUrl: string): Promise<boolean> {
 
 	// Only show notification on admin pages (where admins can actually renew)
 	const currentPath = get(page).url.pathname;
-	const isAdminPage = currentPath.startsWith('/admin') || currentPath.startsWith('/owner');
+	const isAdminPage = currentPath.startsWith('/admin');
 	if (!isAdminPage) {
 		return false;
 	}

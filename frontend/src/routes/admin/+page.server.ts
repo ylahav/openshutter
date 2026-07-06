@@ -5,7 +5,7 @@ import { logger } from '$lib/utils/logger';
 import type { AdminDashboardSummary } from '$lib/types/admin-dashboard';
 
 export const load: PageServerLoad = async ({ cookies, locals }) => {
-	if (locals.user?.role !== 'admin') {
+	if (locals.user?.role !== 'admin' && locals.user?.role !== 'owner') {
 		return {
 			dashboard: null as AdminDashboardSummary | null,
 			dashboardLoadFailed: false,

@@ -1,6 +1,6 @@
 import { Controller, Get, InternalServerErrorException, Logger, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose from 'mongoose';
 
@@ -37,7 +37,7 @@ function pickCoverImageUrl(photo: any): string | null {
 }
 
 @Controller('admin/dashboard')
-@UseGuards(AdminGuard)
+@UseGuards(AdminOrOwnerGuard)
 export class AdminDashboardController {
 	private readonly logger = new Logger(AdminDashboardController.name);
 

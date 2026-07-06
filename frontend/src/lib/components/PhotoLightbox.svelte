@@ -708,6 +708,7 @@
 						<!-- svelte-ignore a11y_media_has_caption -->
 						<video
 							src={photoUrl}
+							poster={photo?.thumbnailUrl || undefined}
 							controls
 							preload="metadata"
 							class="object-contain max-h-[85vh] max-w-[92vw] bg-black transition-opacity duration-200 {imageLoading ? 'opacity-30' : 'opacity-100'}"

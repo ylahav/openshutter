@@ -102,12 +102,15 @@ export class AnalyticsService {
 
   /**
    * Get views analytics
+   * @param ownerId When set, restrict results to events attributed to this owner
+   *   (via `metadata.ownerScopeId` or `userId`). Admin callers pass undefined for site-wide.
    */
   async getViewsAnalytics(
     dateRange?: DateRange,
     period: 'day' | 'week' | 'month' = 'day',
     type?: 'photo' | 'album' | 'all',
-    resourceId?: string
+    resourceId?: string,
+    ownerId?: string,
   ): Promise<ViewsAnalytics> {
     await connectDB();
     const db = mongoose.connection.db;
@@ -133,6 +136,10 @@ export class AnalyticsService {
 
     if (resourceId) {
       matchFilter.resourceId = resourceId;
+    }
+
+    if (ownerId) {
+      matchFilter.$or = [{ userId: ownerId }, { 'metadata.ownerScopeId': ownerId }];
     }
 
     // Check if collection exists, if not return empty results
@@ -300,11 +307,14 @@ export class AnalyticsService {
 
   /**
    * Get search analytics
+   * @param ownerId When set, restrict to searches attributed to this owner
+   *   (via `metadata.ownerScopeId` or `userId`).
    */
   async getSearchAnalytics(
     dateRange?: DateRange,
     limit: number = 20,
-    period: 'day' | 'week' | 'month' = 'day'
+    period: 'day' | 'week' | 'month' = 'day',
+    ownerId?: string,
   ): Promise<SearchAnalytics> {
     await connectDB();
     const db = mongoose.connection.db;
@@ -353,10 +363,13 @@ export class AnalyticsService {
     const dateFrom = dateRange?.dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const dateTo = dateRange?.dateTo || new Date();
 
-    const matchFilter = {
+    const matchFilter: Record<string, unknown> = {
       type: 'search',
       timestamp: { $gte: dateFrom, $lte: dateTo },
     };
+    if (ownerId) {
+      matchFilter.$or = [{ userId: ownerId }, { 'metadata.ownerScopeId': ownerId }];
+    }
 
     // Get summary
     const [totalSearches, uniqueQueries, searchesWithResults] = await Promise.all([
@@ -853,10 +866,12 @@ export class AnalyticsService {
 
   /**
    * Get tag usage trends
+   * @param ownerId When set, restrict tags to `createdBy: ownerId` and photos to `uploadedBy: ownerId`.
    */
   async getTagUsageTrends(
     dateRange?: DateRange,
-    period: 'day' | 'week' | 'month' = 'day'
+    period: 'day' | 'week' | 'month' = 'day',
+    ownerId?: string,
   ): Promise<any> {
     await connectDB();
     const db = mongoose.connection.db;
@@ -866,12 +881,16 @@ export class AnalyticsService {
 
     const dateFrom = dateRange?.dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const dateTo = dateRange?.dateTo || new Date();
-    
+
+    const ownerObjectId = ownerId ? new Types.ObjectId(ownerId) : null;
+    const ownerTagFilter = ownerObjectId ? { createdBy: ownerObjectId } : {};
+    const ownerPhotoFilter = ownerObjectId ? { uploadedBy: ownerObjectId } : {};
+
     // Check if collections exist
     const collections = await db.listCollections().toArray();
     const hasTags = collections.some((c) => c.name === 'tags');
     const hasPhotos = collections.some((c) => c.name === 'photos');
-    
+
     if (!hasTags || !hasPhotos) {
       return {
         tagsCreated: [],
@@ -892,6 +911,7 @@ export class AnalyticsService {
       tagsCreated = await db.collection('tags').aggregate([
         {
           $match: {
+            ...ownerTagFilter,
             createdAt: { $gte: dateFrom, $lte: dateTo },
           },
         },
@@ -914,6 +934,7 @@ export class AnalyticsService {
       tagUsage = await db.collection('photos').aggregate([
         {
           $match: {
+            ...ownerPhotoFilter,
             updatedAt: { $gte: dateFrom, $lte: dateTo },
             tags: { $exists: true, $ne: [] },
           },
@@ -948,7 +969,7 @@ export class AnalyticsService {
     let topTags: any[] = [];
     try {
       topTags = await db.collection('tags')
-        .find({}, { projection: { name: 1, usageCount: 1, category: 1, createdAt: 1 } })
+        .find(ownerTagFilter, { projection: { name: 1, usageCount: 1, category: 1, createdAt: 1 } })
         .sort({ usageCount: -1 })
         .limit(20)
         .toArray();
@@ -1000,19 +1021,25 @@ export class AnalyticsService {
 
   /**
    * Get storage analytics
+   * @param ownerId When set, restrict photos to `uploadedBy: ownerId`.
    */
-  async getStorageAnalytics(groupBy: 'album' | 'provider' | 'both' = 'both'): Promise<any> {
+  async getStorageAnalytics(
+    groupBy: 'album' | 'provider' | 'both' = 'both',
+    ownerId?: string,
+  ): Promise<any> {
     await connectDB();
     const db = mongoose.connection.db;
     if (!db) {
       throw new Error('Database connection not established');
     }
 
+    const ownerPhotoFilter = ownerId ? { uploadedBy: new Types.ObjectId(ownerId) } : {};
+
     // Get all photos with storage info
     let photos: any[] = [];
     try {
       photos = await db.collection('photos')
-        .find({}, { projection: { size: 1, storage: 1, albumId: 1 } })
+        .find(ownerPhotoFilter, { projection: { size: 1, storage: 1, albumId: 1 } })
         .toArray();
     } catch (error) {
       this.logger.warn(`Error fetching photos for storage analytics: ${error instanceof Error ? error.message : String(error)}`);

@@ -56,9 +56,17 @@
 			extractedAt?: string;
 			modelVersion?: string;
 		};
+		createdBy?: string | null;
 	}
 
 	const people = $derived(($pd.people ?? []) as Person[]);
+
+	const canEditPerson = $derived((person: Person): boolean => {
+		const role = data.user?.role;
+		if (role === 'admin') return true;
+		if (role === 'owner') return !!person.createdBy && person.createdBy === data.user?.id;
+		return false;
+	});
 
 	let searchTerm = $state(untrack(() => data.filters?.search ?? ''));
 
@@ -606,36 +614,38 @@ $effect(() => { if ($crudMessage) adminToast.success({ title: $crudMessage }); }
 											{getPersonDisplayName(person)}
 										</h3>
 										<div class="flex shrink-0 items-center gap-0.5 -mt-0.5 -me-1">
-											<button
-												type="button"
-												onclick={() => openEditDialog(person)}
-												class="p-2 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded-md"
-												aria-label="Edit person"
-											>
-												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-													/>
-												</svg>
-											</button>
-											<button
-												type="button"
-												onclick={() => openDeleteDialog(person)}
-												class="p-2 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md"
-												aria-label="Delete person"
-											>
-												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-													/>
-												</svg>
-											</button>
+											{#if canEditPerson(person)}
+												<button
+													type="button"
+													onclick={() => openEditDialog(person)}
+													class="p-2 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded-md"
+													aria-label="Edit person"
+												>
+													<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+														/>
+													</svg>
+												</button>
+												<button
+													type="button"
+													onclick={() => openDeleteDialog(person)}
+													class="p-2 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md"
+													aria-label="Delete person"
+												>
+													<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+														/>
+													</svg>
+												</button>
+											{/if}
 										</div>
 									</div>
 									{#if person.nickname && MultiLangUtils.getTextValue(person.nickname, $currentLanguage)}

@@ -6,11 +6,10 @@ export function canonicalUrlFromPageUrl(url: URL): string {
 	return `${url.origin}${url.pathname}${url.search}`;
 }
 
-/** Paths that should not be indexed (admin/owner panels). */
+/** Paths that should not be indexed (admin panel). */
 export function pathShouldNoindex(pathname: string): boolean {
 	return (
 		pathname.startsWith('/admin') ||
-		pathname.startsWith('/owner') ||
 		pathname === '/notifications'
 	);
 }

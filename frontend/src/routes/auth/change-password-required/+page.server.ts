@@ -7,12 +7,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}
 	if (!locals.user.forcePasswordChange) {
 		const defaultRedirect =
-			locals.user.role === 'guest' ? '/member' : locals.user.role === 'owner' ? '/owner' : '/admin';
+			locals.user.role === 'guest' ? '/member' : '/admin';
 		const redirectTo = url.searchParams.get('redirect') || defaultRedirect;
 		throw redirect(303, redirectTo);
 	}
 	const defaultRedirect =
-		locals.user.role === 'guest' ? '/member' : locals.user.role === 'owner' ? '/owner' : '/admin';
+		locals.user.role === 'guest' ? '/member' : '/admin';
 	return {
 		user: locals.user,
 		redirect: url.searchParams.get('redirect') || defaultRedirect

@@ -6,7 +6,7 @@
 	import { t } from '$stores/i18n';
 	import StorageTreeItem from '$lib/components/StorageTreeItem.svelte';
 
-	let { isSiteAdmin = false, backHref = '/owner' }: { isSiteAdmin?: boolean; backHref?: string } = $props();
+	let { isSiteAdmin = false, backHref = '/admin' }: { isSiteAdmin?: boolean; backHref?: string } = $props();
 
 	interface StorageOption {
 		id: string;

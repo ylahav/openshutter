@@ -175,19 +175,15 @@
 				user: data.user
 			});
 			const redirectPath =
-				data.user?.role === 'admin'
+				data.user?.role === 'admin' || data.user?.role === 'owner'
 					? redirectParam.startsWith('/admin')
 						? redirectParam
 						: '/admin'
-					: data.user?.role === 'owner'
-						? redirectParam.startsWith('/owner')
+					: data.user?.role === 'guest'
+						? redirectParam.startsWith('/member')
 							? redirectParam
-							: '/owner'
-						: data.user?.role === 'guest'
-							? redirectParam.startsWith('/member')
-								? redirectParam
-								: '/member'
-							: '/';
+							: '/member'
+						: '/';
 			if (data.user?.forcePasswordChange) {
 				showForcePasswordModal = true;
 				pendingRedirectPath = redirectPath;

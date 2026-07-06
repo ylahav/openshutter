@@ -30,6 +30,8 @@ export type AdminNavItem = {
 	icon: AdminNavGlyph;
 	/** If true, sidebar may show `pagination.total` as a badge (contact list). */
 	badgeFromContactTotal?: boolean;
+	/** If true, item is hidden from the Editor (owner) role. Must match the ownerAllowed allowlist in hooks.server.ts and admin/+layout.server.ts. */
+	adminOnly?: boolean;
 };
 
 export type AdminNavGroup = {
@@ -52,20 +54,23 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 	{
 		titleKey: 'admin.sidebarGroupSite',
 		items: [
-			{ href: '/admin/site-config', labelKey: 'admin.sidebarNavSite', icon: 'config' },
+			{ href: '/admin/site-config', labelKey: 'admin.sidebarNavSite', icon: 'config', adminOnly: true },
+			{ href: '/admin/site-settings', labelKey: 'owner.siteSettings', icon: 'config' },
 			{ href: '/admin/templates', labelKey: 'admin.sidebarNavTemplates', icon: 'template' },
 			{ href: '/admin/theme-layout', labelKey: 'admin.sidebarNavTemplateLayout', icon: 'layout' },
+			{ href: '/admin/theme', labelKey: 'owner.theme', icon: 'layout' },
 			{ href: '/admin/pages', labelKey: 'admin.sidebarNavPages', icon: 'page' },
-			{ href: '/admin/modules', labelKey: 'admin.sidebarNavModules', icon: 'template' },
-			{ href: '/admin/translations', labelKey: 'admin.sidebarNavTranslations', icon: 'translate' },
+			{ href: '/admin/modules', labelKey: 'admin.sidebarNavModules', icon: 'template', adminOnly: true },
+			{ href: '/admin/translations', labelKey: 'admin.sidebarNavTranslations', icon: 'translate', adminOnly: true },
 		],
 	},
 	{
 		titleKey: 'admin.sidebarGroupSystem',
 		items: [
 			{ href: '/admin/storage', labelKey: 'admin.sidebarNavStorage', icon: 'storage' },
-			{ href: '/admin/users', labelKey: 'admin.sidebarNavUsers', icon: 'user' },
-			{ href: '/admin/groups', labelKey: 'admin.sidebarNavGroups', icon: 'group' },
+			{ href: '/admin/profile', labelKey: 'owner.profileManagement', icon: 'user' },
+			{ href: '/admin/users', labelKey: 'admin.sidebarNavUsers', icon: 'user', adminOnly: true },
+			{ href: '/admin/groups', labelKey: 'admin.sidebarNavGroups', icon: 'group', adminOnly: true },
 			{
 				href: '/admin/contact-submissions',
 				labelKey: 'admin.sidebarNavContact',
@@ -77,11 +82,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 	{
 		titleKey: 'admin.sidebarGroupTools',
 		items: [
-			{ href: '/admin/backup-restore', labelKey: 'admin.sidebarNavBackup', icon: 'backup' },
-			{ href: '/admin/import-sync', labelKey: 'admin.sidebarNavMigration', icon: 'import' },
-			{ href: '/admin/marketplace', labelKey: 'admin.sidebarNavMarketplace', icon: 'market' },
+			{ href: '/admin/backup-restore', labelKey: 'admin.sidebarNavBackup', icon: 'backup', adminOnly: true },
+			{ href: '/admin/import-sync', labelKey: 'admin.sidebarNavMigration', icon: 'import', adminOnly: true },
+			{ href: '/admin/marketplace', labelKey: 'admin.sidebarNavMarketplace', icon: 'market', adminOnly: true },
 			{ href: '/admin/analytics', labelKey: 'admin.sidebarNavAnalytics', icon: 'chart' },
-			{ href: '/admin/audit-logs', labelKey: 'admin.sidebarNavAuditLogs', icon: 'shield' },
+			{ href: '/admin/audit-logs', labelKey: 'admin.sidebarNavAuditLogs', icon: 'shield', adminOnly: true },
 		],
 	},
 ];

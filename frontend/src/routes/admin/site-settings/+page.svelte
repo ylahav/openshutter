@@ -279,7 +279,7 @@ import { t } from '$stores/i18n';
 	<div class="min-h-screen bg-gray-50 py-8">
 		<div class="max-w-4xl mx-auto px-4">
 			<p class="text-gray-600 mb-4">{$t('owner.siteSettingsEditorsOnly')}</p>
-			<a href="/owner" class="text-blue-600 hover:underline">{$t('owner.backToDashboard')}</a>
+			<a href="/admin" class="text-blue-600 hover:underline">{$t('owner.backToDashboard')}</a>
 		</div>
 	</div>
 {:else}
@@ -293,7 +293,7 @@ import { t } from '$stores/i18n';
 					</p>
 				</div>
 				<button
-					onclick={() => goto('/owner')}
+					onclick={() => goto('/admin')}
 					class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 				>
 					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,7 +321,7 @@ import { t } from '$stores/i18n';
 					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'hero' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" onclick={() => activeTab = 'hero'}>{$t('owner.siteSettingsHeroTab')}</button>
 					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'seo' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" onclick={() => activeTab = 'seo'}>{$t('owner.siteSettingsSeoTab')}</button>
 					<button type="button" class="px-3 py-1.5 rounded text-sm font-medium {activeTab === 'contact' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}" onclick={() => activeTab = 'contact'}>{$t('owner.siteSettingsContactTab')}</button>
-					<a href="/owner/theme" class="ml-auto px-3 py-1.5 rounded text-sm font-medium text-gray-600 hover:bg-gray-100">
+					<a href="/admin/theme" class="ml-auto px-3 py-1.5 rounded text-sm font-medium text-gray-600 hover:bg-gray-100">
 						{$t('owner.siteSettingsThemeLink')}
 					</a>
 				</div>

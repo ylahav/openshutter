@@ -228,9 +228,7 @@
 			if (result.success && result.data) {
 				success = $t('admin.albumCreatedSuccessfully');
 				setTimeout(() => {
-					const userRole = data?.user?.role;
-					const dest = userRole === 'admin' ? '/admin/albums' : '/owner/albums';
-					goto(dest);
+					goto('/admin/albums');
 				}, 1500);
 			} else {
 				error = result.error || $t('admin.failedToCreateAlbum');
@@ -243,7 +241,7 @@
 		}
 	}
 
-	const backHref = $derived(data?.user?.role === 'admin' ? '/admin/albums' : '/owner/albums');
+	const backHref = '/admin/albums';
 </script>
 
 <svelte:head>

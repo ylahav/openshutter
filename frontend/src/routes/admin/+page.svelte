@@ -87,7 +87,7 @@
 			</div>
 		</header>
 
-		{#if data.user?.role === 'admin'}
+		{#if data.user?.role === 'admin' || data.user?.role === 'owner'}
 			{#if loadFailed || !dash}
 				<div
 					class="rounded-xl border border-(--color-surface-200-700) bg-[color-mix(in_oklab,var(--color-surface-950)_4%,transparent)] px-4 py-6 text-center dark:bg-[color-mix(in_oklab,var(--color-surface-50)_6%,transparent)]"
