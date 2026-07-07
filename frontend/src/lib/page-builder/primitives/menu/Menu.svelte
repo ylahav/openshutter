@@ -156,6 +156,13 @@
 		`pb-menu ${orientation === 'vertical' ? 'pb-menu--vertical' : 'pb-menu--horizontal'} ${containerClass ?? ''}`.trim()
 	);
 
+	// Mobile hamburger state — only meaningful for horizontal menus below the sm/md breakpoint.
+	// CSS handles hiding/showing the nav; JS just tracks open/closed.
+	let mobileOpen = $state(false);
+	function closeMobile() {
+		mobileOpen = false;
+	}
+
 	// Filter items based on showWhen, conditions and roles
 	const visibleItems = $derived(menuItems.filter(item => {
 		// Show when: by login status
@@ -181,47 +188,79 @@
 </script>
 
 	{#if !$siteConfigLoading && visibleItems.length > 0}
-	<nav class={navClass}>
-		{#each visibleItems as item, index}
-			{#if item.type === 'logout'}
-				<VisitorLogoutButton
-					className={getItemClasses(item)}
-					label={getItemLabel(item)}
-					icon={item.icon}
-				/>
-			{:else if item.type === 'login'}
-				<VisitorSignInLink
-					href={item.href || '/login'}
-					className={getItemClasses(item)}
-					label={getItemLabel(item)}
-					icon={item.icon}
-					external={item.external}
-				/>
+	<div class="pb-menuWrap {orientation === 'vertical' ? 'pb-menuWrap--vertical' : 'pb-menuWrap--horizontal'}">
+		<!-- Hamburger button — CSS gates its visibility to mobile only. -->
+		<button
+			type="button"
+			class="pb-menu__hamburger"
+			aria-expanded={mobileOpen}
+			aria-controls="pb-menu-nav"
+			aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+			onclick={() => (mobileOpen = !mobileOpen)}
+		>
+			{#if mobileOpen}
+				<svg class="pb-menu__hamburgerIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M6 6l12 12M6 18L18 6" />
+				</svg>
 			{:else}
-				<a
-					href={item.href}
-					class={getItemClasses(item)}
-					target={item.external ? '_blank' : undefined}
-					rel={item.external ? 'noopener noreferrer' : undefined}
-				>
-					{#if item.icon}
-						<span class="icon-{item.icon}" aria-hidden="true"></span>
-					{/if}
-					{getItemLabel(item)}
-				</a>
+				<svg class="pb-menu__hamburgerIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M4 6h16M4 12h16M4 18h16" />
+				</svg>
 			{/if}
-			{#if separator && index < visibleItems.length - 1}
-				{#if typeof separator === 'string'}
-					<span class="pb-menu__separator">{separator}</span>
+		</button>
+		<nav id="pb-menu-nav" class="{navClass} {mobileOpen ? 'pb-menu--mobileOpen' : ''}" onclick={closeMobile}>
+			{#each visibleItems as item, index}
+				{#if item.type === 'logout'}
+					<VisitorLogoutButton
+						className={getItemClasses(item)}
+						label={getItemLabel(item)}
+						icon={item.icon}
+					/>
+				{:else if item.type === 'login'}
+					<VisitorSignInLink
+						href={item.href || '/login'}
+						className={getItemClasses(item)}
+						label={getItemLabel(item)}
+						icon={item.icon}
+						external={item.external}
+					/>
 				{:else}
-					<span class="pb-menu__separator">|</span>
+					<a
+						href={item.href}
+						class={getItemClasses(item)}
+						target={item.external ? '_blank' : undefined}
+						rel={item.external ? 'noopener noreferrer' : undefined}
+					>
+						{#if item.icon}
+							<span class="icon-{item.icon}" aria-hidden="true"></span>
+						{/if}
+						{getItemLabel(item)}
+					</a>
 				{/if}
-			{/if}
-		{/each}
-	</nav>
+				{#if separator && index < visibleItems.length - 1}
+					{#if typeof separator === 'string'}
+						<span class="pb-menu__separator">{separator}</span>
+					{:else}
+						<span class="pb-menu__separator">|</span>
+					{/if}
+				{/if}
+			{/each}
+		</nav>
+	</div>
 {/if}
 
 <style lang="scss">
+	.pb-menuWrap {
+		position: relative;
+	}
+	.pb-menuWrap--horizontal {
+		display: inline-flex;
+		align-items: center;
+	}
+	.pb-menuWrap--vertical {
+		display: block;
+	}
+
 	.pb-menu {
 		display: flex;
 		align-items: center;
@@ -251,5 +290,59 @@
 	.pb-menu__separator {
 		color: var(--tp-fg-subtle);
 		user-select: none;
+	}
+
+	/* Hamburger — hidden on desktop; shown on mobile for horizontal menus. */
+	.pb-menu__hamburger {
+		display: none;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem;
+		background: transparent;
+		border: 1px solid var(--tp-border, rgba(0, 0, 0, 0.15));
+		border-radius: 0.375rem;
+		color: var(--tp-fg, inherit);
+		cursor: pointer;
+		transition: background-color 0.15s ease;
+
+		&:hover {
+			background: color-mix(in oklab, var(--tp-fg, currentColor) 8%, transparent);
+		}
+	}
+	.pb-menu__hamburgerIcon {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+
+	@media (max-width: 767px) {
+		.pb-menuWrap--horizontal {
+			.pb-menu__hamburger {
+				display: inline-flex;
+			}
+			.pb-menu {
+				display: none;
+			}
+			.pb-menu--mobileOpen {
+				display: flex;
+				flex-direction: column;
+				align-items: stretch;
+				position: absolute;
+				top: calc(100% + 0.5rem);
+				inset-inline-end: 0;
+				min-width: 12rem;
+				padding: 0.75rem 1rem;
+				background: var(--tp-surface-1, #fff);
+				color: var(--tp-fg, inherit);
+				border: 1px solid var(--tp-border, rgba(0, 0, 0, 0.15));
+				border-radius: 0.5rem;
+				box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+				z-index: 40;
+				gap: 0.5rem;
+
+				.pb-menu__separator {
+					display: none;
+				}
+			}
+		}
 	}
 </style>
