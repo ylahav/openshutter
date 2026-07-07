@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import { getPhotoGridUrl } from '$lib/utils/photoUrl';
+	import AlbumGridImage from '$lib/components/AlbumGridImage.svelte';
 	import { layoutJustifiedRows, photoAspectRatio } from './justify-rows';
 
 	let {
@@ -26,12 +27,12 @@
 
 	function thumbUrl(p: any) {
 		// Videos: use the captured poster when set; otherwise fall through to the
-		// standard photo-url helper (which returns '' for videos and triggers the
+		// small-tier grid URL helper (which returns '' for videos and triggers the
 		// no-image fallback in the cell).
 		if (p?.mediaType === 'video' && typeof p?.poster?.url === 'string' && p.poster.url) {
 			return p.poster.url;
 		}
-		return getPhotoUrl(p ?? {}, { preferThumbnail: true, fallback: '' });
+		return getPhotoGridUrl(p ?? {}, '');
 	}
 
 	function isVideo(p: any): boolean {
@@ -68,9 +69,10 @@
 </script>
 
 <div bind:this={container} class="pb-justifyPhotoGrid" style="--pb-justify-gap:{gapPx}px">
-	{#each rows as row}
+	{#each rows as row, rowIndex}
 		<div class="pb-justifyPhotoGrid__row" style="gap: {gapPx}px; margin-bottom: {gapPx}px">
-			{#each row as cell}
+			{#each row as cell, cellIndex}
+				{@const flatIndex = rows.slice(0, rowIndex).reduce((n, r) => n + r.length, 0) + cellIndex}
 				<button
 					type="button"
 					class="pb-justifyPhotoGrid__cell"
@@ -79,11 +81,12 @@
 					onclick={() => onopen?.({ photo: cell.item.photo })}
 				>
 					{#if thumbUrl(cell.item.photo)}
-						<img
+						<AlbumGridImage
+							index={flatIndex}
 							src={thumbUrl(cell.item.photo)}
 							alt=""
-							class="pb-justifyPhotoGrid__img"
-							draggable="false"
+							className="pb-justifyPhotoGrid__img"
+							draggable={false}
 						/>
 						{#if isVideo(cell.item.photo)}
 							{@const dur = durationLabel(cell.item.photo?.duration)}

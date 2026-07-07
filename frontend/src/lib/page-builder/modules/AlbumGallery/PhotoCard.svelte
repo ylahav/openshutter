@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
-	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import { getPhotoGridUrl } from '$lib/utils/photoUrl';
+	import AlbumGridImage from '$lib/components/AlbumGridImage.svelte';
 
 	let {
 		photo,
@@ -16,6 +17,7 @@
 		showFeaturedBadge = true,
 		presentation = 'full' as 'full' | 'tile' | 'masonry',
 		captionPlacement = 'none' as 'overlay' | 'below' | 'none',
+		gridIndex = 999,
 		onopen
 	}: {
 		photo: any;
@@ -28,6 +30,8 @@
 		showFeaturedBadge?: boolean;
 		presentation?: 'full' | 'tile' | 'masonry';
 		captionPlacement?: 'overlay' | 'below' | 'none';
+		/** Position in the album grid — controls loading (eager/lazy) + fetch priority. Default 999 = lazy. */
+		gridIndex?: number;
 		onopen?: () => void;
 	} = $props();
 
@@ -66,7 +70,7 @@
 					(typeof photo?.previewUrl === 'string' && photo.previewUrl) ||
 					(typeof photo?.url === 'string' && photo.url) ||
 					(typeof photo?.imageUrl === 'string' && photo.imageUrl) ||
-					getPhotoUrl(photo ?? {}, { preferThumbnail: true, fallback: '' }))
+					getPhotoGridUrl(photo ?? {}, ''))
 	);
 
 	function formatDuration(seconds: unknown): string {
@@ -109,7 +113,7 @@
 	>
 		<div class="pb-photoCard__tileFrame {coverAspectClass}">
 			{#if photoUrl}
-				<img src={photoUrl} alt="" class="pb-photoCard__tileImg" />
+				<AlbumGridImage index={gridIndex} src={photoUrl} alt="" className="pb-photoCard__tileImg" />
 				{#if isVideo}
 					<div class="pb-photoCard__videoOverlay" aria-hidden="true">
 						<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24">
@@ -168,7 +172,7 @@
 		aria-label={photoTitle}
 	>
 		{#if photoUrl}
-			<img src={photoUrl} alt="" class="pb-photoCard__masonryImg" />
+			<AlbumGridImage index={gridIndex} src={photoUrl} alt="" className="pb-photoCard__masonryImg" />
 			{#if isVideo}
 				<div class="pb-photoCard__videoOverlay" aria-hidden="true">
 					<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24">
@@ -227,7 +231,12 @@
 				{:else if field === 'cover' && showCover}
 					<div class="pb-photoCard__cover {coverAspectClass}">
 						{#if photoUrl}
-							<img src={photoUrl} alt={photoTitle} class="pb-photoCard__coverImage" />
+							<AlbumGridImage
+							index={gridIndex}
+							src={photoUrl}
+							alt={photoTitle}
+							className="pb-photoCard__coverImage"
+						/>
 							{#if isVideo}
 								<div class="pb-photoCard__videoOverlay" aria-hidden="true">
 									<svg class="pb-photoCard__playIcon" viewBox="0 0 24 24">

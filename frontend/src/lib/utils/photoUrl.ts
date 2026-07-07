@@ -49,6 +49,13 @@ export function getPhotoRotationStyle(photo: { rotation?: number } | null | unde
 export interface PhotoUrlOptions {
 	/** Whether to prefer thumbnail URLs (default: true) */
 	preferThumbnail?: boolean;
+	/**
+	 * Thumbnail tier hint for the picker.
+	 * - `medium` (default) — good for lightbox previews and single-column layouts
+	 * - `small` — smaller file, save bandwidth on mobile album grids
+	 * Falls through to the next available tier when the preferred one is missing.
+	 */
+	thumbnailSize?: 'small' | 'medium';
 	/** Fallback URL if no photo URL is found (default: '/placeholder.jpg') */
 	fallback?: string;
 }
@@ -197,7 +204,20 @@ function isThumbnailPath(path: string): boolean {
 	);
 }
 
-function pickThumbnailFromMap(thumbnails: Record<string, string>): string | undefined {
+function pickThumbnailFromMap(
+	thumbnails: Record<string, string>,
+	size: 'small' | 'medium' = 'medium'
+): string | undefined {
+	if (size === 'small') {
+		return (
+			thumbnails.small ||
+			thumbnails.medium ||
+			thumbnails.large ||
+			thumbnails.hero ||
+			thumbnails.micro ||
+			Object.values(thumbnails).find((u) => u && typeof u === 'string')
+		);
+	}
 	return (
 		thumbnails.medium ||
 		thumbnails.small ||
@@ -224,7 +244,7 @@ function pickThumbnailFromMap(thumbnails: Record<string, string>): string | unde
  * @returns Photo URL string
  */
 export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): string {
-	const { preferThumbnail = true, fallback = '/placeholder.jpg' } = options;
+	const { preferThumbnail = true, thumbnailSize = 'medium', fallback = '/placeholder.jpg' } = options;
 
 	if (!photo.storage) {
 		return photo.url || fallback;
@@ -257,7 +277,7 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 	// Check thumbnails object first (if preferThumbnail is true)
 	if (preferThumbnail && photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
 		const thumbnails = photo.storage.thumbnails as Record<string, string>;
-		const thumbnailUrl = pickThumbnailFromMap(thumbnails);
+		const thumbnailUrl = pickThumbnailFromMap(thumbnails, thumbnailSize);
 		if (thumbnailUrl) {
 			const fullImagePath = getFullImagePath();
 			// Google Drive variant folders are often missing — prefer the main file
@@ -271,13 +291,17 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 	// Check thumbnailPath (if preferThumbnail is true)
 	if (preferThumbnail && photo.storage.thumbnailPath) {
 		const fullImagePath = getFullImagePath();
-		
-		if (provider === 'google-drive' && fullImagePath && isThumbnailPath(photo.storage.thumbnailPath)) {
+		let pathValue = photo.storage.thumbnailPath;
+		// When `small` was requested but the stored path is a medium variant, swap.
+		if (thumbnailSize === 'small' && pathValue.includes('/medium/')) {
+			pathValue = pathValue.replace('/medium/', '/small/');
+		}
+
+		if (provider === 'google-drive' && fullImagePath && isThumbnailPath(pathValue)) {
 			return fullImagePath;
 		}
-		
-		// Otherwise use thumbnailPath
-		return constructStorageUrl(photo.storage.thumbnailPath, provider, storageOwnerId);
+
+		return constructStorageUrl(pathValue, provider, storageOwnerId);
 	}
 
 	// Fallback to url (checking if it's not a thumbnail)
@@ -306,11 +330,13 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 }
 
 /**
- * Best URL for album grids / pickers: thumbnail when available, else full image.
+ * Best URL for album grids / pickers: smallest available thumbnail when present,
+ * else full image. Optimized for bandwidth on mobile album grids where 20-50 tiles
+ * are visible at once.
  */
 export function getPhotoGridUrl(photo: PhotoLike, fallback: string = ''): string {
 	const full = getPhotoFullUrl(photo, '');
-	const thumb = getPhotoUrl(photo, { preferThumbnail: true, fallback: '' });
+	const thumb = getPhotoUrl(photo, { preferThumbnail: true, thumbnailSize: 'small', fallback: '' });
 	// Local storage: variant thumbnails are often missing — prefer the main file.
 	const provider = photo.storage?.provider || 'local';
 	if (provider === 'local' && full) {

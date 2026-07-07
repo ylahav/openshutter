@@ -17,7 +17,8 @@
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
 	import AlbumCollaborationPanel from '$lib/components/AlbumCollaborationPanel.svelte';
-	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
+	import AlbumGridImage from '$lib/components/AlbumGridImage.svelte';
+	import { getPhotoGridUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { logger } from '$lib/utils/logger';
 	import { albumSlugFromRouteParams } from '$lib/utils/album-route-params';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
@@ -367,8 +368,9 @@ const totalPhotoCount = $derived(albumData?.pagination?.total ?? albumData?.albu
 									></div>
 								</div>
 							{/if}
-							<img
-								src={getPhotoUrl(photo)}
+							<AlbumGridImage
+								index={index}
+								src={getPhotoGridUrl(photo)}
 								alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
 								style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 								onload={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
