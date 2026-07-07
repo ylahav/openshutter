@@ -693,7 +693,7 @@
 		>
 			<button
 				onclick={prev}
-				class="absolute start-2 top-1/2 -translate-y-1/2 z-30 p-3 rounded-lg bg-black/30 hover:bg-white/25 text-white transition-all duration-200"
+				class="absolute start-2 top-1/2 -translate-y-1/2 z-[5] p-3 rounded-lg bg-black/30 hover:bg-white/25 text-white transition-all duration-200"
 				aria-label="Previous"
 			>
 				<svg class="w-8 h-8 md:w-10 md:h-10 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
