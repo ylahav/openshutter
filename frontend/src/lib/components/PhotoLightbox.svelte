@@ -676,8 +676,15 @@
 		</div>
 
 		<!-- Content -->
+		<!--
+			Navigation buttons are absolute-positioned on top of the image container so
+			they never get pushed off-screen when the image reaches its max width.
+			Previously they were flex siblings, which meant `button + max-w-[92vw] img + button`
+			overflowed the viewport on wide photos and hid the trailing arrow (right in LTR,
+			left in RTL).
+		-->
 		<div
-			class="flex-1 flex items-center justify-center select-none"
+			class="flex-1 flex items-center justify-center select-none relative"
 			role="region"
 			aria-label="Photo viewer — swipe left or right to change photo"
 			ontouchstart={handleTouchStart}
@@ -686,10 +693,10 @@
 		>
 			<button
 				onclick={prev}
-				class="p-4 mx-2 rounded-lg hover:bg-white/20 transition-all duration-200"
+				class="absolute start-2 top-1/2 -translate-y-1/2 z-30 p-3 rounded-lg bg-black/30 hover:bg-white/25 text-white transition-all duration-200"
 				aria-label="Previous"
 			>
-				<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+				<svg class="w-8 h-8 md:w-10 md:h-10 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
 			</button>
 			<div class="max-h-[85vh] max-w-[92vw] relative flex items-center gap-6">
 				<div class="relative shrink-0">
@@ -1004,10 +1011,10 @@
 			</div>
 			<button
 				onclick={next}
-				class="p-4 mx-2 rounded-lg hover:bg-white/20 transition-all duration-200"
+				class="absolute end-2 top-1/2 -translate-y-1/2 z-30 p-3 rounded-lg bg-black/30 hover:bg-white/25 text-white transition-all duration-200"
 				aria-label="Next"
 			>
-				<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+				<svg class="w-8 h-8 md:w-10 md:h-10 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
 			</button>
 		</div>
 
@@ -1044,5 +1051,10 @@
 	}
 	:global(.photo-lightbox-info-panel) .opacity-80 {
 		opacity: 1 !important;
+	}
+
+	/* Flip navigation-arrow SVGs in RTL so "previous" always points at the previous direction visually. */
+	:global([dir='rtl']) .rtl-flip {
+		transform: scaleX(-1);
 	}
 </style>
