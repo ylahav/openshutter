@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Request } from 'express';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { CreateContactSubmissionDto } from './dto/create-contact-submission.dto';
 import { IContactSubmission } from './contact-submission.schema';
 
@@ -49,6 +49,12 @@ export class ContactSubmissionsController {
     const search = String(searchRaw || '').trim();
 
     const filter: Record<string, any> = {};
+    // Owners only see submissions attributed to their own owner-site.
+    // Admins see everything.
+    const user = (req as any).user as { id?: string; role?: string } | undefined;
+    if (user?.role === 'owner' && user.id) {
+      filter.ownerSiteId = String(user.id);
+    }
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -81,7 +87,7 @@ export class ContactSubmissionsController {
   }
 
   @Get('admin')
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminOrOwnerGuard)
   async listForAdmin(
     @Req() req: Request,
     @Query('page') pageRaw?: string,
@@ -92,7 +98,7 @@ export class ContactSubmissionsController {
   }
 
   @Get()
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminOrOwnerGuard)
   async listForAdminAlias(
     @Req() req: Request,
     @Query('page') pageRaw?: string,
