@@ -698,7 +698,13 @@
 			>
 				<svg class="w-8 h-8 md:w-10 md:h-10 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
 			</button>
-			<div class="max-h-[85vh] max-w-[92vw] relative flex items-center gap-6">
+			<!--
+				Mobile stacks image + info/share panel vertically (photo on top, panel below)
+				so the photo can take the full viewport width. Desktop keeps side-by-side.
+				Also lets the wrapping container itself scroll if content exceeds viewport
+				height (info/share panels can be long).
+			-->
+			<div class="max-h-[85vh] max-w-[92vw] relative flex flex-col md:flex-row items-center gap-4 md:gap-6 overflow-y-auto md:overflow-visible">
 				<div class="relative shrink-0">
 					<!-- Loading indicator when switching photos -->
 					{#if imageLoading}
