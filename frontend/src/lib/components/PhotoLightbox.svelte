@@ -149,7 +149,11 @@
 
 	let touchStart = $state<number | null>(null);
 	let touchEnd = $state<number | null>(null);
-	let timerRef: ReturnType<typeof setInterval> | null = $state(null);
+	// Plain `let`, NOT `$state`. The auto-play effect both reads and writes
+	// timerRef inside its body; making it $state caused the effect to see its
+	// own write, re-run, and clearInterval() the timer it just set — so
+	// `next()` never fired even though `playing` toggled correctly.
+	let timerRef: ReturnType<typeof setInterval> | null = null;
 	let containerRef = $state<HTMLDivElement | undefined>(undefined);
 	let imageRef = $state<HTMLImageElement | undefined>(undefined);
 	let canvasRef = $state<HTMLCanvasElement | undefined>(undefined);
