@@ -182,6 +182,83 @@ export class PhotosController {
     return result.photo;
   }
 
+  /**
+   * Direct-to-storage photo upload — two-step, mirrors /videos/upload-init +
+   * /videos/upload-finalize. Client PUTs the original directly to storage
+   * (S3-compatible providers only), bypassing SvelteKit/nginx/Cloudflare body
+   * limits. Backend downloads the buffer after the PUT to run EXIF and
+   * thumbnail generation. For providers without presign support the response
+   * is `{ supported: false }` and the client falls back to POST /photos/upload.
+   */
+  @Post('upload-init')
+  @HttpCode(HttpStatus.OK)
+  async uploadInit(
+    @Body()
+    body: {
+      albumId?: string
+      originalFilename?: string
+      mimeType?: string
+      size?: number
+      hash?: string
+    },
+    @Req() req: Request,
+  ) {
+    if (!body.originalFilename) throw new BadRequestException('originalFilename is required');
+    if (!body.mimeType) throw new BadRequestException('mimeType is required');
+    if (!body.size || body.size <= 0) throw new BadRequestException('size must be a positive number');
+    if (!body.hash) throw new BadRequestException('hash (client-computed SHA-256) is required');
+
+    const user = (req as any).user as { id?: string } | undefined;
+    return this.photoUploadService.initPresignedUpload({
+      albumId: body.albumId,
+      originalFilename: body.originalFilename,
+      mimeType: body.mimeType,
+      size: body.size,
+      hash: body.hash,
+      uploadedBy: user?.id,
+    });
+  }
+
+  @Post('upload-finalize')
+  @HttpCode(HttpStatus.CREATED)
+  async uploadFinalize(
+    @Body()
+    body: {
+      key?: string
+      albumId?: string
+      originalFilename?: string
+      mimeType?: string
+      size?: number
+      title?: string
+      description?: string
+    },
+    @Req() req: Request,
+  ) {
+    if (!body.key) throw new BadRequestException('key is required');
+    if (!body.originalFilename) throw new BadRequestException('originalFilename is required');
+    if (!body.mimeType) throw new BadRequestException('mimeType is required');
+    if (!body.size || body.size <= 0) throw new BadRequestException('size must be a positive number');
+
+    const user = (req as any).user as { id?: string } | undefined;
+    const result = await this.photoUploadService.finalizePresignedUpload({
+      key: body.key,
+      albumId: body.albumId,
+      originalFilename: body.originalFilename,
+      mimeType: body.mimeType,
+      size: body.size,
+      title: body.title,
+      description: body.description,
+      uploadedBy: user?.id,
+    });
+    if (!result.success) {
+      if (result.skipped) {
+        return { skipped: true, reason: result.reason, message: result.reason };
+      }
+      throw new BadRequestException(result.error || 'Finalize failed');
+    }
+    return result.photo;
+  }
+
   @Post('upload-from-folder')
   @HttpCode(HttpStatus.OK)
   async uploadFromFolder(

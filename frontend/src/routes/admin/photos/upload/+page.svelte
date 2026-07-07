@@ -285,12 +285,175 @@
 		}
 	}
 
+	/** SHA-256 of a File → lowercase hex. Uses Web Crypto (no polyfill needed). */
+	async function sha256Hex(file: File): Promise<string> {
+		const buf = await file.arrayBuffer();
+		const digest = await crypto.subtle.digest('SHA-256', buf);
+		return Array.from(new Uint8Array(digest))
+			.map((b) => b.toString(16).padStart(2, '0'))
+			.join('');
+	}
+
+	function putPhotoToStorage(
+		file: File,
+		uploadUrl: string,
+		requiredHeaders: Record<string, string> | undefined,
+		uploadIndex: number
+	): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const xhr = new XMLHttpRequest();
+			xhr.upload.addEventListener('progress', (e) => {
+				if (e.lengthComputable) {
+					const progress = Math.round((e.loaded / e.total) * 100);
+					uploads = uploads.map((upload, i) =>
+						i === uploadIndex ? { ...upload, progress } : upload
+					);
+				}
+			});
+			xhr.addEventListener('load', () => {
+				if (xhr.status >= 200 && xhr.status < 300) resolve();
+				else reject(new Error(`Storage PUT failed (${xhr.status})`));
+			});
+			xhr.addEventListener('error', () => reject(new Error('Network error during storage PUT')));
+			xhr.addEventListener('abort', () => reject(new Error('Storage PUT aborted')));
+			xhr.open('PUT', uploadUrl);
+			if (requiredHeaders) {
+				for (const [k, v] of Object.entries(requiredHeaders)) {
+					xhr.setRequestHeader(k, v);
+				}
+			}
+			xhr.send(file);
+		});
+	}
+
+	/**
+	 * Try the direct-to-storage flow for a photo. Returns true if it fully handled
+	 * the upload (success, skipped, or captured error). Returns false when the
+	 * storage provider does not support presigned uploads and we should fall
+	 * back to the buffered `/api/photos/upload` path.
+	 *
+	 * `replaceIfExists` currently forces the buffered path since finalize doesn't
+	 * yet handle replacement.
+	 */
+	async function tryDirectPhotoUpload(file: File, uploadIndex: number): Promise<boolean> {
+		if (!albumId) return false;
+		if (replaceIfExists) return false; // buffered path handles replace
+		try {
+			const hash = await sha256Hex(file);
+			const initRes = await fetch('/api/photos/upload-init', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					albumId,
+					originalFilename: file.name,
+					mimeType: file.type || 'image/jpeg',
+					size: file.size,
+					hash
+				})
+			});
+			const initBody = await initRes.json().catch(() => ({}));
+			if (!initRes.ok) {
+				uploads = uploads.map((u, i) =>
+					i === uploadIndex
+						? {
+								...u,
+								status: 'error',
+								error: initBody?.message || initBody?.error || `Init failed (${initRes.status})`,
+								progress: 100
+							}
+						: u
+				);
+				checkAllComplete();
+				return true;
+			}
+			// Provider doesn't support presign → fall back to buffered.
+			if (initBody?.supported === false) return false;
+			// Server-side dedupe → mark skipped, no upload.
+			if (initBody?.skipped === true) {
+				uploads = uploads.map((u, i) =>
+					i === uploadIndex
+						? {
+								...u,
+								status: 'skipped',
+								progress: 100,
+								reason: initBody?.reason || 'Photo already exists'
+							}
+						: u
+				);
+				checkAllComplete();
+				return true;
+			}
+			const { uploadUrl, key, requiredHeaders } = initBody as {
+				uploadUrl?: string;
+				key?: string;
+				requiredHeaders?: Record<string, string>;
+			};
+			if (!uploadUrl || !key) return false;
+
+			await putPhotoToStorage(file, uploadUrl, requiredHeaders, uploadIndex);
+
+			const finalizeRes = await fetch('/api/photos/upload-finalize', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					key,
+					albumId,
+					originalFilename: file.name,
+					mimeType: file.type || 'image/jpeg',
+					size: file.size
+				})
+			});
+			const finalizeBody = await finalizeRes.json().catch(() => ({}));
+			if (!finalizeRes.ok) {
+				uploads = uploads.map((u, i) =>
+					i === uploadIndex
+						? {
+								...u,
+								status: 'error',
+								error:
+									finalizeBody?.message ||
+									finalizeBody?.error ||
+									`Finalize failed (${finalizeRes.status})`,
+								progress: 100
+							}
+						: u
+				);
+				checkAllComplete();
+				return true;
+			}
+			uploads = uploads.map((u, i) =>
+				i === uploadIndex
+					? {
+							...u,
+							status: finalizeBody?.skipped ? 'skipped' : 'success',
+							progress: 100,
+							reason: finalizeBody?.reason,
+							photoId: finalizeBody?._id
+						}
+					: u
+			);
+			checkAllComplete();
+			return true;
+		} catch (err) {
+			logger.warn(`[Direct Photo Upload] failed, falling back to buffered:`, err);
+			return false;
+		}
+	}
+
 	async function uploadFile(file: File, uploadIndex: number) {
 		if (!albumId) return;
 
 		// Videos (MP4): delegate to the video endpoint; the photos endpoint rejects video/*.
 		if (file.type.startsWith('video/')) {
 			await uploadVideoFile(file, uploadIndex);
+			return;
+		}
+
+		// Photos: try direct-to-storage (bypass Cloudflare/nginx/SvelteKit body limits).
+		// Falls back to the buffered path if the provider doesn't support presign.
+		if (await tryDirectPhotoUpload(file, uploadIndex)) {
 			return;
 		}
 

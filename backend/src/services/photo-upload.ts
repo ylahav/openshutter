@@ -137,6 +137,173 @@ export class PhotoUploadService {
     }
   }
 
+  /**
+   * Direct-to-storage upload — INIT step.
+   *
+   * Bypasses SvelteKit / nginx / Cloudflare body limits by minting a presigned
+   * PUT URL the browser writes directly to storage. Only providers that
+   * implement `IStorageService.getPresignedUploadUrl` are eligible (currently
+   * Backblaze; adding S3 / Wasabi is a mechanical port). For unsupported
+   * providers the endpoint returns `{ supported: false }` so the client can
+   * fall back to the buffered `/api/photos/upload` path.
+   *
+   * The client sends a SHA-256 hash it computed before uploading; we use that
+   * for dedupe without needing the buffer. On dupe we short-circuit with
+   * `skipped: true` and the client never uploads.
+   */
+  async initPresignedUpload(options: {
+    albumId?: string
+    originalFilename: string
+    mimeType: string
+    size: number
+    hash: string
+    uploadedBy?: string
+  }): Promise<
+    | { supported: true; uploadUrl: string; key: string; storageProvider: string; expiresAt: Date; requiredHeaders?: Record<string, string> }
+    | { supported: false; reason: string }
+    | { skipped: true; reason: string }
+  > {
+    const db = mongoose.connection.db
+    if (!db) return { supported: false, reason: 'Database connection not established' }
+
+    // Dedupe by hash before we even talk to storage.
+    const existingByHash = await db.collection('photos').findOne({ hash: options.hash })
+    if (existingByHash) {
+      return { skipped: true, reason: 'Photo with same hash already exists' }
+    }
+
+    // Resolve album + storage provider.
+    let album: any = null
+    let storageProvider = 'local'
+    if (options.albumId) {
+      try {
+        album = await db.collection('albums').findOne({ _id: new ObjectId(options.albumId) })
+      } catch {
+        album = null
+      }
+      if (album?.storageProvider) storageProvider = album.storageProvider
+    }
+
+    const storageCtx = await resolveOwnerStorageContext(
+      album?.createdBy ? String(album.createdBy) : undefined,
+    )
+    const storageService = await storageManager.getProvider(
+      storageProvider as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi',
+      storageCtx,
+    )
+
+    if (typeof storageService.getPresignedUploadUrl !== 'function') {
+      return {
+        supported: false,
+        reason: `Storage provider ${storageProvider} does not support direct upload; use the buffered path.`,
+      }
+    }
+
+    const timestamp = Date.now()
+    const safeName = options.originalFilename.replace(/[^\w.\-]+/g, '_')
+    const filename = `${timestamp}-${safeName}`
+    const albumPath = (album?.storagePath as string) || ''
+    const key = albumPath ? `${albumPath}/${filename}` : filename
+
+    const presigned = await storageService.getPresignedUploadUrl(key, options.mimeType, {
+      expiresInSeconds: 3600,
+      contentLength: options.size,
+    })
+
+    return {
+      supported: true,
+      uploadUrl: presigned.url,
+      key,
+      storageProvider,
+      expiresAt: presigned.expiresAt,
+      requiredHeaders: presigned.requiredHeaders,
+    }
+  }
+
+  /**
+   * Direct-to-storage upload — FINALIZE step.
+   *
+   * Client has PUT the original to `key` in storage. We:
+   *   1. Verify the object exists (HEAD).
+   *   2. Download the buffer so we can run EXIF + thumbnail generation on it.
+   *   3. Delegate to `uploadPhoto` with `alreadyInStorage` set — that path
+   *      skips the storage.uploadFile for the original and reuses everything
+   *      else (thumbnails, EXIF, dimensions, doc creation).
+   */
+  async finalizePresignedUpload(options: {
+    key: string
+    albumId?: string
+    originalFilename: string
+    mimeType: string
+    size: number
+    uploadedBy?: string
+    title?: string
+    description?: string
+  }): Promise<PhotoUploadResult> {
+    try {
+      const db = mongoose.connection.db
+      if (!db) throw new Error('Database connection not established')
+
+      // Resolve album + storage service to download from.
+      let album: any = null
+      let storageProvider = 'local'
+      if (options.albumId) {
+        try {
+          album = await db.collection('albums').findOne({ _id: new ObjectId(options.albumId) })
+        } catch {
+          album = null
+        }
+        if (album?.storageProvider) storageProvider = album.storageProvider
+      }
+      const storageCtx = await resolveOwnerStorageContext(
+        album?.createdBy ? String(album.createdBy) : undefined,
+      )
+      const storageService = await storageManager.getProvider(
+        storageProvider as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi',
+        storageCtx,
+      )
+
+      const exists = await storageService.fileExists(options.key)
+      if (!exists) {
+        return { success: false, error: 'Uploaded object not found in storage' }
+      }
+      const info = await storageService.getFileInfo(options.key)
+      if (info.size !== options.size) {
+        this.logger.warn(
+          `finalizePresignedUpload: size mismatch (storage=${info.size}, client=${options.size}) for ${options.key}`,
+        )
+      }
+
+      const buffer = await storageService.getFileBuffer(options.key)
+      if (!buffer) {
+        return { success: false, error: 'Failed to download uploaded object for processing' }
+      }
+
+      // Delegate to the buffered pipeline, but tell it the original is already
+      // in storage so it skips the redundant upload.
+      return this.uploadPhoto(buffer, options.originalFilename, options.mimeType, {
+        albumId: options.albumId,
+        title: options.title,
+        description: options.description,
+        uploadedBy: options.uploadedBy,
+        // Signal to uploadPhoto that the original is already at this key.
+        alreadyInStorage: {
+          path: options.key,
+          fileId: info.fileId,
+          folderId: info.folderId,
+        },
+      } as any)
+    } catch (error) {
+      this.logger.error(
+        `finalizePresignedUpload failed: ${error instanceof Error ? error.message : String(error)}`,
+      )
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Finalize failed',
+      }
+    }
+  }
+
   async uploadPhoto(
     fileBuffer: Buffer,
     originalFilename: string,
@@ -295,7 +462,7 @@ export class PhotoUploadService {
 
       // Generate unique filename
       const timestamp = Date.now()
-      const filename = `${timestamp}-${originalFilename}`
+      let filename = `${timestamp}-${originalFilename}`
       
       // Use album path if it exists (folders should be created when album is created)
       let albumPath = ''
@@ -345,21 +512,55 @@ export class PhotoUploadService {
       }
 
       // Upload ORIGINAL file to storage (not compressed version)
-      // This preserves the full quality and size of the original image
-      this.logger.debug(`PhotoUploadService: Uploading ORIGINAL file ${filename} (${(uploadBuffer.length / 1024 / 1024).toFixed(2)}MB) to path: ${albumPath}`)
-      const uploadResult = await storageService.uploadFile(
-        uploadBuffer,
-        filename,
-        mimeType,
-        albumPath,
-        {
-          originalFilename,
-          albumId: options.albumId,
-          tags: options.tags,
-          description: options.description || ''
+      // This preserves the full quality and size of the original image.
+      // When `alreadyInStorage` is set (direct-to-storage / presigned flow), the client
+      // already PUT the original to storage; skip the redundant re-upload and reuse the
+      // existing key. In that mode we can't pre-bake EXIF orientation (buffer was
+      // consumed by the browser before we got a chance) — thumbnails still bake to
+      // orientation 1 and the serve endpoint bakes on read for non-CDN URLs.
+      const alreadyInStorage = (options as any).alreadyInStorage as
+        | { path: string; fileId?: string; folderId?: string }
+        | undefined
+      let uploadResult: { fileId: string; path: string; folderId?: string; url: string }
+      if (alreadyInStorage) {
+        // Match the shape of storageService.uploadFile() so downstream code doesn't care.
+        uploadResult = {
+          fileId: alreadyInStorage.fileId || alreadyInStorage.path,
+          path: alreadyInStorage.path,
+          folderId: alreadyInStorage.folderId,
+          url: buildPublicUrl({
+            providerId: storageProvider,
+            key: alreadyInStorage.path,
+            publicBaseUrl,
+            hash,
+            ownerUserId: storageCtx?.ownerUserId,
+          }),
         }
-      )
-      this.logger.debug(`PhotoUploadService: Upload result: ${JSON.stringify(uploadResult)}`)
+        // Update `filename` to match the key we're already at, so thumbnails
+        // and DB doc reference the same base name.
+        const keyBasename = alreadyInStorage.path.split('/').pop()
+        if (keyBasename) {
+          filename = keyBasename
+        }
+        this.logger.debug(
+          `PhotoUploadService: skipping original upload, reusing existing key ${alreadyInStorage.path}`,
+        )
+      } else {
+        this.logger.debug(`PhotoUploadService: Uploading ORIGINAL file ${filename} (${(uploadBuffer.length / 1024 / 1024).toFixed(2)}MB) to path: ${albumPath}`)
+        uploadResult = await storageService.uploadFile(
+          uploadBuffer,
+          filename,
+          mimeType,
+          albumPath,
+          {
+            originalFilename,
+            albumId: options.albumId,
+            tags: options.tags,
+            description: options.description || ''
+          }
+        )
+        this.logger.debug(`PhotoUploadService: Upload result: ${JSON.stringify(uploadResult)}`)
+      }
 
       // Generate multiple thumbnails
       const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, filename)
