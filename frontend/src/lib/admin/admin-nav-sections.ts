@@ -32,6 +32,8 @@ export type AdminNavItem = {
 	badgeFromContactTotal?: boolean;
 	/** If true, item is hidden from the Editor (owner) role. Must match the ownerAllowed allowlist in hooks.server.ts and admin/+layout.server.ts. */
 	adminOnly?: boolean;
+	/** If true, item is hidden from admin (per-owner-site page — admin has no owner-site to configure). */
+	ownerOnly?: boolean;
 };
 
 export type AdminNavGroup = {
@@ -55,7 +57,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 		titleKey: 'admin.sidebarGroupSite',
 		items: [
 			{ href: '/admin/site-config', labelKey: 'admin.sidebarNavSite', icon: 'config', adminOnly: true },
-			{ href: '/admin/site-settings', labelKey: 'owner.siteSettings', icon: 'config' },
+			{ href: '/admin/site-settings', labelKey: 'owner.siteSettings', icon: 'config', ownerOnly: true },
 			{ href: '/admin/templates', labelKey: 'admin.sidebarNavTemplates', icon: 'template' },
 			{ href: '/admin/theme-layout', labelKey: 'admin.sidebarNavTemplateLayout', icon: 'layout' },
 			{ href: '/admin/theme', labelKey: 'owner.theme', icon: 'layout' },

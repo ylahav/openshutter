@@ -96,7 +96,11 @@
 	const visibleGroups = $derived(
 		ADMIN_NAV_GROUPS.map((group) => ({
 			...group,
-			items: group.items.filter((item) => currentRole === 'admin' || !item.adminOnly),
+			items: group.items.filter((item) => {
+				if (item.adminOnly && currentRole !== 'admin') return false;
+				if (item.ownerOnly && currentRole !== 'owner') return false;
+				return true;
+			}),
 		})).filter((group) => group.items.length > 0)
 	);
 </script>
