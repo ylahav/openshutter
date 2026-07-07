@@ -85,7 +85,7 @@
 				title="Share on X"
 			>
 				<!-- X logo -->
-				<svg class={iconClasses} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+				<svg class="{iconClasses} share-icon" viewBox="0 0 24 24" fill="#374151" aria-hidden="true">
 					<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" />
 				</svg>
 			</button>
@@ -99,7 +99,7 @@
 				title="Share on Facebook"
 			>
 				<!-- Facebook f -->
-				<svg class={iconClasses} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+				<svg class="{iconClasses} share-icon" viewBox="0 0 24 24" fill="#374151" aria-hidden="true">
 					<path d="M13.5 21v-8h2.5l.5-3.5h-3V7.25c0-1 .25-1.75 1.75-1.75H16.75V2.5c-.35-.05-1.5-.15-2.85-.15C11.05 2.35 9.5 4 9.5 6.75V9.5H7V13h2.5v8h4Z" />
 				</svg>
 			</button>
@@ -116,7 +116,7 @@
 				title="Share on WhatsApp"
 			>
 				<!-- WhatsApp -->
-				<svg class={iconClasses} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+				<svg class="{iconClasses} share-icon" viewBox="0 0 24 24" fill="#374151" aria-hidden="true">
 					<path d="M17.6 6.3A7.9 7.9 0 0 0 12 4a7.9 7.9 0 0 0-6.8 11.9L4 20l4.2-1.1a7.9 7.9 0 0 0 3.8 1h.001a7.9 7.9 0 0 0 6.8-11.9c-.3-.6-.7-1.1-1.2-1.7Zm-5.6 12.3h-.001a6.6 6.6 0 0 1-3.3-.9l-.2-.1-2.4.6.6-2.4-.2-.2A6.6 6.6 0 1 1 12 18.6Zm3.6-4.9c-.2-.1-1.2-.6-1.4-.6s-.3-.1-.4.1c-.1.2-.5.6-.6.7-.1.1-.2.1-.4 0-.2-.1-.9-.3-1.7-1a6.3 6.3 0 0 1-1.2-1.5c-.1-.2 0-.3.1-.4l.3-.4c.1-.1.1-.2.2-.4v-.3l-.6-1.4c-.1-.4-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.2 2 2 0 0 0-.6 1.5c0 .9.6 1.7.7 1.9.1.1 1.3 2 3.1 2.8.4.2.8.3 1.1.4.5.1.9.1 1.2.1.4-.1 1.2-.5 1.4-1s.2-.9.1-1c-.1-.1-.2-.2-.4-.2Z" />
 				</svg>
 			</button>
@@ -131,11 +131,11 @@
 			>
 				<!-- Link chain / checkmark when copied -->
 				{#if copied}
-					<svg class={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<svg class="{iconClasses} share-icon" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<polyline points="20 6 9 17 4 12" />
 					</svg>
 				{:else}
-					<svg class={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<svg class="{iconClasses} share-icon" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
 						<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
 					</svg>
