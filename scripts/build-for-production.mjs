@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 // Build OpenShutter monorepo for production deployment (cross-platform).
-// Replaces build-for-production.ps1 / .sh so the same script runs on Windows,
-// macOS, and Linux without invoking PowerShell (which Norton's behavioral
-// heuristics flag when launched with -ExecutionPolicy Bypass).
+// Produces openshutter-deployment.tar.gz containing dist/, build/, and the
+// build.sh / start.sh installers the server runs after extracting.
 
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';

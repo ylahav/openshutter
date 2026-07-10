@@ -12,7 +12,7 @@ This guide provides step-by-step commands to execute on your deployed server aft
 ### Updating Existing Installation
 1. **Backup** your `.env` files and database
 2. **Stop** services: `pm2 stop all`
-3. **Extract** new package: `unzip -o openshutter-deployment.zip`
+3. **Extract** new package: `tar -xzf openshutter-deployment.tar.gz`
 4. **Install dependencies**: Run `./build.sh` and answer `y` when asked "Is this an update?"
    - The script will install dependencies only (root, backend, and frontend)
    - All existing configuration files (`.env`, `ecosystem.config.js`) will be preserved
@@ -41,7 +41,7 @@ Before deploying, ensure your server has:
 ### Transfer to Server
 ```bash
 # From your local machine
-scp openshutter-deployment.zip user@your-server:/opt/openshutter/
+scp openshutter-deployment.tar.gz user@your-server:/opt/openshutter/
 ```
 
 ### On Server: Extract Package
@@ -57,7 +57,7 @@ sudo chown $USER:$USER /opt/openshutter
 cd /opt/openshutter
 
 # Extract deployment package
-unzip -o openshutter-deployment.zip
+tar -xzf openshutter-deployment.tar.gz
 
 # Navigate into extracted directory
 cd openshutter
@@ -726,7 +726,7 @@ pm2 stop openshutter-frontend
 cd /opt/openshutter
 
 # Extract new deployment package (overwrites existing files)
-unzip -o openshutter-deployment.zip
+tar -xzf openshutter-deployment.tar.gz
 
 # Navigate into extracted directory
 cd openshutter
@@ -849,7 +849,7 @@ cp frontend/.env.production frontend/.env.production.backup
 
 # 2. Extract (deployment package includes pre-built files)
 cd /opt/openshutter
-unzip -o openshutter-deployment.zip
+tar -xzf openshutter-deployment.tar.gz
 cd openshutter
 
 # 3. Install dependencies (deployment package has built files, just need dependencies)
@@ -1024,7 +1024,7 @@ kill -9 <PID>
 ```bash
 # Complete deployment sequence
 cd /opt/openshutter
-unzip -o openshutter-deployment.zip
+tar -xzf openshutter-deployment.tar.gz
 cd openshutter
 # Configure environment files
 cd frontend && cp env.production.example .env.production && nano .env.production && cd ..

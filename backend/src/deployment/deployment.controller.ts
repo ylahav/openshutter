@@ -51,7 +51,6 @@ export class DeploymentController {
 			// Check for deployment packages
 			const deploymentPackages = [];
 			const deploymentFiles = [
-				'openshutter-deployment.zip',
 				'openshutter-deployment.tar.gz',
 				'openshutter-image.tar',
 			];

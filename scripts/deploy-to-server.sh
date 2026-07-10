@@ -29,7 +29,7 @@ echo ""
 # Check if deployment package exists
 if [ ! -f "openshutter-deployment.tar.gz" ]; then
     echo -e "${YELLOW}⚠️  Deployment package not found. Building it now...${NC}"
-    ./scripts/build-for-production.sh
+    node scripts/build-for-production.mjs
 fi
 
 # Check if pnpm is installed on server
