@@ -18,8 +18,8 @@ minimumReleaseAgeExclude:
   # was not honored by pnpm 11.8 here (only `minimumReleaseAgeExclude` is), so
   # the exclude list is the working knob. Re-add new versions when fresh dep
   # releases trip the policy again, or move this to .npmrc / a global config.
-  - '@aws-sdk/client-s3@3.1075.0'
-  - '@aws-sdk/s3-request-presigner@3.1075.0'
+  - '@aws-sdk/client-s3@3.1075.0 || 3.1084.0'
+  - '@aws-sdk/s3-request-presigner@3.1075.0 || 3.1084.0'
   - '@sveltejs/adapter-node@5.5.6'
   - '@sveltejs/kit@2.67.0'
   - '@testing-library/svelte@5.4.2'
@@ -88,3 +88,5 @@ minimumReleaseAgeExclude:
   - '@vitest/spy@4.1.10'
   - '@vitest/utils@4.1.10'
   - vitest@4.1.10
+  - marked@18.0.6
+  - vite@8.1.4
