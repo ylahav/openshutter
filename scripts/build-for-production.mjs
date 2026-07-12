@@ -460,7 +460,15 @@ if (!which('tar')) die('tar not found. Install tar (Windows 10+ ships it as C:\\
 // Archive the contents of DEPLOY_DIR (backend/, frontend/, build.sh, ...) directly
 // at the tarball root — no leading `openshutter/` wrapper. `tar xzf` at the deploy
 // dir (e.g. /var/www/yairl.com) drops files straight into place.
-const tarRes = spawnSync('tar', ['-czf', TAR_PATH, '-C', DEPLOY_DIR, '.'], { stdio: 'inherit', shell: false });
+//
+// Use cwd + relative output filename instead of an absolute path: GNU tar (Git
+// for Windows ships it as tar.exe first on PATH) treats `C:` in a filename as a
+// remote host reference and errors with "Cannot connect to C: resolve failed".
+const tarRes = spawnSync('tar', ['-czf', 'openshutter-deployment.tar.gz', '-C', DEPLOY_DIR, '.'], {
+	stdio: 'inherit',
+	shell: false,
+	cwd: PROJECT_ROOT,
+});
 if (tarRes.status !== 0) die(`tar failed with exit code ${tarRes.status}`);
 if (!fs.existsSync(TAR_PATH)) die('Deployment package was not created');
 
