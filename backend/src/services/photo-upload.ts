@@ -142,10 +142,10 @@ export class PhotoUploadService {
    *
    * Bypasses SvelteKit / nginx / Cloudflare body limits by minting a presigned
    * PUT URL the browser writes directly to storage. Only providers that
-   * implement `IStorageService.getPresignedUploadUrl` are eligible (currently
-   * Backblaze; adding S3 / Wasabi is a mechanical port). For unsupported
-   * providers the endpoint returns `{ supported: false }` so the client can
-   * fall back to the buffered `/api/photos/upload` path.
+   * implement `IStorageService.getPresignedUploadUrl` are eligible (all three
+   * S3-compatible providers: Backblaze, AWS S3, Wasabi). For unsupported
+   * providers (Google Drive, local) the endpoint returns `{ supported: false }`
+   * so the client can fall back to the buffered `/api/photos/upload` path.
    *
    * The client sends a SHA-256 hash it computed before uploading; we use that
    * for dedupe without needing the buffer. On dupe we short-circuit with

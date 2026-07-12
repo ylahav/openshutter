@@ -517,6 +517,35 @@ export class AwsS3Service implements IStorageService {
     return `/api/storage/serve/aws-s3/${encodeURIComponent(folderPath)}`
   }
 
+  /**
+   * Generate a presigned S3 PUT URL for direct browser-to-S3 upload.
+   * The browser must issue `PUT` with `Content-Type: <mimeType>` (nothing else signed).
+   * The bucket needs a CORS rule allowing s3:PutObject from the browser origin.
+   */
+  async getPresignedUploadUrl(
+    key: string,
+    mimeType: string,
+    options?: { expiresInSeconds?: number; contentLength?: number }
+  ): Promise<{ url: string; expiresAt: Date; requiredHeaders?: Record<string, string> }> {
+    this.ensureS3ClientInitialized()
+    const expiresIn = Math.max(60, Math.min(options?.expiresInSeconds ?? 3600, 6 * 3600))
+    // Intentionally do NOT set ContentLength on the signed command — the browser
+    // fills Content-Length automatically, and signing it forces a strict match
+    // that breaks on any retry/redirect. Content-Type is signed and MUST be
+    // sent verbatim by the browser.
+    const command = new PutObjectCommand({
+      Bucket: this.config.bucketName,
+      Key: key,
+      ContentType: mimeType,
+    })
+    const url = await getSignedUrl(this.s3Client, command, { expiresIn })
+    return {
+      url,
+      expiresAt: new Date(Date.now() + expiresIn * 1000),
+      requiredHeaders: { 'Content-Type': mimeType },
+    }
+  }
+
   async getFileBuffer(filePath: string): Promise<Buffer | null> {
     try {
       this.logger.debug(`AwsS3Service: Getting file buffer for path: ${filePath}`)
