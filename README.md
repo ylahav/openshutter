@@ -217,11 +217,10 @@ For separate terminals, env vars, and troubleshooting (“dashboard won’t load
    # Copy to server
    scp openshutter-deployment.tar.gz user@your-server:/opt/openshutter/
    
-   # On server: Extract, install dependencies, and start with PM2
+   # On server: Extract in place, install dependencies, and start with PM2
    ssh user@your-server
    cd /opt/openshutter
    tar -xzf openshutter-deployment.tar.gz
-   cd openshutter
    chmod +x build.sh start.sh
    ./build.sh  # Interactive setup - configures ports, database, and creates ecosystem.config.js
    

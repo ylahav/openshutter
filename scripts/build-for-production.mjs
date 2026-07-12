@@ -457,7 +457,10 @@ writeLF(path.join(DEPLOY_DIR, 'start.sh'), START_SCRIPT);
 step('  Creating archive...');
 const TAR_PATH = path.join(PROJECT_ROOT, 'openshutter-deployment.tar.gz');
 if (!which('tar')) die('tar not found. Install tar (Windows 10+ ships it as C:\\\\Windows\\\\System32\\\\tar.exe).');
-const tarRes = spawnSync('tar', ['-czf', TAR_PATH, '-C', TEMP_DIR, 'openshutter'], { stdio: 'inherit', shell: false });
+// Archive the contents of DEPLOY_DIR (backend/, frontend/, build.sh, ...) directly
+// at the tarball root — no leading `openshutter/` wrapper. `tar xzf` at the deploy
+// dir (e.g. /var/www/yairl.com) drops files straight into place.
+const tarRes = spawnSync('tar', ['-czf', TAR_PATH, '-C', DEPLOY_DIR, '.'], { stdio: 'inherit', shell: false });
 if (tarRes.status !== 0) die(`tar failed with exit code ${tarRes.status}`);
 if (!fs.existsSync(TAR_PATH)) die('Deployment package was not created');
 
@@ -475,11 +478,12 @@ step('Files created:');
 console.log(`  ${c.yellow('openshutter-deployment.tar.gz')} - Complete deployment package (${sizeMB} MB)`);
 console.log('');
 step('Next steps:');
-console.log('  1. Copy openshutter-deployment.tar.gz to your server');
-console.log('  2. Extract: tar -xzf openshutter-deployment.tar.gz');
+console.log('  1. Copy openshutter-deployment.tar.gz to your deploy dir on the server');
+console.log('     (e.g. /var/www/yairl.com)');
+console.log('  2. Extract in place: tar -xzf openshutter-deployment.tar.gz');
 console.log('  3. Configure .env.production with your MongoDB URI (external MongoDB required)');
 console.log('     Example: MONGODB_URI=mongodb://your-mongodb-host:27017/openshutter');
-console.log('  4. Install dependencies: cd openshutter && chmod +x build.sh && ./build.sh');
+console.log('  4. Install dependencies: chmod +x build.sh && ./build.sh');
 console.log('  5. Start application: chmod +x start.sh && ./start.sh');
 console.log('     Or use PM2 (recommended): See docs/SERVER_DEPLOYMENT.md');
 console.log('');

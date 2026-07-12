@@ -90,3 +90,5 @@ minimumReleaseAgeExclude:
   - vitest@4.1.10
   - marked@18.0.6
   - vite@8.1.4
+  - eslint@10.7.0
+  - postcss@8.5.17

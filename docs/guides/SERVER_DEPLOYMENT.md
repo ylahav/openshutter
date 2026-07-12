@@ -56,11 +56,9 @@ sudo chown $USER:$USER /opt/openshutter
 # Navigate to directory
 cd /opt/openshutter
 
-# Extract deployment package
+# Extract deployment package in place
+# (files land directly under the current dir — backend/, frontend/, build.sh, etc.)
 tar -xzf openshutter-deployment.tar.gz
-
-# Navigate into extracted directory
-cd openshutter
 ```
 
 ## Step 2: Configure Environment Variables
@@ -725,14 +723,11 @@ pm2 stop openshutter-frontend
 # Navigate to deployment directory
 cd /opt/openshutter
 
-# Extract new deployment package (overwrites existing files)
+# Extract new deployment package in place (overwrites existing files)
 tar -xzf openshutter-deployment.tar.gz
-
-# Navigate into extracted directory
-cd openshutter
 ```
 
-**Note**: The `-o` flag overwrites existing files. Your `.env` files will be preserved if they exist, but it's safer to backup them first (see Step 1).
+**Note**: `tar -xzf` overwrites existing files by default. Your `.env` files are not in the archive so they are preserved, but back them up before extracting anyway (see Step 1).
 
 ### Step 4: Install Dependencies
 
@@ -847,10 +842,9 @@ pm2 stop all
 cp backend/.env backend/.env.backup
 cp frontend/.env.production frontend/.env.production.backup
 
-# 2. Extract (deployment package includes pre-built files)
+# 2. Extract in place (deployment package includes pre-built files)
 cd /opt/openshutter
 tar -xzf openshutter-deployment.tar.gz
-cd openshutter
 
 # 3. Install dependencies (deployment package has built files, just need dependencies)
 ./build.sh  # Answer 'y' when asked "Is this an update?"
@@ -1025,7 +1019,6 @@ kill -9 <PID>
 # Complete deployment sequence
 cd /opt/openshutter
 tar -xzf openshutter-deployment.tar.gz
-cd openshutter
 # Configure environment files
 cd frontend && cp env.production.example .env.production && nano .env.production && cd ..
 cd backend && cp env.example .env && nano .env && cd ..
