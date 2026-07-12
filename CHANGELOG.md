@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+## [1.4.3] - 2026-07-12
+
+### Added
+- **Presigned direct-to-storage uploads for AWS S3 and Wasabi:** **`AwsS3Service`** and **`WasabiService`** now implement **`IStorageService.getPresignedUploadUrl`** using the same `PutObjectCommand` + `getSignedUrl` pattern that Backblaze uses (Content-Type signed, no `ContentLength` on the signed command). **`photo-upload`** and **`video-upload`** already feature-detect the method, so direct uploads on S3- and Wasabi-backed owners light up automatically — no config or code changes on the upload paths. Google Drive and local storage continue to fall back to the buffered path. Bucket CORS must allow `PUT` from the frontend origin with `Content-Type` in `AllowedHeaders`.
+
+## [1.4.2] - 2026-07-12
+
+### Changed
+- **Deployment tarball is now flat** (no top-level `openshutter/` wrapper). `tar xzf openshutter-deployment.tar.gz` from the live deploy dir (e.g. `/var/www/yairl.com`) now overwrites **`backend/`**, **`frontend/`**, **`build.sh`** in place — previously it created a nested `./openshutter/` subfolder that PM2 wasn't reading from, so updated **`package.json`** files never reached the running processes. README and **`docs/guides/SERVER_DEPLOYMENT.md`** drop the now-obsolete `cd openshutter` step.
+
+### Build
+- **Dep bumps:** `postcss` 8.5.17, `eslint` 10.7.0.
+
 ## [1.4.1] - 2026-07-11
 
 ### Added
