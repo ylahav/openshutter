@@ -240,6 +240,7 @@ export class PeopleController {
    */
   @Get()
   async getPeople(
+    @Request() req: any,
     @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -250,6 +251,7 @@ export class PeopleController {
       const db = mongoose.connection.db;
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('people');
+      const photosCollection = db.collection('photos');
 
       // Build query
       const query: any = {};
@@ -266,6 +268,34 @@ export class PeopleController {
         query.isActive = isActive === 'true';
       }
 
+      // Owner scope: list only people the owner created OR who appear on their photos.
+      const user = req.user;
+      let ownerAlbumIds: Types.ObjectId[] | undefined;
+      if (user?.role === 'owner' && user.id && Types.ObjectId.isValid(user.id)) {
+        const ownerId = new Types.ObjectId(user.id);
+        const albumsCollection = db.collection('albums');
+        const ownerAlbumRows = (await albumsCollection
+          .find({ createdBy: ownerId }, { projection: { _id: 1 } })
+          .toArray()) as { _id: Types.ObjectId }[];
+        ownerAlbumIds = ownerAlbumRows.map((a) => a._id);
+        const usedPeopleIds =
+          ownerAlbumIds.length > 0
+            ? ((await photosCollection.distinct('people', {
+                albumId: { $in: ownerAlbumIds },
+              })) as Types.ObjectId[])
+            : [];
+        const scopeConditions: Record<string, any>[] = [{ createdBy: ownerId }];
+        if (usedPeopleIds.length > 0) {
+          scopeConditions.push({ _id: { $in: usedPeopleIds } });
+        }
+        if (query.$or) {
+          query.$and = [{ $or: query.$or }, { $or: scopeConditions }];
+          delete query.$or;
+        } else {
+          query.$or = scopeConditions;
+        }
+      }
+
       // Pagination
       const pageNum = parseInt(page || '1', 10);
       const limitNum = parseInt(limit || '20', 10);
@@ -277,7 +307,6 @@ export class PeopleController {
       ]);
 
       const tagCollection = db.collection('tags');
-      const photosCollection = db.collection('photos');
 
       const allTagIds = new Set<string>();
       for (const person of people) {
@@ -302,8 +331,10 @@ export class PeopleController {
       }
 
       const personIdBsons = people.map((p: any) => p._id);
+      const initialMatch: Record<string, any> = { people: { $in: personIdBsons } };
+      if (ownerAlbumIds) initialMatch.albumId = { $in: ownerAlbumIds };
       const photoCountPipeline: Record<string, any>[] = [
-        { $match: { people: { $in: personIdBsons } } },
+        { $match: initialMatch },
         this.peopleArrayNormSetStage(),
         { $unwind: { path: '$_peopleNorm' } },
         { $match: { _peopleNorm: { $in: personIdBsons } } },

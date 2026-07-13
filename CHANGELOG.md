@@ -1,5 +1,20 @@
 ## [Unreleased]
 
+## [1.4.4] - 2026-07-13
+
+### Added
+- **Async photo processing pipeline:** Photo uploads via the presigned direct-to-storage flow now insert a lightweight **`processingStatus: 'pending'`** doc and return immediately — EXIF, thumbnails, dimensions, IPTC/XMP all run in a new **`PhotoProcessingWorker`** off the HTTP request path. Fixes 504s on bulk uploads (100+ photos) where per-photo processing kept **`upload-finalize`** requests pending past Cloudflare's ~100s edge timeout. Worker uses MongoDB as its queue (no Redis), atomic `findOneAndUpdate` claim, crash recovery at startup, stuck-reaper at 10min, chains next claim off job completion instead of waiting for the poll tick, default concurrency 4 (tunable via **`PHOTO_PROCESSING_CONCURRENCY`**). Photo schema gains **`processingStatus`**, **`processingError`**, **`processingStartedAt`**; **`dimensions`** and **`storage.thumbnailPath`** relaxed with defaults so pending docs can insert.
+- **Owner-scoped list views:** As an owner, **`/admin/locations`**, **`/admin/tags`**, **`/admin/people`** now show only rows the owner created OR that appear on their photos (via `photos.distinct` against owner albums). Location `usageCount` and per-person photo counts are scoped to the owner's photos too. Admins are unchanged.
+- **Owner-scoped admin dashboard:** **`/admin`** dashboard totals (photos, albums, published/public/featured, tags applied, storage used, recent albums) are scoped to the caller when they're an owner. Site-wide `STORAGE_QUOTA_BYTES` is hidden for owners since it doesn't apply per-tenant. Admins keep the full site-wide view.
+
+### Fixed
+- **Owners blocked by SvelteKit proxies:** Seven `/api/admin/{locations,tags,people}/**/+server.ts` handlers gated on `role === 'admin'` and returned 401 for owners even though the backend controllers accept `AdminOrOwnerGuard`. Widened all seven to allow both roles; backend still enforces ownership on writes.
+- **Locations page crashed at hydration:** Seven stale `saving` refs in **`/admin/locations/+page.svelte`** referenced a variable that had been renamed to `crudSaving` — threw `ReferenceError: saving is not defined` on render, breaking both the list view and the create dialog. Updated to `$crudSaving`.
+- **Bulk uploads no longer stampede:** **`/admin/photos/upload`** page previously fired all N `uploadFile` calls in parallel; added a client-side concurrency cap of 4 in-flight uploads via **`runWithConcurrencyLimit`** (both drag-drop and folder paths).
+
+### UI
+- Admin album detail (**`/admin/albums/[id]`**) shows a **"N photos are being processed…"** banner while any photos are pending/processing, spinner-placeholder tiles for pending/processing photos, red-hazard tiles for failed ones, and polls every 5s until everything is ready. Visitor gallery, gallery-leading photos, album cover fallback, and search all exclude non-ready photos from public responses.
+
 ## [1.4.3] - 2026-07-12
 
 ### Added

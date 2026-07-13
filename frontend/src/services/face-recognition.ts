@@ -131,13 +131,25 @@ export class FaceRecognitionService {
           faceapi.nets.faceRecognitionNet.loadFromUri(`${MODEL_BASE_URL}/face_recognition`)
         ])
 
-        // Optional: SSD Mobilenetv1 can help with profile/side faces (different detector)
+        // Optional: SSD Mobilenetv1 helps with profile/side faces. Probe the manifest first
+        // so a missing model (some deploys don't ship SSD) doesn't feed a 404 HTML body
+        // into face-api's loader — that path has been known to hang instead of rejecting.
         try {
-          await faceapi.nets.ssdMobilenetv1.loadFromUri(`${MODEL_BASE_URL}/ssd_mobilenetv1`)
-          FaceRecognitionService.ssdModelLoaded = true
-          logger.info('Face detection: SSD Mobilenetv1 loaded (profile/side faces)')
-        } catch {
+          const ssdManifestUrl = `${MODEL_BASE_URL}/ssd_mobilenetv1/ssd_mobilenetv1_model-weights_manifest.json`
+          const probe = await fetch(ssdManifestUrl, { method: 'HEAD' })
+          if (probe.ok) {
+            await faceapi.nets.ssdMobilenetv1.loadFromUri(`${MODEL_BASE_URL}/ssd_mobilenetv1`)
+            FaceRecognitionService.ssdModelLoaded = true
+            logger.info('Face detection: SSD Mobilenetv1 loaded (profile/side faces)')
+          } else {
+            FaceRecognitionService.ssdModelLoaded = false
+            logger.info(`Face detection: SSD Mobilenetv1 skipped (manifest ${probe.status})`)
+          }
+        } catch (e) {
           FaceRecognitionService.ssdModelLoaded = false
+          logger.info(
+            `Face detection: SSD Mobilenetv1 skipped: ${e instanceof Error ? e.message : String(e)}`,
+          )
         }
 
         this.modelsLoaded = true

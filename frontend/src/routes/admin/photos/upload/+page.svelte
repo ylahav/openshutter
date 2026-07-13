@@ -23,7 +23,8 @@
 	interface UploadProgress {
 		file: File;
 		progress: number;
-		status: 'uploading' | 'success' | 'error' | 'skipped';
+		// 'processing' = uploaded successfully, backend worker is running EXIF/thumbnails.
+		status: 'uploading' | 'success' | 'error' | 'skipped' | 'processing';
 		error?: string;
 		reason?: string;
 		photoId?: string;
@@ -108,6 +109,23 @@
 		}
 	}
 
+	/** Max simultaneous uploads. Browsers cap at ~6 per origin anyway; 4 leaves headroom for status/nav. */
+	const MAX_CONCURRENT_UPLOADS = 4;
+
+	async function runWithConcurrencyLimit(
+		tasks: Array<() => Promise<void>>,
+		limit: number
+	): Promise<void> {
+		const queue = tasks.slice();
+		const runners = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+			while (queue.length) {
+				const next = queue.shift();
+				if (next) await next();
+			}
+		});
+		await Promise.all(runners);
+	}
+
 	function handleFilesSelected(files: FileList | null) {
 		if (!files || files.length === 0) return;
 		if (!albumId) {
@@ -121,14 +139,16 @@
 			status: 'uploading' as const
 		}));
 
+		const baseIndex = uploads.length;
 		uploads = [...uploads, ...newUploads];
 		isUploading = true;
 		error = null;
 		fileUploadReport = null; // Reset report
 
-		Array.from(files).forEach((file, index) => {
-			uploadFile(file, uploads.length - files.length + index);
-		});
+		// Concurrency-limited queue: without this a 150-file drop fires 150 finalizes in
+		// parallel, which even with async processing hammers Cloudflare's connection cap.
+		const tasks = Array.from(files).map((file, index) => () => uploadFile(file, baseIndex + index));
+		void runWithConcurrencyLimit(tasks, MAX_CONCURRENT_UPLOADS);
 	}
 
 	/** Read intrinsic width/height/duration from an MP4 via a hidden `<video>`. Non-blocking. */
@@ -423,11 +443,18 @@
 				checkAllComplete();
 				return true;
 			}
+			// Pending status means the browser upload succeeded and the backend worker
+			// will finish the heavy work (EXIF, thumbnails, dimensions) asynchronously.
+			const nextStatus: UploadProgress['status'] = finalizeBody?.skipped
+				? 'skipped'
+				: finalizeBody?.processingStatus === 'pending'
+					? 'processing'
+					: 'success';
 			uploads = uploads.map((u, i) =>
 				i === uploadIndex
 					? {
 							...u,
-							status: finalizeBody?.skipped ? 'skipped' : 'success',
+							status: nextStatus,
 							progress: 100,
 							reason: finalizeBody?.reason,
 							photoId: finalizeBody?._id
@@ -884,6 +911,8 @@
 			return upload;
 		});
 		
+		// 'processing' means the browser upload finished; the backend worker is still
+		// doing EXIF/thumbnails, which is fine — we don't wait for it.
 		const allComplete = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
 		const allCompleteReactive = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
 		logger.debug(`[Photo Upload] checkAllComplete: allComplete=${allComplete}, uploads.length=${uploads.length}, allCompleteReactive=${allCompleteReactive}`);
@@ -913,7 +942,9 @@
 			return;
 		}
 
-		const successes = uploads.filter((u) => u.status === 'success');
+		// 'processing' counts as successful from the browser's perspective — the file
+		// landed and the backend worker will finish EXIF/thumbnails asynchronously.
+		const successes = uploads.filter((u) => u.status === 'success' || u.status === 'processing');
 		const skipped = uploads.filter((u) => u.status === 'skipped');
 		const failures = uploads.filter((u) => u.status === 'error');
 
@@ -927,7 +958,7 @@
 			successes: successes.map((u) => ({
 				filename: u.file.name,
 				photoId: u.photoId,
-				message: 'Uploaded successfully'
+				message: u.status === 'processing' ? 'Uploaded; processing…' : 'Uploaded successfully'
 			})),
 			skippedItems: skipped.map((u) => ({
 				filename: u.file.name,
@@ -1025,15 +1056,15 @@
 			status: 'uploading' as const
 		}));
 
+		const baseIndex = uploads.length;
 		uploads = [...uploads, ...newUploads];
 		isUploading = true;
 		error = null;
 		fileUploadReport = null;
 
-		// Upload each file
-		imageFiles.forEach((file, index) => {
-			uploadFile(file, uploads.length - imageFiles.length + index);
-		});
+		// Same concurrency-limited queue as file drop path (see runWithConcurrencyLimit).
+		const tasks = imageFiles.map((file, index) => () => uploadFile(file, baseIndex + index));
+		void runWithConcurrencyLimit(tasks, MAX_CONCURRENT_UPLOADS);
 	}
 
 	function handleFolderUploadComplete() {
@@ -1135,7 +1166,7 @@
 					</svg>
 					<div class="min-w-0 flex-1">
 						<p class="text-sm font-medium text-(--color-surface-950-50)">
-							Upload in progress — {uploads.filter((u) => u.status === 'success' || u.status === 'skipped' || u.status === 'error').length} of {uploads.length} complete
+							Upload in progress — {uploads.filter((u) => u.status === 'success' || u.status === 'skipped' || u.status === 'error' || u.status === 'processing').length} of {uploads.length} complete
 						</p>
 						<p class="text-xs text-(--color-surface-600-400)">Please keep this page open until uploads finish.</p>
 					</div>
@@ -1237,7 +1268,7 @@
 						return webkitPath && webkitPath.includes(selectedFolderName);
 					})}
 					{@const totalFiles = folderUploads.length}
-					{@const completedFiles = folderUploads.filter(u => u.status === 'success' || u.status === 'skipped' || u.status === 'error').length}
+					{@const completedFiles = folderUploads.filter(u => u.status === 'success' || u.status === 'skipped' || u.status === 'error' || u.status === 'processing').length}
 					{@const uploadingFiles = folderUploads.filter(u => u.status === 'uploading').length}
 					{@const overallProgress = totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0}
 					{@const currentFileIndex = completedFiles + 1}
@@ -1435,7 +1466,7 @@
 		<!-- Upload Progress -->
 		{#if uploads.length > 0 && !isUploadingFolder && isUploading}
 			{@const totalFiles = uploads.length}
-			{@const completedFiles = uploads.filter(u => u.status === 'success' || u.status === 'skipped' || u.status === 'error').length}
+			{@const completedFiles = uploads.filter(u => u.status === 'success' || u.status === 'skipped' || u.status === 'error' || u.status === 'processing').length}
 			{@const uploadingFiles = uploads.filter(u => u.status === 'uploading').length}
 			{@const overallProgress = totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0}
 			{@const currentFileIndex = completedFiles + 1}

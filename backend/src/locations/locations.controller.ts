@@ -110,12 +110,15 @@ export class LocationsController {
   private async photoUsageCountByLocationId(
     photosCollection: { aggregate: (p: Record<string, any>[]) => { toArray: () => Promise<any[]> } },
     locationIds: Types.ObjectId[],
+    ownerAlbumIds?: Types.ObjectId[],
   ): Promise<Map<string, number>> {
     const map = new Map<string, number>();
     if (locationIds.length === 0) return map;
     try {
+      const match: Record<string, any> = { location: { $in: locationIds } };
+      if (ownerAlbumIds) match.albumId = { $in: ownerAlbumIds };
       const rows = await photosCollection
-        .aggregate([{ $match: { location: { $in: locationIds } } }, { $group: { _id: '$location', count: { $sum: 1 } } }])
+        .aggregate([{ $match: match }, { $group: { _id: '$location', count: { $sum: 1 } } }])
         .toArray();
       for (const row of rows) {
         if (row._id) map.set(String(row._id), row.count ?? 0);
@@ -150,6 +153,7 @@ export class LocationsController {
    */
   @Get()
   async getLocations(
+    @Request() req: any,
     @Query('search') search?: string,
     @Query('category') category?: string,
     @Query('page') page?: string,
@@ -160,6 +164,7 @@ export class LocationsController {
       const db = mongoose.connection.db;
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('locations');
+      const photosCollection = db.collection('photos');
 
       // Build query
       const query: any = {};
@@ -183,6 +188,36 @@ export class LocationsController {
         query.category = category;
       }
 
+      // Owner scope: list only locations the owner created OR that appear on their photos.
+      // Admins see the full collection.
+      const user = req.user;
+      let ownerAlbumIds: Types.ObjectId[] | undefined;
+      if (user?.role === 'owner' && user.id && Types.ObjectId.isValid(user.id)) {
+        const ownerId = new Types.ObjectId(user.id);
+        const albumsCollection = db.collection('albums');
+        const ownerAlbumRows = (await albumsCollection
+          .find({ createdBy: ownerId }, { projection: { _id: 1 } })
+          .toArray()) as { _id: Types.ObjectId }[];
+        ownerAlbumIds = ownerAlbumRows.map((a) => a._id);
+        const usedLocationIds =
+          ownerAlbumIds.length > 0
+            ? ((await photosCollection.distinct('location', {
+                albumId: { $in: ownerAlbumIds },
+                location: { $ne: null },
+              })) as Types.ObjectId[])
+            : [];
+        const scopeConditions: Record<string, any>[] = [{ createdBy: ownerId }];
+        if (usedLocationIds.length > 0) {
+          scopeConditions.push({ _id: { $in: usedLocationIds } });
+        }
+        if (query.$or) {
+          query.$and = [{ $or: query.$or }, { $or: scopeConditions }];
+          delete query.$or;
+        } else {
+          query.$or = scopeConditions;
+        }
+      }
+
       // Pagination
       const pageNum = parseInt(page || '1', 10);
       const limitNum = parseInt(limit || '50', 10);
@@ -193,9 +228,8 @@ export class LocationsController {
         collection.countDocuments(query),
       ]);
 
-      const photosCollection = db.collection('photos');
       const locIds = locations.map((l: any) => l._id);
-      const usageMap = await this.photoUsageCountByLocationId(photosCollection, locIds);
+      const usageMap = await this.photoUsageCountByLocationId(photosCollection, locIds, ownerAlbumIds);
 
       // Convert ObjectIds to strings; usageCount reflects linked photos (not stale counter field).
       const serializedLocations = locations.map((location: any) => ({

@@ -104,7 +104,10 @@ export class SearchService {
 		limit: number,
 		accessContext?: AlbumAccessContext | null,
 	): Promise<{ photos: any[]; total: number }> {
-		const match: any = { isPublished: true };
+		const match: any = {
+			isPublished: true,
+			processingStatus: { $nin: ['pending', 'processing', 'failed'] },
+		};
 
 		if (filters.albumId) {
 			try {

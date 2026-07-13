@@ -62,6 +62,10 @@ export interface IPhoto extends Document {
    *  Accumulated across successive crops; cleared when the original is restored. Used to back-project
    *  face boxes drawn on a cropped image into original-image coordinates for the restore snapshot. */
   cumulativeCropOffset?: { x: number; y: number }
+  /** Async processing state. Absent = 'ready' (legacy docs pre-async pipeline). */
+  processingStatus?: 'pending' | 'processing' | 'ready' | 'failed'
+  processingError?: string
+  processingStartedAt?: Date
   faceRecognition?: {
     faces: Array<{
       descriptor: number[] // 128D face descriptor vector
@@ -118,8 +122,9 @@ export const PhotoSchema = new Schema<IPhoto>({
     index: true
   },
   dimensions: {
-    width: { type: Number, required: true },
-    height: { type: Number, required: true }
+    // width/height are populated by the processing worker (pending docs default to 0).
+    width: { type: Number, required: true, default: 0 },
+    height: { type: Number, required: true, default: 0 }
   },
   storage: {
     provider: { type: String, required: true },
@@ -128,7 +133,8 @@ export const PhotoSchema = new Schema<IPhoto>({
     bucket: String,
     folderId: String,
     path: { type: String, required: true },
-    thumbnailPath: { type: String, required: true }
+    // thumbnailPath is populated by the processing worker; empty string until then.
+    thumbnailPath: { type: String, required: true, default: '' }
   },
   albumId: {
     type: Schema.Types.ObjectId,
@@ -206,6 +212,13 @@ export const PhotoSchema = new Schema<IPhoto>({
     type: Schema.Types.Mixed,
     default: undefined
   },
+  processingStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'ready', 'failed'],
+    // Absent = ready (so existing docs and the buffered/sync upload path are unaffected).
+  },
+  processingError: String,
+  processingStartedAt: Date,
   faceRecognition: {
     faces: [{
       descriptor: [Number], // 128D face descriptor vector
@@ -243,6 +256,9 @@ PhotoSchema.index({ uploadedAt: -1 })
 // hash index is defined on the field with index: true above
 PhotoSchema.index({ originalFilename: 1, size: 1 }) // For duplicate detection by filename + size
 // filename index is already defined as unique: true in the schema
+
+// Worker polls pending docs, and public queries filter by processingStatus.
+PhotoSchema.index({ processingStatus: 1 })
 
 // Compound indexes for tag-based search optimization (Stage 6)
 PhotoSchema.index({ tags: 1, albumId: 1, isPublished: 1 }) // For tag queries filtered by album

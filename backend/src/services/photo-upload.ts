@@ -230,6 +230,14 @@ export class PhotoUploadService {
    *      skips the storage.uploadFile for the original and reuses everything
    *      else (thumbnails, EXIF, dimensions, doc creation).
    */
+  /**
+   * Finalize a direct-to-storage upload. Verifies the object landed, inserts a
+   * lightweight photo doc with `processingStatus: 'pending'`, and returns
+   * immediately. The `PhotoProcessingWorker` picks up the doc and runs the heavy
+   * pipeline (EXIF, thumbnails, dimensions, IPTC/XMP, tag suggestions, face
+   * detection) off the request path — this is what keeps big bulk uploads from
+   * saturating the backend and tripping Cloudflare's ~100s edge timeout.
+   */
   async finalizePresignedUpload(options: {
     key: string
     albumId?: string
@@ -244,7 +252,6 @@ export class PhotoUploadService {
       const db = mongoose.connection.db
       if (!db) throw new Error('Database connection not established')
 
-      // Resolve album + storage service to download from.
       let album: any = null
       let storageProvider = 'local'
       if (options.albumId) {
@@ -263,6 +270,7 @@ export class PhotoUploadService {
         storageCtx,
       )
 
+      // Verify the browser PUT actually landed.
       const exists = await storageService.fileExists(options.key)
       if (!exists) {
         return { success: false, error: 'Uploaded object not found in storage' }
@@ -274,25 +282,89 @@ export class PhotoUploadService {
         )
       }
 
-      const buffer = await storageService.getFileBuffer(options.key)
-      if (!buffer) {
-        return { success: false, error: 'Failed to download uploaded object for processing' }
+      // Filename is the leaf of the storage key so serve/CDN URLs and thumbnails align.
+      const filename = options.key.split('/').pop() || options.key
+
+      // publicBaseUrl handling matches uploadPhoto() so URLs are consistent whether
+      // the doc came through the sync buffered path or the async pending path.
+      const providerCfg = storageService.getConfig?.() ?? {}
+      const publicBaseUrl =
+        storageProvider === 'backblaze' && typeof providerCfg.publicBaseUrl === 'string'
+          ? providerCfg.publicBaseUrl.trim()
+          : ''
+
+      // Resolve uploader ObjectId (fallback to system user).
+      let uploaderObjectId: Types.ObjectId
+      if (options.uploadedBy) {
+        uploaderObjectId = new ObjectId(options.uploadedBy)
+      } else {
+        try {
+          const systemUser = await db.collection('users').findOne({ username: 'system' })
+          uploaderObjectId = systemUser?._id || new ObjectId('000000000000000000000000')
+        } catch {
+          uploaderObjectId = new ObjectId('000000000000000000000000')
+        }
       }
 
-      // Delegate to the buffered pipeline, but tell it the original is already
-      // in storage so it skips the redundant upload.
-      return this.uploadPhoto(buffer, options.originalFilename, options.mimeType, {
-        albumId: options.albumId,
-        title: options.title,
-        description: options.description,
-        uploadedBy: options.uploadedBy,
-        // Signal to uploadPhoto that the original is already at this key.
-        alreadyInStorage: {
+      const now = new Date()
+      const pendingDoc: Record<string, any> = {
+        title: { en: options.title || options.originalFilename },
+        description: { en: options.description || '' },
+        filename,
+        originalFilename: options.originalFilename,
+        mimeType: options.mimeType,
+        size: options.size,
+        // dimensions filled in by the worker once it reads the buffer.
+        dimensions: { width: 0, height: 0 },
+        storage: {
+          provider: storageProvider,
+          fileId: info.fileId || options.key,
+          url: buildPublicUrl({
+            providerId: storageProvider,
+            key: options.key,
+            publicBaseUrl,
+            // no hash yet (worker computes it); URL cache-bust will be updated then.
+            hash: '',
+            ownerUserId: storageCtx?.ownerUserId,
+          }),
           path: options.key,
-          fileId: info.fileId,
+          // thumbnailPath filled in by the worker.
+          thumbnailPath: '',
           folderId: info.folderId,
+          ...(storageCtx ? { storageOwnerId: storageCtx.ownerUserId } : {}),
         },
-      } as any)
+        albumId: options.albumId ? new ObjectId(options.albumId) : null,
+        tags: [],
+        isPublished: true,
+        isLeading: false,
+        uploadedBy: uploaderObjectId,
+        uploadedAt: now,
+        updatedAt: now,
+        processingStatus: 'pending',
+      }
+
+      const photosCollection = db.collection('photos')
+      const insertResult = await photosCollection.insertOne(pendingDoc)
+      const savedPhoto = { _id: insertResult.insertedId, ...pendingDoc }
+
+      // Increment album photoCount (matches uploadPhoto behavior).
+      if (options.albumId) {
+        try {
+          await db
+            .collection('albums')
+            .updateOne({ _id: new ObjectId(options.albumId) }, { $inc: { photoCount: 1 } })
+        } catch (e) {
+          this.logger.warn(
+            `Failed to update album photo count: ${e instanceof Error ? e.message : String(e)}`,
+          )
+        }
+      }
+
+      this.logger.debug(
+        `finalizePresignedUpload: inserted pending photo ${savedPhoto._id} for key ${options.key}`,
+      )
+
+      return { success: true, photo: savedPhoto }
     } catch (error) {
       this.logger.error(
         `finalizePresignedUpload failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -301,6 +373,163 @@ export class PhotoUploadService {
         success: false,
         error: error instanceof Error ? error.message : 'Finalize failed',
       }
+    }
+  }
+
+  /**
+   * Worker entry point: process a pending photo doc.
+   *
+   * Reads the photo, downloads its buffer from storage, generates thumbnails,
+   * extracts EXIF and IPTC/XMP, computes dimensions, and updates the doc to
+   * `processingStatus: 'ready'`. On failure, sets `'failed'` with the error
+   * message so the worker doesn't loop on a poison record.
+   *
+   * The heavy pipeline mirrors the second half of `uploadPhoto`, but the
+   * original was already uploaded via presigned PUT so we skip that step.
+   */
+  async processPhotoAfterUpload(photoId: string | Types.ObjectId): Promise<void> {
+    const db = mongoose.connection.db
+    if (!db) throw new Error('Database connection not established')
+
+    const photosCollection = db.collection('photos')
+    const _id = typeof photoId === 'string' ? new ObjectId(photoId) : photoId
+    const photo = await photosCollection.findOne({ _id })
+    if (!photo) {
+      throw new Error(`processPhotoAfterUpload: photo ${_id.toString()} not found`)
+    }
+
+    try {
+      const storageProvider = photo.storage?.provider as
+        | 'local'
+        | 'google-drive'
+        | 'aws-s3'
+        | 'backblaze'
+        | 'wasabi'
+      const storageKey = photo.storage?.path
+      if (!storageProvider || !storageKey) {
+        throw new Error('Photo has no storage.provider or storage.path')
+      }
+
+      // Resolve the owner storage context via album.createdBy (same rule uploadPhoto uses).
+      let album: any = null
+      if (photo.albumId) {
+        try {
+          album = await db.collection('albums').findOne({ _id: photo.albumId })
+        } catch {
+          album = null
+        }
+      }
+      const storageCtx = await resolveOwnerStorageContext(
+        album?.createdBy ? String(album.createdBy) : undefined,
+      )
+      const storageService = await storageManager.getProvider(storageProvider, storageCtx)
+
+      const providerCfg = storageService.getConfig?.() ?? {}
+      const publicBaseUrl =
+        storageProvider === 'backblaze' && typeof providerCfg.publicBaseUrl === 'string'
+          ? providerCfg.publicBaseUrl.trim()
+          : ''
+
+      const fileBuffer = await storageService.getFileBuffer(storageKey)
+      if (!fileBuffer) {
+        throw new Error(`Failed to download original from storage: ${storageKey}`)
+      }
+
+      const hash = this.calculateHash(fileBuffer)
+      const filename = photo.filename as string
+
+      // Thumbnails.
+      const albumPath = album?.storagePath || ''
+      const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, filename)
+      const thumbnails: Record<string, string> = {}
+      for (const [sizeName, buffer] of Object.entries(thumbnailBuffers)) {
+        const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any)
+        const thumbnailFilename = `${sizeName}-${filename}`
+        const sizeFolderPath = albumPath ? `${albumPath}/${sizeConfig.folder}` : sizeConfig.folder
+        try {
+          const thumbnailResult = await storageService.uploadFile(
+            buffer,
+            thumbnailFilename,
+            'image/jpeg',
+            sizeFolderPath,
+            { originalFile: filename, thumbnailSize: sizeName },
+          )
+          thumbnails[sizeName] = buildPublicUrl({
+            providerId: storageProvider,
+            key: thumbnailResult.path,
+            publicBaseUrl,
+            hash,
+            ownerUserId: storageCtx?.ownerUserId,
+          })
+        } catch (e) {
+          this.logger.error(
+            `processPhotoAfterUpload: failed to upload ${sizeName} thumbnail for ${filename}: ${e instanceof Error ? e.message : String(e)}`,
+          )
+          // Continue — other thumbnails still generate.
+        }
+      }
+      const blurDataURL = await ThumbnailGenerator.generateBlurPlaceholder(fileBuffer)
+      const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0] || ''
+
+      // EXIF + IPTC/XMP.
+      const { ExifExtractor } = await import('./exif-extractor')
+      const exifData = await ExifExtractor.extractExifData(fileBuffer)
+      const { IptcXmpExtractor } = await import('./iptc-xmp-extractor')
+      const iptcXmpData = await IptcXmpExtractor.extractIptcXmpData(fileBuffer)
+
+      // Dimensions with EXIF orientation compensation (same math as uploadPhoto).
+      const imageInfo = await sharp(fileBuffer).metadata()
+      let width = imageInfo.width || 0
+      let height = imageInfo.height || 0
+      if (imageInfo.orientation === 6 || imageInfo.orientation === 8) {
+        ;[width, height] = [height, width]
+      }
+
+      // Rebuild the public URL with the hash cache-buster now that we have it.
+      const finalUrl = buildPublicUrl({
+        providerId: storageProvider,
+        key: storageKey,
+        publicBaseUrl,
+        hash,
+        ownerUserId: storageCtx?.ownerUserId,
+      })
+
+      await photosCollection.updateOne(
+        { _id },
+        {
+          $set: {
+            hash,
+            dimensions: { width, height },
+            'storage.url': finalUrl,
+            'storage.thumbnailPath': mediumThumbnail,
+            'storage.thumbnails': thumbnails,
+            'storage.blurDataURL': blurDataURL,
+            exif: exifData,
+            iptcXmp: iptcXmpData ?? undefined,
+            processingStatus: 'ready',
+            updatedAt: new Date(),
+          },
+          $unset: { processingError: '', processingStartedAt: '' },
+        },
+      )
+
+      this.logger.debug(
+        `processPhotoAfterUpload: ${_id.toString()} → ready (${width}x${height}, ${Object.keys(thumbnails).length} thumbs)`,
+      )
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      this.logger.error(`processPhotoAfterUpload failed for ${_id.toString()}: ${msg}`)
+      await photosCollection.updateOne(
+        { _id },
+        {
+          $set: {
+            processingStatus: 'failed',
+            processingError: msg,
+            updatedAt: new Date(),
+          },
+        },
+      )
+      throw error
     }
   }
 

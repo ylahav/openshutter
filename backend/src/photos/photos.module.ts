@@ -8,6 +8,7 @@ import { TagSchema } from '../models/Tag';
 import { PersonSchema } from '../models/Person';
 import { LocationSchema } from '../models/Location';
 import { PhotoUploadService } from '../services/photo-upload';
+import { PhotoProcessingWorker } from '../services/photo-processing.worker';
 import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { AnalyticsModule } from '../analytics/analytics.module';
 
@@ -22,7 +23,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
     AnalyticsModule,
   ],
   controllers: [PhotosController, PhotosAdminController],
-  providers: [PhotosService, PhotoUploadService, AdminOrOwnerGuard],
+  providers: [PhotosService, PhotoUploadService, PhotoProcessingWorker, AdminOrOwnerGuard],
   exports: [PhotosService],
 })
 export class PhotosModule {}

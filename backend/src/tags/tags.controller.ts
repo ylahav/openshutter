@@ -16,6 +16,7 @@ export class TagsController {
    */
   @Get()
   async getTags(
+    @Request() req: any,
     @Query('search') search?: string,
     @Query('category') category?: string,
     @Query('page') page?: string,
@@ -46,6 +47,34 @@ export class TagsController {
 
       if (category && category !== 'all') {
         query.category = category;
+      }
+
+      // Owner scope: list only tags the owner created OR that appear on their photos.
+      const user = req.user;
+      if (user?.role === 'owner' && user.id && Types.ObjectId.isValid(user.id)) {
+        const ownerId = new Types.ObjectId(user.id);
+        const albumsCollection = db.collection('albums');
+        const photosCollection = db.collection('photos');
+        const ownerAlbumRows = (await albumsCollection
+          .find({ createdBy: ownerId }, { projection: { _id: 1 } })
+          .toArray()) as { _id: Types.ObjectId }[];
+        const ownerAlbumIds = ownerAlbumRows.map((a) => a._id);
+        const usedTagIds =
+          ownerAlbumIds.length > 0
+            ? ((await photosCollection.distinct('tags', {
+                albumId: { $in: ownerAlbumIds },
+              })) as Types.ObjectId[])
+            : [];
+        const scopeConditions: Record<string, any>[] = [{ createdBy: ownerId }];
+        if (usedTagIds.length > 0) {
+          scopeConditions.push({ _id: { $in: usedTagIds } });
+        }
+        if (query.$or) {
+          query.$and = [{ $or: query.$or }, { $or: scopeConditions }];
+          delete query.$or;
+        } else {
+          query.$or = scopeConditions;
+        }
       }
 
       // Pagination

@@ -259,11 +259,22 @@
 			const input: HTMLImageElement | HTMLCanvasElement = hasRotation
 				? createRotatedCanvas(image, rotation!)
 				: image;
-			let detections = await FaceRecognitionService.detectFaces(input);
+			// Hard timeout on the whole detection promise. face-api / TFJS have been known
+			// to hang silently on certain inputs or partial model loads — without this the
+			// button would sit at "Detecting…" forever with no way to recover.
+			const DETECT_TIMEOUT_MS = 60_000;
+			const withTimeout = <T,>(p: Promise<T>): Promise<T> =>
+				Promise.race([
+					p,
+					new Promise<T>((_, reject) =>
+						setTimeout(() => reject(new Error('Face detection timed out after 60s')), DETECT_TIMEOUT_MS)
+					),
+				]);
+			let detections = await withTimeout(FaceRecognitionService.detectFaces(input));
 			if (detections.length === 0) {
-				const lowThresholdDetections = await FaceRecognitionService.detectFaces(input, {
-					scoreThreshold: 0.1,
-				});
+				const lowThresholdDetections = await withTimeout(
+					FaceRecognitionService.detectFaces(input, { scoreThreshold: 0.1 })
+				);
 				if (lowThresholdDetections.length > 0) {
 					detections = lowThresholdDetections;
 				}

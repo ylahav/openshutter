@@ -27,7 +27,10 @@ export class PhotosService {
    * Always **`isPublished: true`**, newest first.
    */
   async findGalleryLeading(limit = 5, ownerSiteId?: string) {
-    const base: Record<string, unknown> = { isPublished: true };
+    const base: Record<string, unknown> = {
+      isPublished: true,
+      processingStatus: { $nin: ['pending', 'processing', 'failed'] },
+    };
     if (ownerSiteId) {
       const albumIds = await this.albumIdsForOwner(ownerSiteId);
       if (albumIds.length === 0) return [];
@@ -54,7 +57,10 @@ export class PhotosService {
   async findAll(page = 1, limit = 20, ownerSiteId?: string) {
     const skip = (page - 1) * limit;
 
-    const filter: Record<string, unknown> = { isPublished: true };
+    const filter: Record<string, unknown> = {
+      isPublished: true,
+      processingStatus: { $nin: ['pending', 'processing', 'failed'] },
+    };
     if (ownerSiteId) {
       const albumIds = await this.albumIdsForOwner(ownerSiteId);
       if (albumIds.length === 0) {

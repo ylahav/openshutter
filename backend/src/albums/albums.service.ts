@@ -674,10 +674,17 @@ export class AlbumsService {
     const skip = (page - 1) * limit;
     const albumObjectId = new Types.ObjectId(albumId);
 
-    // Album creator (owner) sees all photos including unpublished; others only published
+    // Album creator (owner) sees all photos including unpublished and still-processing ones;
+    // other viewers only see published, fully-processed photos. Legacy docs (missing
+    // processingStatus) count as 'ready' — so preexisting photos aren't hidden.
     const createdByStr = album.createdBy?.toString?.() ?? album.createdBy;
     const isCreator = !!(accessContext?.userId && createdByStr === accessContext.userId);
-    const publishedFilter = isCreator ? {} : { isPublished: true };
+    const publishedFilter: Record<string, any> = isCreator
+      ? {}
+      : {
+          isPublished: true,
+          processingStatus: { $nin: ['pending', 'processing', 'failed'] },
+        };
 
     this.logger.debug(`findPhotosByAlbumId - Querying photos for albumId: ${albumId}, isCreator: ${isCreator}`);
     this.logger.debug(`findPhotosByAlbumId - albumObjectId: ${albumObjectId.toString()}`);

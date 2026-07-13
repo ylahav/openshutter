@@ -1,5 +1,6 @@
-import { Controller, Get, InternalServerErrorException, Logger, UseGuards } from '@nestjs/common';
+import { Controller, Get, InternalServerErrorException, Logger, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
 import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose from 'mongoose';
@@ -44,7 +45,7 @@ export class AdminDashboardController {
 	constructor(private readonly configService: ConfigService) {}
 
 	@Get()
-	async getDashboardSummary() {
+	async getDashboardSummary(@Req() req: Request) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -55,6 +56,24 @@ export class AdminDashboardController {
 
 			const publishedFilter = { $or: [{ isPublished: true }, { isPublished: { $exists: false } }] };
 
+			// Owners see stats scoped to content they created; admins see the whole site.
+			// Photos have no direct owner field — derive via albumId ∈ { albums.createdBy = ownerId }.
+			const user = (req as any).user as { id?: string; role?: string } | undefined;
+			const isOwnerScoped = user?.role === 'owner' && !!user.id && mongoose.Types.ObjectId.isValid(user.id);
+			const ownerAlbumFilter: Record<string, unknown> = isOwnerScoped
+				? { createdBy: new mongoose.Types.ObjectId(user!.id!) }
+				: {};
+			const ownerAlbumIds: mongoose.Types.ObjectId[] = isOwnerScoped
+				? ((await albums
+						.find(ownerAlbumFilter, { projection: { _id: 1 } })
+						.toArray()) as { _id: mongoose.Types.ObjectId }[]).map((a) => a._id)
+				: [];
+			const ownerPhotoFilter: Record<string, unknown> = isOwnerScoped
+				? { albumId: { $in: ownerAlbumIds } }
+				: {};
+			const withOwner = (filter: Record<string, unknown>) =>
+				isOwnerScoped ? { $and: [ownerAlbumFilter, filter] } : filter;
+
 			const [
 				totalPhotos,
 				totalAlbums,
@@ -64,22 +83,30 @@ export class AdminDashboardController {
 				tagAgg,
 				storageAgg,
 			] = await Promise.all([
-				photos.countDocuments({}),
-				albums.countDocuments({}),
-				albums.countDocuments(publishedFilter as Record<string, unknown>),
-				albums.countDocuments({ isPublic: true }),
-				albums.countDocuments({ isFeatured: true }),
-				photos
-					.aggregate<{ total: number }>([
-						{ $project: { n: { $size: { $ifNull: ['$tags', []] } } } },
-						{ $group: { _id: null, total: { $sum: '$n' } } },
-					])
-					.toArray(),
-				photos
-					.aggregate<{ bytes: number }>([
-						{ $group: { _id: null, bytes: { $sum: { $ifNull: ['$size', 0] } } } },
-					])
-					.toArray(),
+				isOwnerScoped && ownerAlbumIds.length === 0
+					? Promise.resolve(0)
+					: photos.countDocuments(ownerPhotoFilter),
+				albums.countDocuments(ownerAlbumFilter),
+				albums.countDocuments(withOwner(publishedFilter as Record<string, unknown>)),
+				albums.countDocuments(withOwner({ isPublic: true })),
+				albums.countDocuments(withOwner({ isFeatured: true })),
+				(isOwnerScoped && ownerAlbumIds.length === 0
+					? Promise.resolve([] as { total: number }[])
+					: photos
+							.aggregate<{ total: number }>([
+								...(isOwnerScoped ? [{ $match: ownerPhotoFilter }] : []),
+								{ $project: { n: { $size: { $ifNull: ['$tags', []] } } } },
+								{ $group: { _id: null, total: { $sum: '$n' } } },
+							])
+							.toArray()),
+				(isOwnerScoped && ownerAlbumIds.length === 0
+					? Promise.resolve([] as { bytes: number }[])
+					: photos
+							.aggregate<{ bytes: number }>([
+								...(isOwnerScoped ? [{ $match: ownerPhotoFilter }] : []),
+								{ $group: { _id: null, bytes: { $sum: { $ifNull: ['$size', 0] } } } },
+							])
+							.toArray()),
 			]);
 
 			const tagsApplied = tagAgg[0]?.total ?? 0;
@@ -87,7 +114,7 @@ export class AdminDashboardController {
 
 			const rawRecent = await albums
 				.find(
-					{},
+					ownerAlbumFilter,
 					{
 						sort: { updatedAt: -1 },
 						limit: 5,
@@ -132,7 +159,7 @@ export class AdminDashboardController {
 				alerts.push({ id: 'no_featured', fixPath: '/admin/albums' });
 			}
 
-			const quotaBytes = resolveStorageQuotaBytes(this.configService);
+			const quotaBytes = isOwnerScoped ? null : resolveStorageQuotaBytes(this.configService);
 
 			return {
 				stats: {

@@ -41,6 +41,7 @@ export class AlbumLeadingPhotoService {
         const coverPhoto = await PhotoModel.findOne({
           _id: album.coverPhotoId,
           isPublished: true,
+          processingStatus: { $nin: ['pending', 'processing', 'failed'] },
         })
         if (coverPhoto) {
           return {
@@ -56,6 +57,7 @@ export class AlbumLeadingPhotoService {
         albumId: albumId,
         isLeading: true,
         isPublished: true,
+        processingStatus: { $nin: ['pending', 'processing', 'failed'] },
       })
       if (leadingPhoto) {
         return {
@@ -69,6 +71,7 @@ export class AlbumLeadingPhotoService {
       const albumPhotos = await PhotoModel.find({
         $or: [{ albumId: album._id }, { albumId: albumId }],
         isPublished: true,
+        processingStatus: { $nin: ['pending', 'processing', 'failed'] },
       })
         .limit(100)
         .lean()

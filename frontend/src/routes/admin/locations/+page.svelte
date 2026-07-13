@@ -1024,7 +1024,7 @@
 					<button
 						type="button"
 						onclick={findOnMap}
-						disabled={geocodeBusy || saving}
+						disabled={geocodeBusy || $crudSaving}
 						class="px-3 py-2 text-sm font-medium rounded-md border border-(--color-primary-600) text-(--color-primary-700) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] disabled:opacity-50"
 					>
 						{geocodeBusy ? $t('admin.locationGeocoding') : $t('admin.locationFindOnMap')}
@@ -1123,7 +1123,7 @@
 					<button
 						type="button"
 						onclick={findOnMap}
-						disabled={geocodeBusy || saving}
+						disabled={geocodeBusy || $crudSaving}
 						class="px-3 py-2 text-sm font-medium rounded-md border border-(--color-primary-600) text-(--color-primary-700) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] disabled:opacity-50"
 					>
 						{geocodeBusy ? $t('admin.locationGeocoding') : $t('admin.locationFindOnMap')}
@@ -1169,7 +1169,7 @@
 						disabled={$crudSaving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							{$t('admin.locationCreatingButton')}
 						{:else}
 							{$t('admin.locationCreateButton')}
@@ -1306,7 +1306,7 @@
 					<button
 						type="button"
 						onclick={findOnMap}
-						disabled={geocodeBusy || saving}
+						disabled={geocodeBusy || $crudSaving}
 						class="px-3 py-2 text-sm font-medium rounded-md border border-(--color-primary-600) text-(--color-primary-700) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] disabled:opacity-50"
 					>
 						{geocodeBusy ? $t('admin.locationGeocoding') : $t('admin.locationFindOnMap')}
@@ -1405,7 +1405,7 @@
 					<button
 						type="button"
 						onclick={findOnMap}
-						disabled={geocodeBusy || saving}
+						disabled={geocodeBusy || $crudSaving}
 						class="px-3 py-2 text-sm font-medium rounded-md border border-(--color-primary-600) text-(--color-primary-700) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] disabled:opacity-50"
 					>
 						{geocodeBusy ? $t('admin.locationGeocoding') : $t('admin.locationFindOnMap')}
@@ -1468,7 +1468,7 @@
 						disabled={$crudSaving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							{$t('admin.locationUpdatingButton')}
 						{:else}
 							{$t('admin.locationUpdateButton')}
@@ -1522,7 +1522,7 @@
 						disabled={$crudSaving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if saving}
+						{#if $crudSaving}
 							{$t('admin.locationDeletingButton')}
 						{:else}
 							{$t('admin.locationDeleteButton')}

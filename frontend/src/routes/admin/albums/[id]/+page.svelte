@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { currentLanguage } from '$stores/language';
@@ -51,6 +51,8 @@
 			thumbnails?: Record<string, string>;
 		};
 		isPublished: boolean;
+		/** Async processing state. Absent = 'ready' on legacy docs. */
+		processingStatus?: 'pending' | 'processing' | 'ready' | 'failed';
 	}
 
 	interface Location {
@@ -716,8 +718,38 @@
 		return `${mb.toFixed(1)} MB`;
 	}
 
+	/** True while any photo is still being processed by the backend worker. */
+	const anyPhotoProcessing = $derived(
+		photos.some((p) => p.processingStatus === 'pending' || p.processingStatus === 'processing')
+	);
+
+	/** Interval handle for the processing-status poll — clears itself when nothing is left to process. */
+	let processingPollTimer: ReturnType<typeof setInterval> | null = null;
+	function startProcessingPollIfNeeded() {
+		if (processingPollTimer) return;
+		processingPollTimer = setInterval(async () => {
+			await loadPhotos();
+			if (!anyPhotoProcessing && processingPollTimer) {
+				clearInterval(processingPollTimer);
+				processingPollTimer = null;
+			}
+		}, 5000);
+	}
+
+	// Kick off the poll when new pending photos appear (e.g. after returning from the upload page).
+	$effect(() => {
+		if (anyPhotoProcessing) startProcessingPollIfNeeded();
+	});
+
 	onMount(async () => {
 		await Promise.all([loadAlbum(), loadPhotos(), loadVideos()]);
+	});
+
+	onDestroy(() => {
+		if (processingPollTimer) {
+			clearInterval(processingPollTimer);
+			processingPollTimer = null;
+		}
 	});
 </script>
 
@@ -835,6 +867,20 @@
 
 			<!-- Photos Grid -->
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+				{#if anyPhotoProcessing}
+					{@const pendingCount = photos.filter((p) => p.processingStatus === 'pending' || p.processingStatus === 'processing').length}
+					<div
+						class="mb-4 flex items-center gap-3 rounded-md border border-[color-mix(in_oklab,var(--color-primary-500)_20%,transparent)] bg-[color-mix(in_oklab,var(--color-primary-500)_10%,transparent)] px-4 py-3"
+						role="status"
+					>
+						<svg class="h-5 w-5 shrink-0 animate-spin text-(--color-primary-600)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+						</svg>
+						<p class="text-sm text-(--color-surface-900-100)">
+							{pendingCount} {pendingCount === 1 ? 'photo is' : 'photos are'} being processed — thumbnails and metadata will appear shortly.
+						</p>
+					</div>
+				{/if}
 				<div class="flex items-center justify-between mb-6">
 					<h2 class="text-2xl font-bold text-(--color-surface-950-50)">
 						{$t('admin.photosHeading')} ({photos.length}{#if album && album.photoCount !== photos.length}<span class="text-sm font-normal text-(--color-surface-600-400)">{' / '}{album.photoCount}{' '}{$t('admin.totalLabel')}</span>{/if})
@@ -1031,6 +1077,8 @@
 							{@const photoUrl = getPhotoGridUrl(photo, '')}
 							{@const photoFallbackUrl = getPhotoFullUrl(photo, '')}
 							{@const isSelected = selectedPhotoIds.has(photo._id)}
+							{@const isProcessing = photo.processingStatus === 'pending' || photo.processingStatus === 'processing'}
+							{@const isFailed = photo.processingStatus === 'failed'}
 							<div class="relative z-0 group">
 								<div class="absolute top-2 left-2 z-10">
 									<input
@@ -1042,7 +1090,21 @@
 									/>
 								</div>
 								<div class="relative aspect-square bg-(--color-surface-200-800) rounded-lg overflow-hidden {isSelected ? 'ring-4 ring-(--color-primary-500)' : ''}">
-									{#if photoUrl}
+									{#if isProcessing}
+										<div class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-(--color-surface-100-900) text-(--color-surface-600-400)">
+											<svg class="h-8 w-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+											</svg>
+											<span class="text-xs font-medium">Processing…</span>
+										</div>
+									{:else if isFailed}
+										<div class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300">
+											<svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.93 19h14.14a2 2 0 001.72-3l-7.07-12a2 2 0 00-3.44 0l-7.07 12a2 2 0 001.72 3z" />
+											</svg>
+											<span class="text-xs font-medium">Processing failed</span>
+										</div>
+									{:else if photoUrl}
 										<img
 											src={photoUrl}
 											alt={getPhotoTitle(photo)}

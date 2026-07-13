@@ -6,8 +6,7 @@ import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
-		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
+		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
@@ -53,8 +52,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
-		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
+		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
