@@ -10,13 +10,13 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 // Lazy load face-api.js to avoid monkeyPatch issues at module load time
-let faceapi: typeof import('face-api.js') | null = null
+let faceapi: typeof import('@vladmandic/face-api') | null = null
 let _isPatched = false
 
 async function getFaceApi() {
   if (!faceapi) {
     // Dynamic import to avoid calling monkeyPatch at module load
-    faceapi = await import('face-api.js')
+    faceapi = await import('@vladmandic/face-api')
     
     // Configure face-api.js to use Node.js canvas
     // Set environment before monkeyPatch

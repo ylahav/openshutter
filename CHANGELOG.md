@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+## [1.4.5] - 2026-07-13
+
+### Changed
+- **Face-api migration: `face-api.js@0.22.2` → `@vladmandic/face-api@1.7.15`** across frontend and backend. The old package (unmaintained since 2020, pinning ancient TFJS) is replaced with the actively-maintained vladmandic fork on TFJS 4.x. Six files updated: dynamic `import('face-api.js')` and static `import * as faceapi from 'face-api.js'` become `'@vladmandic/face-api'` in `frontend/src/services/face-recognition{,-server}.ts`, `frontend/src/lib/services/face-recognition-server.ts`, `backend/src/services/face-recognition{,-server}.ts`. Model weights repackaged: vladmandic ships single `<name>_model.bin` files instead of `-shard1`/`-shard2`; old shard files removed from `frontend/static/models/face-api/{tiny_face_detector,face_landmark_68,face_recognition}/`, replaced with vladmandic's `.bin` + updated manifests, and **`ssd_mobilenetv1`** now ships too (was 404-ing in prod).
+
+### Fixed
+- **Face detection button no longer hangs at "Detecting…":** two contributing causes — (1) the missing SSD manifest caused face-api's loader to feed an HTML 404 body into TFJS on some paths; the pre-migration HEAD-probe fix already handled this, and the migration solves it fully by shipping the SSD model. (2) `<img>` in **`FaceDetectionViewer.svelte`** was missing **`crossorigin="anonymous"`**, so images from the B2/CDN origin loaded as **tainted canvases** — WebGL then refused `texSubImage2D` with a `SecurityError`. The `<img>` now sends a CORS request; requires the CDN Worker to return `Access-Control-Allow-Origin`.
+- **Face detection false-positive flood:** the fallback detection strategy previously dropped confidence to 0.05 across three input sizes and ran SSD at 0.2/maxResults 20 — that combination invented boxes on busy backgrounds (temple carvings, brocade, foliage) whenever the primary pass returned 0. New strategy: (1) primary TinyFaceDetector at 0.3, size 416; (2) if 0 results, retry at 0.3 with size 512 (different input scale, same confidence); (3) if 0, SSD at strict 0.6 confidence / 8 max results; (4) hard cap of 8 total detections, sorted by score. Removed the redundant component-level 0.1 second-pass in **`FaceDetectionViewer.svelte`**.
+- **Owner can now manage faces on their own photos:** **`FaceDetectionController`** (`/admin/face-recognition/*`) was on **`AdminGuard`**, returning 401 for owners even when the SvelteKit proxy accepted them. Widened to **`AdminOrOwnerGuard`** and added a `enforcePhotoOwnership(db, photo, req)` helper on each of `/detect`, `/match`, `/assign`, `/add-manual-face`, `/remove-face`: owners can only touch faces on photos in albums they created (`album.createdBy === user.id`); admins bypass. 403 Forbidden otherwise.
+
+### Added
+- **60-second timeout on client face detection.** `Promise.race` guard in **`FaceDetectionViewer.svelte`** — if TFJS or face-api ever hang silently, the button unlocks with an error toast instead of staying at "Detecting…" indefinitely.
+
 ## [1.4.4] - 2026-07-13
 
 ### Added

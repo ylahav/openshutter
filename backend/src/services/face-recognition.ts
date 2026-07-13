@@ -6,7 +6,7 @@
  */
 
 import { Logger } from '@nestjs/common'
-import * as faceapi from 'face-api.js'
+import * as faceapi from '@vladmandic/face-api'
 
 export interface FaceDetection {
   descriptor: Float32Array | number[] // 128D face descriptor

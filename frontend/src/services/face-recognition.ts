@@ -8,14 +8,14 @@
 import { logger } from '$lib/utils/logger'
 
 // Dynamic import to avoid SSR issues
-let faceapi: typeof import('face-api.js') | null = null;
+let faceapi: typeof import('@vladmandic/face-api') | null = null;
 
 async function getFaceApi() {
 	if (typeof window === 'undefined') {
 		throw new Error('Face detection service can only be used in the browser');
 	}
 	if (!faceapi) {
-		faceapi = await import('face-api.js');
+		faceapi = await import('@vladmandic/face-api');
 	}
 	return faceapi;
 }
@@ -209,47 +209,44 @@ export class FaceRecognitionService {
       .withFaceLandmarks()
       .withFaceDescriptors()
 
-    // If no faces (e.g. profile/side faces), try lower threshold and multiple input sizes
+    // If no faces at the primary threshold, re-run at an ALTERNATIVE INPUT SIZE — not
+    // at a lower confidence. Lowering the threshold below primary just floods busy
+    // backgrounds (temple carvings, brocade, foliage) with false positives; different
+    // input sizes let the network see genuine faces the primary missed without inventing
+    // them from textures.
     if (detections.length === 0) {
-      const lowThreshold = 0.05
-      const sizes = [224, 416, 512]
-      const all: any[] = []
-      for (const size of sizes) {
-        const d = await faceapi
-          .detectAllFaces(input, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: lowThreshold, inputSize: size }))
-          .withFaceLandmarks()
-          .withFaceDescriptors()
-        all.push(...d)
-      }
-      // Dedupe by box overlap (IoU) and keep highest-score per group
-      if (all.length > 0) {
-        const seen: any[] = []
-        for (const d of all) {
-          const box = d.detection.box
-          const score = d.detection.score ?? 1
-          const overlap = seen.findIndex(
-            (s) => boxIou(s.detection.box, box) >= 0.5
-          )
-          if (overlap === -1) {
-            seen.push(d)
-          } else if (score > (seen[overlap].detection?.score ?? 0)) {
-            seen[overlap] = d
-          }
-        }
-        detections = seen
+      const d = await faceapi
+        .detectAllFaces(input, new faceapi.TinyFaceDetectorOptions({ scoreThreshold, inputSize: 512 }))
+        .withFaceLandmarks()
+        .withFaceDescriptors()
+      if (d.length > 0) {
+        detections = d
       }
     }
 
-    // If still no faces and SSD Mobilenetv1 is loaded, try it (can help with profile/side faces)
+    // Last-resort SSD only if TinyFaceDetector at BOTH sizes returned nothing. Kept at
+    // a strict 0.6 confidence and 8 results max — a busy photo with no face still
+    // produces low-confidence SSD boxes across the frame at more permissive settings.
     if (detections.length === 0 && FaceRecognitionService.ssdModelLoaded) {
       try {
         detections = await faceapi
-          .detectAllFaces(input, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.2, maxResults: 20 }))
+          .detectAllFaces(input, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.6, maxResults: 8 }))
           .withFaceLandmarks()
           .withFaceDescriptors()
       } catch {
         // SSD failed; keep empty or previous result
       }
+    }
+
+    // Safety cap: sort by detection score and keep the top N. A busy background can
+    // still push a handful of borderline detections above threshold; capping stops
+    // photos with heavy texture from ever spraying 10+ boxes across the frame.
+    const MAX_DETECTIONS = 8
+    if (detections.length > MAX_DETECTIONS) {
+      detections = detections
+        .slice()
+        .sort((a: any, b: any) => (b.detection?.score ?? 0) - (a.detection?.score ?? 0))
+        .slice(0, MAX_DETECTIONS)
     }
 
     return detections.map((d) => mapDetection(d))

@@ -2,22 +2,47 @@ import {
 	Controller,
 	Post,
 	Body,
+	Req,
 	UseGuards,
 	BadRequestException,
+	ForbiddenException,
 	NotFoundException,
 	Logger,
 	InternalServerErrorException,
 } from '@nestjs/common';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { Request } from 'express';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { FaceDetectionService } from './face-detection.service';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 
 @Controller('admin/face-recognition')
-@UseGuards(AdminGuard)
+@UseGuards(AdminOrOwnerGuard)
 export class FaceDetectionController {
 	private readonly logger = new Logger(FaceDetectionController.name);
 	constructor(private readonly faceDetectionService: FaceDetectionService) {}
+
+	/**
+	 * Owners may only detect/match/assign faces on photos they created (via album ownership).
+	 * Admins bypass the check. Called after the photo has been loaded so we can read
+	 * photo.albumId → albums.createdBy without a second round-trip through Mongoose.
+	 */
+	private async enforcePhotoOwnership(
+		db: mongoose.mongo.Db,
+		photo: any,
+		req: Request,
+	): Promise<void> {
+		const user = (req as any).user as { id?: string; role?: string } | undefined;
+		if (!user || user.role !== 'owner' || !user.id) return; // admins & unknown roles fall through to the guard
+		if (!photo?.albumId) {
+			throw new ForbiddenException('You can only modify faces on photos in albums you created');
+		}
+		const album = await db.collection('albums').findOne({ _id: photo.albumId });
+		const createdBy = album?.createdBy?.toString?.() ?? album?.createdBy;
+		if (createdBy !== user.id) {
+			throw new ForbiddenException('You can only modify faces on photos in albums you created');
+		}
+	}
 
 	/**
 	 * Detect faces in a photo
@@ -26,6 +51,7 @@ export class FaceDetectionController {
 	 */
 	@Post('detect')
 	async detectFaces(
+		@Req() req: Request,
 		@Body() body: { photoId: string; faces: any[]; onlyMatched?: boolean }
 	) {
 		try {
@@ -54,6 +80,7 @@ export class FaceDetectionController {
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
 			}
+			await this.enforcePhotoOwnership(db, photo, req);
 
 			// Preserve existing matches if face count matches
 			const existingFaces = photo.faceRecognition?.faces || [];
@@ -132,7 +159,7 @@ export class FaceDetectionController {
 	 * Path: POST /api/admin/face-recognition/match
 	 */
 	@Post('match')
-	async matchFaces(@Body() body: { photoId: string; threshold?: number }) {
+	async matchFaces(@Req() req: Request, @Body() body: { photoId: string; threshold?: number }) {
 		try {
 			const { photoId, threshold = 0.6 } = body;
 
@@ -155,6 +182,7 @@ export class FaceDetectionController {
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
 			}
+			await this.enforcePhotoOwnership(db, photo, req);
 
 			if (!photo.faceRecognition?.faces || photo.faceRecognition.faces.length === 0) {
 				throw new BadRequestException('No faces detected in this photo');
@@ -237,6 +265,7 @@ export class FaceDetectionController {
 	 */
 	@Post('assign')
 	async assignFace(
+		@Req() req: Request,
 		@Body() body: { photoId: string; faceIndex: number; personId: string | null }
 	) {
 		try {
@@ -265,6 +294,7 @@ export class FaceDetectionController {
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
 			}
+			await this.enforcePhotoOwnership(db, photo, req);
 
 			if (!photo.faceRecognition?.faces || faceIndex >= photo.faceRecognition.faces.length) {
 				throw new BadRequestException('Invalid face index');
@@ -350,6 +380,7 @@ export class FaceDetectionController {
 	 */
 	@Post('add-manual-face')
 	async addManualFace(
+		@Req() req: Request,
 		@Body()
 		body: {
 			photoId: string;
@@ -383,6 +414,7 @@ export class FaceDetectionController {
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
 			}
+			await this.enforcePhotoOwnership(db, photo, req);
 
 			if (matchedPersonId) {
 				try {
@@ -474,6 +506,7 @@ export class FaceDetectionController {
 	 */
 	@Post('remove-face')
 	async removeFace(
+		@Req() req: Request,
 		@Body() body: { photoId: string; faceIndex: number },
 	) {
 		try {
@@ -501,6 +534,7 @@ export class FaceDetectionController {
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
 			}
+			await this.enforcePhotoOwnership(db, photo, req);
 
 			const existingFaces = (photo.faceRecognition?.faces || []) as any[];
 			if (faceIndex >= existingFaces.length) {
