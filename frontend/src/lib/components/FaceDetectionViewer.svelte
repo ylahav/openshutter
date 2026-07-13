@@ -270,15 +270,9 @@
 						setTimeout(() => reject(new Error('Face detection timed out after 60s')), DETECT_TIMEOUT_MS)
 					),
 				]);
-			let detections = await withTimeout(FaceRecognitionService.detectFaces(input));
-			if (detections.length === 0) {
-				const lowThresholdDetections = await withTimeout(
-					FaceRecognitionService.detectFaces(input, { scoreThreshold: 0.1 })
-				);
-				if (lowThresholdDetections.length > 0) {
-					detections = lowThresholdDetections;
-				}
-			}
+			// detectFaces already runs its own tiered fallback (0.3 primary → 0.2 multi-size
+			// → SSD at 0.5); a second component-level call at 0.1 just added false positives.
+			const detections = await withTimeout(FaceRecognitionService.detectFaces(input));
 
 			if (detections.length === 0) {
 				onError?.('No faces detected in this image');
@@ -523,6 +517,7 @@
 				bind:this={image}
 				src={imageUrl}
 				alt="Face detection source"
+				crossorigin="anonymous"
 				class="max-w-full h-auto block"
 				style="max-height: 80vh; {getPhotoRotationStyle({ rotation })}"
 				on:load={handleImageLoad}
