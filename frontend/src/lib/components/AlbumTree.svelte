@@ -18,6 +18,7 @@
 		level: number;
 		order: number;
 		photoCount?: number;
+		videoCount?: number;
 		isPublic?: boolean;
 		isPublished?: boolean;
 		isFeatured?: boolean;

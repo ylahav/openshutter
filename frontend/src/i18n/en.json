@@ -1087,6 +1087,8 @@
     "backToAlbums": "Back to Albums",
     "photoSingular": "photo",
     "photosPlural": "photos",
+    "videoSingular": "video",
+    "videosPlural": "videos",
     "public": "Public",
     "private": "Private",
     "featured": "Featured",

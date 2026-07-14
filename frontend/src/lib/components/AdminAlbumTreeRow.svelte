@@ -12,6 +12,7 @@
 		level: number;
 		order: number;
 		photoCount?: number;
+		videoCount?: number;
 		isPublic?: boolean;
 		isPublished?: boolean;
 		isFeatured?: boolean;
@@ -150,6 +151,13 @@
 					<div class="text-sm text-gray-500">
 						{(node.photoCount || 0).toLocaleString()}
 						{(node.photoCount || 0) === 1 ? $t('admin.photoSingular') : $t('admin.photosPlural')}
+						{#if (node.videoCount ?? 0) > 0}
+							<span>
+								{' · '}
+								{(node.videoCount ?? 0).toLocaleString()}
+								{(node.videoCount ?? 0) === 1 ? $t('admin.videoSingular') : $t('admin.videosPlural')}
+							</span>
+						{/if}
 						{#if (node.childAlbumCount ?? 0) > 0}
 							<span>
 								{' · '}

@@ -32,6 +32,7 @@
 		isPublished: boolean;
 		isFeatured: boolean;
 		photoCount: number;
+		videoCount?: number;
 		level: number;
 		order: number;
 		parentAlbumId?: string;
@@ -777,6 +778,7 @@
 						level: a.level,
 						order: a.order,
 						photoCount: a.photoCount,
+						videoCount: a.videoCount ?? 0,
 						childAlbumCount: a.childAlbumCount ?? 0,
 						updatedAt: a.updatedAt,
 						isPublic: a.isPublic !== undefined ? a.isPublic : false,

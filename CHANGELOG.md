@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### UI
+- **Album management shows video counts.** The albums management tree (`/admin/albums`) rendered `X photos · Y sub-albums` per row, silently hiding the video collection that landed in 1.4.1. Row now reads `X photos · Y videos · Z sub-albums` when the album contains at least one video; photo-only albums stay unchanged. Backend already tracked `album.videoCount` on upload/delete, so numbers reflect current state immediately. Uses new `admin.videoSingular` / `admin.videosPlural` i18n keys in `en.json` and `he.json`.
+
 ## [1.4.5] - 2026-07-13
 
 ### Changed
