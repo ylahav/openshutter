@@ -1,7 +1,12 @@
 ## [Unreleased]
 
+## [1.4.6] - 2026-07-14
+
 ### UI
 - **Album management shows video counts.** The albums management tree (`/admin/albums`) rendered `X photos · Y sub-albums` per row, silently hiding the video collection that landed in 1.4.1. Row now reads `X photos · Y videos · Z sub-albums` when the album contains at least one video; photo-only albums stay unchanged. Backend already tracked `album.videoCount` on upload/delete, so numbers reflect current state immediately. Uses new `admin.videoSingular` / `admin.videosPlural` i18n keys in `en.json` and `he.json`.
+
+### Build
+- **Dep bumps:** `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` 3.1085.0 → 3.1086.0, `@tiptap/*` 3.27.3 → 3.27.4 (core + color + link + text-align + text-style + underline + starter-kit), `@sveltejs/kit` 2.69.2 → 2.69.3, `svelte-dnd-action` 0.9.70 → 0.9.74, `@typescript-eslint/*` 8.63.0 → 8.64.0 (eslint-plugin, parser). `pnpm-workspace.yaml` `minimumReleaseAgeExclude` extended to cover the new versions transitively.
 
 ## [1.4.5] - 2026-07-13
 
