@@ -155,6 +155,18 @@ export class GoogleDriveService implements IStorageService {
   }
 
   /**
+   * Public auth probe. Resolves when credentials are usable; throws with the real
+   * reason (expired refresh token, `deleted_client`, revoked consent) when not.
+   *
+   * `getFileBuffer` returns null for *both* "file missing" and "auth failed", and
+   * too many callers depend on that null-means-skip behaviour to change it safely.
+   * The serve path uses this to tell the two apart before reporting 404.
+   */
+  async checkAuth(): Promise<void> {
+    await this.ensureAuth()
+  }
+
+  /**
    * Ensure valid auth: refresh OAuth token if needed; no-op for service account.
    */
   private async ensureAuth(): Promise<void> {

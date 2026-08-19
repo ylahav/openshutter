@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Req, Res, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, Res, NotFoundException, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { StorageManager } from '../services/storage/manager';
 import type { StorageOwnerContext } from '../services/storage/types';
@@ -140,6 +140,21 @@ export class StorageController {
             const fileBuffer = await (storageService as any).getFileBuffer(decodedPath);
             
             if (!fileBuffer) {
+              // A null buffer means either the file is genuinely missing or the
+              // Drive credentials are dead (expired refresh token, deleted_client).
+              // Reporting both as 404 makes revoked credentials look like data loss,
+              // so probe auth before deciding which it is.
+              if (typeof (storageService as any).checkAuth === 'function') {
+                try {
+                  await (storageService as any).checkAuth();
+                } catch (authError) {
+                  const reason = authError instanceof Error ? authError.message : String(authError);
+                  this.logger.error(`GoogleDrive: auth check failed while serving ${decodedPath}: ${reason}`);
+                  throw new ServiceUnavailableException(
+                    `Google Drive storage is not authenticated (${reason}). Re-authorize Google Drive in admin storage settings.`,
+                  );
+                }
+              }
               this.logger.error(`GoogleDrive: File buffer is null for path: ${decodedPath}`);
               throw new NotFoundException(`File not found: ${decodedPath}`);
             }
@@ -192,7 +207,18 @@ export class StorageController {
           const errorCode = (error as any)?.code;
           const errorDetails = (error as any)?.details || {};
           
+          // `deleted_client` / `invalid_client` mean the OAuth *client* itself is gone
+          // from Google Cloud, not that the token expired. Re-authorizing against the
+          // same client id cannot succeed — a new client has to be created — so say so
+          // rather than sending the operator round the token-refresh loop.
+          const clientDeleted =
+            errorCode === 'deleted_client' ||
+            errorMessage.includes('deleted_client') ||
+            errorMessage.includes('invalid_client') ||
+            errorDetails.googleApiError?.error === 'deleted_client';
+
           if (
+            clientDeleted ||
             errorCode === 'invalid_grant' ||
             errorMessage.includes('invalid_grant') ||
             errorMessage.includes('invalid or expired') ||
@@ -203,17 +229,23 @@ export class StorageController {
             // Return 401 with specific error code to trigger token renewal notification
             res.status(401).json({
               error: 'GOOGLE_DRIVE_TOKEN_INVALID',
-              message: 'Google Drive authentication token is invalid or expired',
+              message: clientDeleted
+                ? 'Google Drive OAuth client no longer exists (deleted_client). Create a new OAuth client in Google Cloud Console and reconnect Google Drive in admin storage settings.'
+                : 'Google Drive authentication token is invalid or expired',
               requiresRenewal: true,
               provider: 'google-drive'
             });
             return;
           }
-          
-          if (error instanceof NotFoundException) {
+
+          if (error instanceof NotFoundException || error instanceof ServiceUnavailableException) {
             throw error;
           }
-          throw new NotFoundException(`File not found: ${decodedPath}`);
+          // Anything else is an infrastructure failure, not a missing file. Reporting it
+          // as 404 made revoked credentials and provider outages look like data loss.
+          throw new ServiceUnavailableException(
+            `Failed to serve file from Google Drive: ${errorMessage}`,
+          );
         }
       } else if (['wasabi', 'aws-s3', 'backblaze'].includes(provider)) {
         // For S3-compatible providers: use getProviderForServe so existing files can be
