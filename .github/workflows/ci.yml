@@ -42,7 +42,7 @@ jobs:
         run: pnpm type-check
 
       - name: Unit tests (frontend)
-        run: pnpm --filter openshutter vitest run
+        run: pnpm --filter openshutter test
 
       - name: Production build (NestJS + SvelteKit)
         env:
