@@ -550,6 +550,11 @@
 			// Reload menu items from saved config
 			menuItems = data.template?.headerConfig?.menu || [];
 			menuInstancesEdit = { ...(data.template?.menuInstances || {}) };
+			// Re-baseline against what the server actually stored. Without this the page
+			// stays permanently dirty after a save, which lights the "unsaved changes"
+			// banner and makes the beforeunload guard block the reload below with a
+			// browser "Reload site?" prompt.
+			captureBaseline();
 			adminToast.success({
 				title: get(t)('admin.configurationSaved'),
 				description: get(t)('admin.configurationSavedMessage'),
