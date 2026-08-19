@@ -33,7 +33,7 @@ See also: **[`ADMIN_UI_ROADMAP.md`](../archive/development/ADMIN_UI_ROADMAP.md)*
 
 ## 5. Owner subset (`ownerCanAccess`)
 
-Owners do **not** land on **`/admin`** today. With an **owner** account, verify allowed routes only (see `frontend/src/routes/admin/+layout.server.ts`):
+Owners do **not** land on **`/admin`** today. With an **owner** account, verify allowed routes only (see `ownerCanAccessAdminPath` in `frontend/src/lib/server/admin-access.ts`):
 
 - [ ] **Albums / photos / storage** (as applicable) — no 403 on allowed paths; no cross-owner data in lists you can see.
 

@@ -15,7 +15,7 @@ This document explains the centralized type system designed to eliminate interfa
 ## Where types live
 
 - **Backend**: `backend/src/types/index.ts` (and `backend/src/types/README.md` pointed here; doc now in this file (`development/TYPE_SYSTEM.md`)). Mongoose schemas and database models live only under `backend/src/` (for example `backend/src/models/`).
-- **Frontend**: `frontend/src/lib/types/index.ts` and `frontend/src/types/index.ts` (README pointers aim at this doc). The SvelteKit app does **not** define Mongoose models; it uses TypeScript types and calls the REST API. Legacy Mongo-shaped helpers (for example `legacy-mongo-audit.ts`) are for narrow typing only, not live DB connections—see `frontend/src/lib/mongodb.ts`.
+- **Frontend**: `frontend/src/lib/types/index.ts` and `frontend/src/types/index.ts` (README pointers aim at this doc). The SvelteKit app does **not** define Mongoose models; it uses TypeScript types and calls the REST API. The legacy Mongo-shaped typing helpers (`legacy-mongo-audit.ts`, `legacy-mongo-storage-config.ts`) and the `mongodb.ts` stub they leaned on have been deleted — nothing in the frontend describes a DB connection any more.
 
 ## Best practices
 

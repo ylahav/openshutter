@@ -290,7 +290,7 @@ For detailed deployment instructions, see [docs/guides/SERVER_DEPLOYMENT.md](doc
 
 **Status**: The frontend is built on SvelteKit. All core user/admin flows run through Svelte routes under `frontend/src/routes`.
 
-**Database from the frontend**: The SvelteKit app does not connect to MongoDB. Use the NestJS backend API; `frontend/src/lib/mongodb.ts` is a stub that errors if legacy code calls it.
+**Database from the frontend**: The SvelteKit app does not connect to MongoDB — use the NestJS backend API. There is no longer a `mongodb.ts` shim: the stub and the last legacy services importing it were deleted, so a direct DB import from the frontend now fails to resolve rather than throwing at runtime.
 
 ## 🔧 Configuration
 

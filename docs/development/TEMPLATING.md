@@ -840,15 +840,15 @@ Keep in sync when adding a pack id:
 - `backend/src/services/site-config.ts` — `BUILTIN_TEMPLATE_IDS`
 - Theme DTOs: `create-theme.dto.ts` / `update-theme.dto.ts` — `@IsIn` for `baseTemplate`
 - `backend/src/templates/templates.controller.ts`
-- **Frontend:** `frontend/src/services/template.ts` — **`TemplateService`** supplies **static template metadata** (`getTemplateConfig`, overrides helpers) for admin/theme code paths. **`getTemplatePage` / `getTemplateComponent`** are **deprecated** (legacy React/webpack assumptions); **visitor Svelte pages** load only via **`getTemplatePack()`** in `registry.ts`.
+- **Frontend:** visitor Svelte pages load only via **`getTemplatePack()`** in `registry.ts`. (The legacy `frontend/src/services/template.ts` — `TemplateService`, `getTemplatePage`, `getTemplateComponent` — was removed along with the rest of the pre-NestJS `src/services/` tree; it carried React/webpack assumptions and had no callers.)
 
 ### 5. Themes / site config
 
-Themes reference **baseTemplate** (built-in id). **Site configuration** should set **`template.frontendTemplate`** for the visitor pack; **`template.activeTemplate`** remains for backward compatibility. Resolution order everywhere that matters: **`frontendTemplate ?? activeTemplate`** (matches `activeTemplate` store and `TemplateService.getActiveTemplateWithOverrides`). Admin uses a fixed shell — see [Admin vs visitor](#maintainer-admin-vs-visitor). Invalid ids are rejected on `PUT /api/admin/site-config`.
+Themes reference **baseTemplate** (built-in id). **Site configuration** should set **`template.frontendTemplate`** for the visitor pack; **`template.activeTemplate`** remains for backward compatibility. Resolution order everywhere that matters: **`frontendTemplate ?? activeTemplate`** (matches the `activeTemplate` store). Admin uses a fixed shell — see [Admin vs visitor](#maintainer-admin-vs-visitor). Invalid ids are rejected on `PUT /api/admin/site-config`.
 
 ### 6. Optional: loader validation
 
-`PUBLIC_ENABLE_TEMPLATE_PACK_LOADER=true` enables stricter checks in `frontend/src/services/template.ts` (`validateTemplateConfig`) for legacy static `TemplateConfig` shapes.
+Removed. `PUBLIC_ENABLE_TEMPLATE_PACK_LOADER` gated `validateTemplateConfig` in `frontend/src/services/template.ts`, which no longer exists — the legacy static `TemplateConfig` shapes it checked are gone. The flag has no effect.
 
 ### 7. Verify
 

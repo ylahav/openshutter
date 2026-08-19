@@ -152,6 +152,37 @@ const albums = await db.collection('albums').find(query).toArray()
 
 ## Frontend Implementation
 
+### Role Gate (single source of truth)
+
+Location: `frontend/src/lib/server/admin-access.ts`. Every role decision on the
+SvelteKit side goes through it — there are no inline `role !== 'admin'` checks in
+route handlers.
+
+| Export | Use |
+|---|---|
+| `isAdmin(user)` | admin only |
+| `isAdminOrOwner(user)` | admin or Editor |
+| `isOwner(user)` | Editor only — deliberately excludes admins, for endpoints scoped to "this Editor's own thing" (dedicated storage, owner analytics) where an admin has no such subject |
+| `requireAdmin(locals)` | returns a 401 `Response` for `/api` handlers to return as-is, or `null` to proceed |
+| `requireAdminOrOwner(locals)` | same, admin-or-Editor |
+| `ownerCanAccessAdminPath(path)` | which `/admin` **pages** an Editor may open; consumed by `hooks.server.ts` and `routes/admin/+layout.server.ts` |
+
+**Rule:** a proxy route's gate must mirror the `@UseGuards` on the NestJS
+controller it forwards to. It may be equally strict, never stricter — a stricter
+proxy 401s before the backend is ever reached, silently removing a capability the
+backend was written to serve. It must never be looser either; the backend still
+enforces per-record ownership on writes.
+
+`ownerCanAccessAdminPath` matches on **prefixes**, so a new page whose path
+extends an allowed prefix (anything under `/admin/storage`, say) is granted to
+Editors implicitly. `admin-access.test.ts` pins every `/admin` page route that
+exists today on one side or the other; add new routes there deliberately.
+
+Note the page allowlist is intentionally broader than some of the APIs behind it:
+an Editor can open `/admin/pages` and `/admin/templates`, but `pages.controller.ts`
+and `templates.controller.ts` are `AdminGuard`, so the page renders and the data
+does not load. That is an open product question, not a gate bug.
+
 ### Role-Based Redirects
 Location: `frontend/src/lib/page-builder/modules/LoginForm/Layout.svelte` (client login redirect) and `frontend/src/hooks.server.ts` (server-side `/member` and legacy `/owner/*` handlers).
 

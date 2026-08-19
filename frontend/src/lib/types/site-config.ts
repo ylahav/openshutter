@@ -24,7 +24,7 @@ export interface SiteConfig {
     activeThemeId?: string
     /**
      * Legacy field; still written by some admin flows. **Effective visitor pack** is
-     * `frontendTemplate ?? activeTemplate` (same order as `$stores/template` / `active-template.svelte.ts` and `TemplateService.getActiveTemplateWithOverrides`).
+     * `frontendTemplate ?? activeTemplate` (same order as `$stores/template` / `active-template.svelte.ts`).
      */
     activeTemplate?: string
     /** Canonical visitor pack id (`noir` | `studio` | `atelier`). Preferred over `activeTemplate`. */
