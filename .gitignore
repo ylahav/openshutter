@@ -24,8 +24,11 @@ Thumbs.db
 *.swp
 *.swo
 
-# Claude Code local settings
-.claude/local*
+# Claude Code (local settings, worktrees, agent scratch)
+.claude/
+
+# Graphify knowledge-graph output
+graphify-out/
 
 # SvelteKit build artifacts (in frontend/)
 frontend/.svelte-kit/
