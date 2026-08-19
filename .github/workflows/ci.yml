@@ -41,6 +41,9 @@ jobs:
       - name: TypeScript (frontend)
         run: pnpm type-check
 
+      - name: Unit tests (frontend)
+        run: pnpm --filter openshutter vitest run
+
       - name: Production build (NestJS + SvelteKit)
         env:
           # hooks.server.ts reads AUTH_JWT_SECRET at module scope and throws when it
