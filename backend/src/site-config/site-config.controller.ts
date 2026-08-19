@@ -1,4 +1,5 @@
-import { Controller, Get, Put, Body, Post, Req, UseInterceptors, UploadedFile, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Put, Body, Post, Req, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { AdminGuard } from '../common/guards/admin.guard';
 import { Request } from 'express';
 import mongoose, { Types } from 'mongoose';
 import { connectDB } from '../config/db';
@@ -148,6 +149,7 @@ export class SiteConfigController {
    * 
    * Path: GET /api/admin/site-config
    */
+  @UseGuards(AdminGuard)
   @Get('admin/site-config')
   async getAdminConfig() {
     try {
@@ -183,6 +185,7 @@ export class SiteConfigController {
    * 
    * Path: PUT /api/admin/site-config
    */
+  @UseGuards(AdminGuard)
   @Put('admin/site-config')
   async updateConfig(@Body() updates: SiteConfigUpdate) {
     const config = await siteConfigService.updateConfig(updates);
@@ -211,6 +214,7 @@ export class SiteConfigController {
    * 
    * Path: POST /api/admin/site-config/upload-asset
    */
+  @UseGuards(AdminGuard)
   @Post('admin/site-config/upload-asset')
   @UseInterceptors(FileInterceptor('file', {
     limits: {
@@ -285,6 +289,7 @@ export class SiteConfigController {
    * Path: POST /api/admin/site-config/test-email
    * Body: { to: string, subject?: string, body?: string }
    */
+  @UseGuards(AdminGuard)
   @Post('admin/site-config/test-email')
   async sendTestEmail(
     @Body() body: { to: string; subject?: string; body?: string },
@@ -301,6 +306,7 @@ export class SiteConfigController {
    *
    * Path: GET /api/admin/languages
    */
+  @UseGuards(AdminGuard)
   @Get('admin/languages')
   async getAvailableLanguages() {
     // Return supported languages with metadata
