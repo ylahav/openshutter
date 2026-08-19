@@ -90,6 +90,45 @@ export class PhotosAdminController {
 	}
 
 	/**
+	 * Batched ownership gate for bulk endpoints. Admins bypass. For an owner, every
+	 * referenced photo must belong to an album the owner created; otherwise throws
+	 * ForbiddenException (fail-closed — one foreign photo rejects the whole request).
+	 * Resolves album ownership in a single query instead of once per photo.
+	 */
+	private async assertOwnerCanAccessPhotos(
+		req: Request,
+		photos: any[],
+		db: MongoDb,
+	): Promise<void> {
+		const user = (req as any).user;
+		if (user?.role === 'admin') return;
+		if (user?.role !== 'owner' || !user?.id) {
+			throw new ForbiddenException('Access denied');
+		}
+		if (photos.some((p) => !p.albumId)) {
+			throw new ForbiddenException('One or more photos have no album');
+		}
+		const albumIds = [...new Set(photos.map((p) => String(p.albumId)))];
+		const objectAlbumIds = albumIds
+			.filter((a) => Types.ObjectId.isValid(a))
+			.map((a) => new Types.ObjectId(a));
+		const albums = await db
+			.collection('albums')
+			.find({ _id: { $in: objectAlbumIds } })
+			.project({ _id: 1, createdBy: 1 })
+			.toArray();
+		const ownedAlbumIds = new Set<string>();
+		for (const album of albums) {
+			const createdBy = album.createdBy?.toString?.() ?? album.createdBy;
+			if (createdBy === user.id) ownedAlbumIds.add(String(album._id));
+		}
+		// Any referenced album that is missing or not owned rejects the request.
+		if (albumIds.some((a) => !ownedAlbumIds.has(a))) {
+			throw new ForbiddenException('You can only manage photos in albums you created');
+		}
+	}
+
+	/**
 	 * Translate stored face detection rectangles and landmarks from the original-image
 	 * coordinate system into the cropped-image coordinate system.
 	 *
@@ -579,7 +618,7 @@ export class PhotosAdminController {
 	 * Path: POST /api/admin/photos/bulk-update
 	 */
 	@Post('bulk-update')
-	async bulkUpdatePhotos(@Body() body: { photoIds: string[]; updates: any }) {
+	async bulkUpdatePhotos(@Body() body: { photoIds: string[]; updates: any }, @Req() req: Request) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -598,6 +637,14 @@ export class PhotosAdminController {
 				}
 				return new Types.ObjectId(id);
 			});
+
+			// Ownership gate: owners may only update photos in albums they created (admins bypass).
+			const photosForAcl = await db
+				.collection('photos')
+				.find({ _id: { $in: objectIds } })
+				.project({ _id: 1, albumId: 1 })
+				.toArray();
+			await this.assertOwnerCanAccessPhotos(req, photosForAcl, db);
 
 			// Prepare update object
 			const update: any = {
@@ -677,7 +724,7 @@ export class PhotosAdminController {
 			};
 		} catch (error) {
 			this.logger.error('Failed to bulk update photos:', error);
-			if (error instanceof BadRequestException) {
+			if (error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(
@@ -691,7 +738,7 @@ export class PhotosAdminController {
 	 * Path: POST /api/admin/photos/bulk/re-extract-exif
 	 */
 	@Post('bulk/re-extract-exif')
-	async bulkReExtractExif(@Body() body: { photoIds: string[] }) {
+	async bulkReExtractExif(@Body() body: { photoIds: string[] }, @Req() req: Request) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -710,6 +757,7 @@ export class PhotosAdminController {
 			});
 
 			const photos = await db.collection('photos').find({ _id: { $in: objectIds } }).toArray();
+			await this.assertOwnerCanAccessPhotos(req, photos, db);
 			let processedCount = 0;
 			let failedCount = 0;
 			const errors: { photoId: string; error: string }[] = [];
@@ -737,7 +785,7 @@ export class PhotosAdminController {
 			};
 		} catch (error) {
 			this.logger.error(`Bulk re-extract EXIF failed: ${error instanceof Error ? error.message : String(error)}`);
-			if (error instanceof BadRequestException) {
+			if (error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(
@@ -751,7 +799,7 @@ export class PhotosAdminController {
 	 * Path: POST /api/admin/photos/bulk/regenerate-thumbnails
 	 */
 	@Post('bulk/regenerate-thumbnails')
-	async bulkRegenerateThumbnails(@Body() body: { photoIds: string[] }) {
+	async bulkRegenerateThumbnails(@Body() body: { photoIds: string[] }, @Req() req: Request) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -770,6 +818,7 @@ export class PhotosAdminController {
 			});
 
 			const photos = await db.collection('photos').find({ _id: { $in: objectIds } }).toArray();
+			await this.assertOwnerCanAccessPhotos(req, photos, db);
 			let processedCount = 0;
 			let failedCount = 0;
 			const errors: { photoId: string; error: string }[] = [];
@@ -863,7 +912,7 @@ export class PhotosAdminController {
 			};
 		} catch (error) {
 			this.logger.error(`Bulk regenerate thumbnails failed: ${error instanceof Error ? error.message : String(error)}`);
-			if (error instanceof BadRequestException) {
+			if (error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(
@@ -880,6 +929,7 @@ export class PhotosAdminController {
 	async bulkRegenerateThumbnailsStream(
 		@Body() body: { photoIds: string[] },
 		@Res({ passthrough: false }) res: Response,
+		@Req() req: Request,
 	) {
 		const send = (obj: object) => {
 			res.write(JSON.stringify(obj) + '\n');
@@ -903,6 +953,18 @@ export class PhotosAdminController {
 				return new Types.ObjectId(id);
 			});
 			const photos = await db.collection('photos').find({ _id: { $in: objectIds } }).toArray();
+			// Ownership gate BEFORE streaming headers are flushed, so a rejection returns a
+			// clean JSON status instead of a 200 NDJSON error line (owners: own-album photos only).
+			try {
+				await this.assertOwnerCanAccessPhotos(req, photos, db);
+			} catch (aclErr) {
+				const status = aclErr instanceof ForbiddenException ? 403 : 500;
+				res.status(status).json({
+					success: false,
+					error: aclErr instanceof Error ? aclErr.message : 'Access denied',
+				});
+				return;
+			}
 			const total = photos.length;
 			let processedCount = 0;
 			let failedCount = 0;
@@ -2019,7 +2081,7 @@ export class PhotosAdminController {
 	 * Path: POST /api/admin/photos/:id/regenerate-thumbnails
 	 */
 	@Post(':id/regenerate-thumbnails')
-	async regenerateThumbnails(@Param('id') id: string) {
+	async regenerateThumbnails(@Param('id') id: string, @Req() req: Request) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -2037,6 +2099,8 @@ export class PhotosAdminController {
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
 			}
+
+			await this.assertOwnerCanAccessPhoto(req, photo, db);
 
 			if (!photo.storage || !photo.storage.path || !photo.storage.provider) {
 				throw new BadRequestException('Photo does not have valid storage information');
@@ -2181,7 +2245,7 @@ export class PhotosAdminController {
 			};
 		} catch (error) {
 			this.logger.error('Failed to regenerate thumbnails:', error);
-			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+			if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(
@@ -2195,7 +2259,7 @@ export class PhotosAdminController {
 	 * Path: POST /api/admin/photos/:id/re-extract-exif
 	 */
 	@Post(':id/re-extract-exif')
-	async reExtractExif(@Param('id') id: string) {
+	async reExtractExif(@Param('id') id: string, @Req() req: Request) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -2212,6 +2276,7 @@ export class PhotosAdminController {
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
 			}
+			await this.assertOwnerCanAccessPhoto(req, photo, db);
 			if (!photo.storage?.path) {
 				throw new BadRequestException('Photo does not have storage path');
 			}
@@ -2256,7 +2321,7 @@ export class PhotosAdminController {
 			};
 		} catch (error) {
 			this.logger.error(`Failed to re-extract EXIF: ${error instanceof Error ? error.message : String(error)}`);
-			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+			if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(
