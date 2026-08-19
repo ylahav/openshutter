@@ -42,4 +42,10 @@ jobs:
         run: pnpm type-check
 
       - name: Production build (NestJS + SvelteKit)
+        env:
+          # hooks.server.ts reads AUTH_JWT_SECRET at module scope and throws when it
+          # is missing — deliberate fail-fast, so the build needs *a* value present.
+          # Build-time placeholder only: nothing is signed or verified here, and this
+          # value never reaches a deployed artifact.
+          AUTH_JWT_SECRET: ci-build-placeholder-not-a-real-secret
         run: pnpm build
