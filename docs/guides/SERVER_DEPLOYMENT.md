@@ -523,19 +523,19 @@ server {
         proxy_read_timeout 300s;
     }
 
-    location /api/ {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_connect_timeout 300s;
-        proxy_send_timeout 300s;
-        proxy_read_timeout 300s;
-    }
 }
 ```
+
+> ⚠️ **One `location` block. Do not add `location /api/ { proxy_pass http://localhost:5000; }`.**
+>
+> `/api/*` is served by **SvelteKit**, not NestJS. The routes under
+> `frontend/src/routes/api/` are the production API surface: they authenticate the
+> caller (`frontend/src/lib/server/admin-access.ts`) and then call NestJS
+> server-side via `BACKEND_URL`. Splitting `/api/` off to port 5000 sends the
+> public straight past that authentication layer.
+>
+> Keep port 5000 bound to localhost and closed at the firewall — NestJS is an
+> internal service and should never be reachable from the internet.
 
 **SvelteKit body limit:** the frontend process needs **`BODY_SIZE_LIMIT`** (e.g. `100M`) when uploads hit `/api/photos/upload` on the Node server—see [`PHOTO_UPLOAD.md`](./PHOTO_UPLOAD.md). **`ecosystem.config.js`** should set it **after** spreading `.env.production` so env files do not override it accidentally.
 

@@ -38,7 +38,12 @@ pnpm vitest             # watch mode
 
 ### Request flow
 
-The frontend dev server proxies `/api/*` to the NestJS backend, with exceptions for routes that SvelteKit handles directly (auth login, storage admin, album creation, hierarchy). See `frontend/vite.config.ts` `proxy.bypass` for the full exclusion list. In production, a reverse proxy (e.g. Nginx) handles this split.
+**Dev and production route `/api/*` differently. This matters, and it bites.**
+
+- **Production:** nginx has a single `location /` sending *everything* to SvelteKit on :4000. NestJS on :5000 is never proxied — it is reached only server-side via `BACKEND_URL`. So the routes under `frontend/src/routes/api/` **are** the production API surface: they authenticate the caller (`$lib/server/admin-access.ts`), then call the backend. See `docs/guides/nginx-openshutter.conf` — and never split `/api/` off to :5000, which would route the public past that auth layer.
+- **Dev:** the Vite dev server proxies `/api/*` straight to NestJS *except* for a short bypass list (auth login, storage admin, storage-options, translations, album creation, hierarchy). See `frontend/vite.config.ts` `proxy.bypass`.
+
+Consequence: for most routes, a request in dev **skips the SvelteKit handler entirely** and its role gate never runs, while in production that same gate is the thing enforcing access. A green auth test against the dev server is not evidence about production. To exercise a proxy route's gate locally, either add it to `proxy.bypass` temporarily, or run the built app — `pnpm build && pnpm start`. `proxy.bypass` lives under Vite's `server` config, so neither `vite preview` nor the adapter-node server (`node build/index.js`) applies it, and `/api/*` reaches the SvelteKit handlers exactly as it does in production.
 
 ### Frontend path aliases
 
