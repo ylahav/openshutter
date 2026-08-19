@@ -1,8 +1,12 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { adminBtnPrimary } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
 
-	let { status, error }: { status: number; error: Error & { message?: string } } = $props();
+	// SvelteKit route components only receive `data`/`form` as props — status and
+	// error come from the page store, not $props().
+	let status = $derived($page.status);
+	let error = $derived($page.error);
 </script>
 
 <div

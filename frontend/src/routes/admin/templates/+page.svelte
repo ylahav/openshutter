@@ -49,10 +49,9 @@
 		updatedAt?: string;
 	}
 
-	let themes = $state<Theme[]>([]);
-	$effect(() => {
-		themes = ($pd.themes ?? []) as Theme[];
-	});
+	// Writable $derived: re-syncs when $pd.themes changes, but local assignments
+	// (e.g. optimistic insert after create) hold until then.
+	let themes = $derived(($pd.themes ?? []) as Theme[]);
 
 	let loading = $state(false);
 	let showCreateModal = $state(false);

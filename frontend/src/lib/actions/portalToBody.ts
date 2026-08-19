@@ -1,4 +1,4 @@
-import type { Action } from 'svelte';
+import type { Action } from 'svelte/action';
 
 /** Move an element to `document.body` so fixed overlays escape admin layout stacking contexts. */
 export const portalToBody: Action<HTMLElement> = (node) => {

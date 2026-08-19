@@ -4,7 +4,6 @@
 	import AdminAlbumTreeRow from '$lib/components/AdminAlbumTreeRow.svelte';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
-	import { untrack } from 'svelte';
 
 	function nodeIdStr(id: string | unknown): string {
 		return String(id);
@@ -58,7 +57,9 @@
 	type FlatAlbumTreeNode = AlbumTreeNode & { displayDepth: number; hasChildNodes: boolean };
 
 	let expandedNodesOverride = $state<Set<string> | null>(null);
-	let localAlbums = $state(untrack(() => albums));
+	// Writable $derived: re-syncs when `albums` changes, but local reorder edits
+	// hold until then (previously $state + an $effect that assigned `albums`).
+	let localAlbums = $derived(albums);
 	let flatItemsForDnd = $state<Array<FlatAlbumTreeNode & { id: string }>>([]);
 	let isDragging = $state(false);
 
@@ -404,10 +405,6 @@
 		}
 		isDragging = false;
 	}
-
-	$effect(() => {
-		localAlbums = albums;
-	});
 
 	const albumsSignature = $derived(albums.map((a) => nodeIdStr(a._id)).sort().join('|'));
 	let lastAlbumsSignature = $state('');

@@ -191,6 +191,9 @@
 	let saving = false;
 	let resetting = false;
 	let activeTab = 'colors';
+	// The "Page structure" tab is not shipped yet. Kept behind an explicit flag
+	// rather than deleted so it can be re-enabled without digging it out of git.
+	let pagesTabEnabled = false;
 	let hasChanges = false;
 
 	/** Phase 5: replace `confirm()` with Skeleton admin dialogs */
@@ -3757,7 +3760,7 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 						</div>
 					{/if}
-				{:else if false && activeTab === 'pages'}
+				{:else if pagesTabEnabled && activeTab === 'pages'}
 					<div class="space-y-6">
 						<h2 class="text-xl font-semibold text-(--color-surface-950-50)">Page structure</h2>
 						<p class="text-sm text-(--color-surface-600-400) max-w-3xl">
