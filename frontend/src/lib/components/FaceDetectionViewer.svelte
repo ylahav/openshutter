@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { FaceRecognitionService, type FaceDetection } from '../../services/face-recognition';
+	import { FaceRecognitionService, type FaceDetection } from '$lib/services/face-recognition';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';

@@ -2,6 +2,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
+
+// `__dirname` is a CJS global that Vite only shims when bundling the config.
+// Derive it from import.meta.url so `configLoader: 'native'` works too.
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Get configuration from environment variables (for development)
 // These are only used during development - production uses adapter-node
@@ -34,7 +39,7 @@ export default defineConfig({
 			// Allow serving files from the project root (for pnpm workspace)
 			allow: [
 				'..',
-				path.resolve(__dirname, '..'),
+				path.resolve(dirname, '..'),
 			],
 		},
 		proxy: {
