@@ -24,8 +24,8 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1",
-    "concurrently": "^10.0.3"
+    "@playwright/test": "^1.62.1",
+    "concurrently": "^10.0.5"
   },
   "keywords": [
     "photo-gallery",
