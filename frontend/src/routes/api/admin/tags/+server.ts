@@ -3,12 +3,12 @@ import type { RequestHandler } from './$types';
 import { backendGet, backendPost, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdminOrOwner } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
-		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdminOrOwner(locals);
+		if (denied) return denied;
 
 		const searchParams = url.searchParams;
 
@@ -52,9 +52,8 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
-		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdminOrOwner(locals);
+		if (denied) return denied;
 
 		const body = await request.json();
 

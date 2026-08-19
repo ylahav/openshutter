@@ -3,10 +3,11 @@ import type { RequestHandler } from './$types';
 import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { isAdminOrOwner } from '$lib/server/admin-access';
 
 export const POST: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
-		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
+		if (!isAdminOrOwner(locals.user)) {
 			return json({ success: false, error: 'Insufficient permissions' }, { status: 403 });
 		}
 

@@ -1,11 +1,12 @@
 import type { RequestHandler } from './$types';
 import { backendRequest } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
+import { isAdminOrOwner } from '$lib/server/admin-access';
 
 /** Proxies to backend streaming endpoint and returns NDJSON progress stream */
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
-		if (!locals.user || locals.user.role !== 'admin') {
+		if (!isAdminOrOwner(locals.user)) {
 			return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }

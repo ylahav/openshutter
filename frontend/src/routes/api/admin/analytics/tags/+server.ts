@@ -3,13 +3,13 @@ import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdminOrOwner } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdminOrOwner(locals);
+		if (denied) return denied;
 
 		const search = url.searchParams.toString();
 		const query = search ? `?${search}` : '';

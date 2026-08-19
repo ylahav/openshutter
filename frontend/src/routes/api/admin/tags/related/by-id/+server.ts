@@ -3,12 +3,12 @@ import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdminOrOwner } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdminOrOwner(locals);
+		if (denied) return denied;
 
 		const tagId = url.searchParams.get('tagId');
 		const limit = url.searchParams.get('limit') || '8';

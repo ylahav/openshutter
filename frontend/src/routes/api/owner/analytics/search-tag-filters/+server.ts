@@ -3,10 +3,11 @@ import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { isOwner } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 	try {
-		if (!locals.user || locals.user.role !== 'owner') {
+		if (!isOwner(locals.user)) {
 			return json(
 				{ success: false, error: 'Owner access only', code: 'OWNER_ONLY' },
 				{ status: 403 },

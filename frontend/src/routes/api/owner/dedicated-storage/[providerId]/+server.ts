@@ -3,11 +3,12 @@ import type { RequestHandler } from './$types';
 import { backendRequest, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { isOwner } from '$lib/server/admin-access';
 
 /** PUT /api/owner/dedicated-storage/:providerId */
 export const PUT: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
-		if (!locals.user || locals.user.role !== 'owner') {
+		if (!isOwner(locals.user)) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 		const body = await request.json();

@@ -1,34 +1,7 @@
 import type { LayoutServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
-
-/**
- * Paths owners (Editor role) can access.
- * Everything content + templating; system-level pages (users, groups, site-config, backup-restore,
- * audit-logs, marketplace, modules, translations, import-sync, docs) stay admin-only.
- * Backend must still enforce ownership on write endpoints and keep destructive/system ops on AdminGuard.
- */
-function ownerCanAccess(pathname: string): boolean {
-	if (pathname === '/admin' || pathname === '/admin/') return true;
-	if (pathname.startsWith('/admin/albums')) return true;
-	if (pathname.startsWith('/admin/photos/upload')) return true;
-	if (/^\/admin\/photos\/[^/]+\/edit\/?$/.test(pathname)) return true;
-	if (pathname.startsWith('/admin/videos')) return true;
-	if (pathname.startsWith('/admin/storage')) return true;
-	if (pathname.startsWith('/admin/tags')) return true;
-	if (pathname.startsWith('/admin/people')) return true;
-	if (pathname.startsWith('/admin/locations')) return true;
-	if (pathname.startsWith('/admin/blog')) return true;
-	if (pathname.startsWith('/admin/contact-submissions')) return true;
-	if (pathname.startsWith('/admin/analytics')) return true;
-	if (pathname.startsWith('/admin/pages')) return true;
-	if (pathname.startsWith('/admin/templates')) return true;
-	if (pathname.startsWith('/admin/theme-layout')) return true;
-	if (pathname.startsWith('/admin/theme')) return true;
-	if (pathname.startsWith('/admin/site-settings')) return true;
-	if (pathname.startsWith('/admin/profile')) return true;
-	return false;
-}
+import { ownerCanAccessAdminPath } from '$lib/server/admin-access';
 
 export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	if (!locals.user) {
@@ -59,7 +32,7 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 		}
 	}
 	// Owners: album management, photo upload/edit, and storage; admins: all admin routes
-	if (locals.user.role === 'owner' && !ownerCanAccess(url.pathname)) {
+	if (locals.user.role === 'owner' && !ownerCanAccessAdminPath(url.pathname)) {
 		// Authenticated Editor hitting an admin-only route: bounce to the admin home, not login.
 		throw redirect(303, '/admin');
 	}

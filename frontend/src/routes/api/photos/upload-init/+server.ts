@@ -3,15 +3,15 @@ import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdminOrOwner } from '$lib/server/admin-access';
 
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 const API_BASE = `${BACKEND_URL}/api`;
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
-		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdminOrOwner(locals);
+		if (denied) return denied;
 		const body = await request.json();
 		const authToken = cookies.get('auth_token');
 		const headers: HeadersInit = { 'Content-Type': 'application/json' };

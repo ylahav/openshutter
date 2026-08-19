@@ -7,15 +7,15 @@ import { promisify } from 'util';
 import yauzl from 'yauzl';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdmin } from '$lib/server/admin-access';
 
 const pipelineAsync = promisify(pipeline);
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const formData = await request.formData();
 		const file = formData.get('backup') as File;

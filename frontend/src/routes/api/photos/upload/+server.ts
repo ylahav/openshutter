@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdminOrOwner } from '$lib/server/admin-access';
 
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 const API_BASE = `${BACKEND_URL}/api`;
@@ -27,9 +28,8 @@ function backendErrorMessage(data: unknown, statusText: string): string {
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
 		// Require admin or owner (owners can upload to their albums)
-		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdminOrOwner(locals);
+		if (denied) return denied;
 
 		// Get FormData from request
 		const formData = await request.formData();

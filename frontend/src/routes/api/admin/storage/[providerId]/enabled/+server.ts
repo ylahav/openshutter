@@ -2,11 +2,12 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendPatch } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
+import { isAdmin } from '$lib/server/admin-access';
 
 /** PATCH /api/admin/storage/:providerId/enabled → Nest PATCH /api/admin/storage/:providerId/enabled */
 export const PATCH: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
-		if (!locals.user || locals.user.role !== 'admin') {
+		if (!isAdmin(locals.user)) {
 			return json({ message: 'Unauthorized' }, { status: 401 });
 		}
 

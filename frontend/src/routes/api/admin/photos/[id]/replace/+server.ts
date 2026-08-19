@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { backendRequest, parseBackendResponse, AuthenticationError } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdminOrOwner } from '$lib/server/admin-access';
 
 /**
  * Replace the image binary behind a photo. Forwards a multipart `file` field to
@@ -14,9 +15,8 @@ import { parseError } from '$lib/utils/errorHandler';
  */
 export const POST: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
-		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdminOrOwner(locals);
+		if (denied) return denied;
 		const { id } = await params;
 		if (!id) {
 			return json({ success: false, error: 'Photo id is required' }, { status: 400 });

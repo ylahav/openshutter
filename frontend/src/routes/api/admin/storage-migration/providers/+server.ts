@@ -1,9 +1,10 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { isAdmin } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {
-	if (!locals.user || locals.user.role !== 'admin') {
+	if (!isAdmin(locals.user)) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 	const response = await backendGet('/admin/storage-migration/providers', { cookies });

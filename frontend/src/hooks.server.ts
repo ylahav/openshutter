@@ -2,6 +2,7 @@ import type { Handle } from '@sveltejs/kit';
 import { jwtVerify } from 'jose';
 import { env } from '$env/dynamic/private';
 import { resolveSiteContext } from '$lib/server/site-context';
+import { ownerCanAccessAdminPath } from '$lib/server/admin-access';
 
 // Simple static JWT secret - matches backend
 // Frontend only uses this for UI state (showing user info)
@@ -69,31 +70,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		if (!event.locals.user) {
 			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
 		}
-		// Owners (Editor role): content + templating routes. System-level pages
-		// (users, groups, site-config, backup-restore, audit-logs, marketplace, modules,
-		// translations, import-sync, docs) stay admin-only. Backend guards enforce
-		// ownership on writes and keep destructive/system ops on AdminGuard.
-		const ownerAllowed =
-			path === '/admin' ||
-			path === '/admin/' ||
-			path.startsWith('/admin/albums') ||
-			path.startsWith('/admin/photos/upload') ||
-			/^\/admin\/photos\/[^/]+\/edit\/?$/.test(path) ||
-			path.startsWith('/admin/videos') ||
-			path.startsWith('/admin/storage') ||
-			path.startsWith('/admin/tags') ||
-			path.startsWith('/admin/people') ||
-			path.startsWith('/admin/locations') ||
-			path.startsWith('/admin/blog') ||
-			path.startsWith('/admin/contact-submissions') ||
-			path.startsWith('/admin/analytics') ||
-			path.startsWith('/admin/pages') ||
-			path.startsWith('/admin/templates') ||
-			path.startsWith('/admin/theme-layout') ||
-			path.startsWith('/admin/theme') ||
-			path.startsWith('/admin/site-settings') ||
-			path.startsWith('/admin/profile');
-		if (event.locals.user.role === 'owner' && !ownerAllowed) {
+		if (event.locals.user.role === 'owner' && !ownerCanAccessAdminPath(path)) {
 			// Authenticated Editor hitting an admin-only route: bounce to the admin home, not login.
 			return Response.redirect(new URL('/admin', event.url), 303);
 		}

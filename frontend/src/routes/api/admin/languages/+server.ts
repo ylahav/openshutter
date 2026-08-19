@@ -5,6 +5,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdmin } from '$lib/server/admin-access';
 
 // Language metadata mapping
 const languageMetadata: Record<string, { name: string; flag: string }> = {
@@ -33,9 +34,8 @@ const languageMetadata: Record<string, { name: string; flag: string }> = {
 export const GET: RequestHandler = async ({ locals }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		// In production, i18n files are bundled, so we can't read them from disk
 		// Instead, we'll check multiple possible locations and fall back to metadata

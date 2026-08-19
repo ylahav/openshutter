@@ -2,11 +2,12 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
+import { isAdmin } from '$lib/server/admin-access';
 
 /** GET /api/admin/storage/:providerId/tree/status/:jobId */
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
-		if (!locals.user || locals.user.role !== 'admin') {
+		if (!isAdmin(locals.user)) {
 			return json({ message: 'Unauthorized' }, { status: 401 });
 		}
 

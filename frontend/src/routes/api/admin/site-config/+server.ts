@@ -3,13 +3,13 @@ import type { RequestHandler } from './$types';
 import { backendGet, backendPut, parseBackendResponse, AuthenticationError } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdmin } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const response = await backendGet('/admin/site-config', { cookies });
 		const config = await parseBackendResponse<any>(response);
@@ -34,9 +34,8 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 export const PUT: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const updates = await request.json();
 

@@ -3,13 +3,13 @@ import type { RequestHandler } from './$types';
 import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdmin } from '$lib/server/admin-access';
 
 export const POST: RequestHandler = async ({ locals, cookies }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const response = await backendPost('/admin/backup/database', {}, { cookies });
 		const result = await parseBackendResponse<{ success?: boolean; backup?: any; message?: string }>(response);

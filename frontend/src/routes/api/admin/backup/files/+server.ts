@@ -5,11 +5,12 @@ import { existsSync } from 'fs';
 import { ZipArchive } from 'archiver';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { isAdmin } from '$lib/server/admin-access';
 
 export const POST: RequestHandler = async ({ locals }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
+		if (!isAdmin(locals.user)) {
 			return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }

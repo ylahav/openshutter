@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { backendGet, backendPut, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { isAdmin, requireAdmin } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 	try {
@@ -18,7 +19,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 		});
 
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
+		if (!isAdmin(locals.user)) {
 			// Log for debugging
 			logger.warn('[Templates API] Unauthorized access attempt:', {
 				hasUser: !!locals.user,
@@ -101,9 +102,8 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 export const PUT: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const body = await request.json();
 		const { templateName } = body;

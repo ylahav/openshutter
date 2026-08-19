@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdminOrOwner } from '$lib/server/admin-access';
 
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 const API_BASE = `${BACKEND_URL}/api`;
@@ -10,9 +11,8 @@ const API_BASE = `${BACKEND_URL}/api`;
 /** POST /api/videos/[id]/poster → backend POST /videos/[id]/poster (multipart). */
 export const POST: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
-		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdminOrOwner(locals);
+		if (denied) return denied;
 		const { id } = params;
 		if (!id) return json({ success: false, error: 'Video ID is required' }, { status: 400 });
 

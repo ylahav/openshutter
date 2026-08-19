@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { backendRequest, parseBackendResponse, AuthenticationError } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdmin } from '$lib/server/admin-access';
 
 type UploadPackageResponse = {
 	success: boolean;
@@ -13,9 +14,8 @@ type UploadPackageResponse = {
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const formData = await request.formData();
 		const file = formData.get('file');

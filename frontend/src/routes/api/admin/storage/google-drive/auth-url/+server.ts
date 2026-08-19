@@ -1,13 +1,13 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet } from '$lib/utils/backend-api';
+import { requireAdmin } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const searchParams = url.searchParams;
 		const clientId = searchParams.get('clientId');

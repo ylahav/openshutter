@@ -3,11 +3,12 @@ import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { isAdminOrOwner } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {
 	try {
 		// Check owner/admin access
-		if (!locals.user || (locals.user.role !== 'owner' && locals.user.role !== 'admin')) {
+		if (!isAdminOrOwner(locals.user)) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 

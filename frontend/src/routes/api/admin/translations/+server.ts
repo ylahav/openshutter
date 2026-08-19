@@ -3,14 +3,14 @@ import type { RequestHandler } from './$types';
 import { backendGet, backendPost, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { requireAdmin } from '$lib/server/admin-access';
 
 // Translations API route handler
 export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const languageCode = url.searchParams.get('languageCode');
 		
@@ -49,9 +49,8 @@ export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 export const POST: RequestHandler = async ({ request, locals, cookies, url }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const body = await request.json();
 		
@@ -96,9 +95,8 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 export const PUT: RequestHandler = async ({ request, locals, cookies, url }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const languageCode = url.searchParams.get('languageCode');
 		if (!languageCode) {
@@ -126,9 +124,8 @@ export const PUT: RequestHandler = async ({ request, locals, cookies, url }) => 
 export const DELETE: RequestHandler = async ({ locals, cookies, url }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		const denied = requireAdmin(locals);
+		if (denied) return denied;
 
 		const languageCode = url.searchParams.get('languageCode');
 		if (!languageCode) {

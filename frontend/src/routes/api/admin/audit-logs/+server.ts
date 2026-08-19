@@ -3,11 +3,12 @@ import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
+import { isAdmin } from '$lib/server/admin-access';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
 		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
+		if (!isAdmin(locals.user)) {
 			return json({ success: false, error: 'Forbidden' }, { status: 403 });
 		}
 
